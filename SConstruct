@@ -48,3 +48,17 @@ for d in Split("lib tests examples "+pythonPath):
 
 scons.CleanTree(r"*~ core *.so *.os *.o *.pyc")
 
+Alias("install", [
+        #env.Install(env['prefix'], "doc"),
+        env.Install(env['prefix'], "etc"),
+        env.Install(env['prefix'], "examples"),
+        env.Install(env['prefix'], "include"),
+        env.Install(env['prefix'], "lib"),
+        env.Install(env['prefix'], "policy"),
+        env.Install(env['prefix'], "python"),
+        env.Install(env['prefix'], "src"),
+        env.Install(env['prefix'], "tests"),
+        env.InstallEups(os.path.join(env['prefix'], "ups")),
+    ])
+
+env.Declare()
