@@ -143,12 +143,15 @@ template<typename ExposureT>
 unsigned extendShapeHsm::HsmShapeAdapter<ExposureT>::measure(
                                                              std::string shearType ///< algorithm to use
                                                             ) {
-    char *cShearType = (char*) shearType.c_str();
-    unsigned status = general_shear_estimator(&_atlasImage, &_psfImage,
-                                              &_galaxyData, &_psfData,
-                                              cShearType, 0xe);
-    
-    return status;
+    try {
+        char *cShearType = (char*) shearType.c_str();
+        return  general_shear_estimator(&_atlasImage, &_psfImage,
+                                        &_galaxyData, &_psfData,
+                                        cShearType, 0xe);
+    } catch (lsst::pex::exceptions::RuntimeErrorException& e) {
+        LSST_EXCEPT_ADD(e, (boost::format("Using shape algorithm %s") % shearType).str());
+        throw e;
+    } 
 }
 
 

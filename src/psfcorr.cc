@@ -585,14 +585,10 @@ void qho1d_wf_1(long nx, double xmin, double xstep, long Nmax,
 
 #ifdef N_CHECKVAL
    if (nx<=0) {
-       throw LSST_EXCEPT(pexExcept::RuntimeErrorException, "Error: nx<=0 in qho1d_wf_1\n");
-       //fprintf(stderr,"Error: nx<=0 in qho1d_wf_1\n");
-       //exit(1);
+       throw LSST_EXCEPT(pexExcept::RuntimeErrorException, "Error: nx<=0 in qho1d_wf_1");
    }
    if (Nmax<0) {
-       throw LSST_EXCEPT(pexExcept::RuntimeErrorException, "Error: Nmax<=0 in qho1d_wf_1\n");
-       //fprintf(stderr,"Error: Nmax<0 in qho1d_wf_1\n");
-       //exit(1);
+       throw LSST_EXCEPT(pexExcept::RuntimeErrorException, "Error: Nmax<=0 in qho1d_wf_1");
    }
 #endif
 
@@ -726,9 +722,7 @@ void find_mom_2(RECT_IMAGE *data, FTYPE **moments, int max_order,
 
 #ifdef N_CHECKVAL
    if (epsilon <= 0) {
-       throw LSST_EXCEPT(pexExcept::RuntimeErrorException, "Error: epsilon out of range in find_mom_2.\n");
-       //fprintf(stderr,"Error: epsilon out of range in find_mom_2.\n");
-       //exit(1);
+       throw LSST_EXCEPT(pexExcept::RuntimeErrorException, "Error: epsilon out of range in find_mom_2");
    }
 #endif
 
@@ -824,9 +818,7 @@ void find_ellipmom_1(RECT_IMAGE *data, double x0, double y0, double Mxx,
    /* Compute M^{-1} for use in computing weights */
    detM = Mxx * Myy - Mxy * Mxy;
    if (detM<=0 || Mxx<=0 || Myy<=0) {
-       throw LSST_EXCEPT(pexExcept::RuntimeErrorException, "Error: non positive definite adaptive moments!\n");
-       //fprintf(stderr, "Error: non positive definite adaptive moments!\n");
-       //exit(1);
+       throw LSST_EXCEPT(pexExcept::RuntimeErrorException, "Error: non positive definite adaptive moments");
    }
    Minv_xx    =  Myy/detM;
    TwoMinv_xy = -Mxy/detM * 2.0;
@@ -911,9 +903,7 @@ void find_ellipmom_2(RECT_IMAGE *data, double *A, double *x0, double *y0,
 
 #ifdef N_CHECKVAL
    if (epsilon <= 0) {
-       throw LSST_EXCEPT(pexExcept::RuntimeErrorException, "Error: epsilon out of range in find_mom_2.\n");
-       //fprintf(stderr,"Error: epsilon out of range in find_mom_2.\n");
-       //exit(1);
+       throw LSST_EXCEPT(pexExcept::RuntimeErrorException, "Error: epsilon out of range in find_mom_2");
    }
 #endif
 
@@ -930,9 +920,7 @@ void find_ellipmom_2(RECT_IMAGE *data, double *A, double *x0, double *y0,
 
       if (semi_b2 <= 0) {
           throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
-                            "Error: non-positive-definite wieght in find_ellipmom_2.\n");
-          //fprintf(stderr,"Error: non positive-definite weight in find_ellipmom_2.\n");
-          //exit(1);
+                            "Error: non-positive-definite weight in find_ellipmom_2");
       }
 
       shiftscale = sqrt(semi_b2);
@@ -977,9 +965,7 @@ void find_ellipmom_2(RECT_IMAGE *data, double *A, double *x0, double *y0,
 #define MAX_ASHIFT 5.0
       if (fabs(*Mxx)>MAX_AMOMENT || fabs(*Mxy)>MAX_AMOMENT || fabs(*Myy)>MAX_AMOMENT
          || fabs(*x0-x00)>MAX_ASHIFT || fabs(*y0-y00)>MAX_ASHIFT) {
-          throw LSST_EXCEPT(pexExcept::RuntimeErrorException, "Error: adaptive moment failed\n");
-          //fprintf(stderr, "Error: adaptive moment failed\n");
-          //exit(1);
+          throw LSST_EXCEPT(pexExcept::RuntimeErrorException, "Error: adaptive moment failed");
          }
 
       if (++ *num_iter > MAX_MOM2_ITER) {
@@ -1712,8 +1698,12 @@ unsigned int psf_corr_regauss(RECT_IMAGE *gal_image, RECT_IMAGE *PSF, double *e1
    /* Get the elliptical adaptive moments of PSF */
    Mxxpsf = Myypsf = *sig_psf * *sig_psf;
    Mxypsf = 0.;
-   find_ellipmom_2(PSF, &A_g, x0_psf, y0_psf, &Mxxpsf, &Mxypsf, &Myypsf, &rho4psf,
-      1.0e-6, &num_iter);
+   try {
+       find_ellipmom_2(PSF, &A_g, x0_psf, y0_psf, &Mxxpsf, &Mxypsf, &Myypsf, &rho4psf, 1.0e-6, &num_iter);
+   } catch (lsst::pex::exceptions::RuntimeErrorException& e) {
+       LSST_EXCEPT_ADD(e, "Measuring PSF");
+       throw e;
+   } 
    if (num_iter == NUM_ITER_DEFAULT) {
       *x0_psf = x0_old;
       *y0_psf = y0_old;
@@ -1723,8 +1713,13 @@ unsigned int psf_corr_regauss(RECT_IMAGE *gal_image, RECT_IMAGE *PSF, double *e1
    /* Get the elliptical adaptive moments of galaxy */
    Mxxgal = Myygal = *sig_gal * *sig_gal;
    Mxygal = 0.;
-   find_ellipmom_2(gal_image, &A_I, x0_gal, y0_gal, &Mxxgal, &Mxygal, &Myygal, &rho4gal,
-      1.0e-6, &num_iter);
+   try {
+       find_ellipmom_2(gal_image, &A_I, x0_gal, y0_gal, &Mxxgal, &Mxygal, &Myygal,
+                       &rho4gal, 1.0e-6, &num_iter);
+   } catch (lsst::pex::exceptions::RuntimeErrorException& e) {
+       LSST_EXCEPT_ADD(e, "Measuring object");
+       throw e;
+   } 
    if (num_iter == NUM_ITER_DEFAULT) {
       *x0_gal = x0_old;
       *y0_gal = y0_old;
@@ -1861,10 +1856,12 @@ unsigned int psf_corr_regauss(RECT_IMAGE *gal_image, RECT_IMAGE *PSF, double *e1
    fast_convolve_image_1(&fgauss, &PSF_resid, &Iprime);
 
    /* Now that Iprime is constructed, we measure it */
-   find_ellipmom_2(&Iprime, &A_I, x0_gal, y0_gal, &Mxxgal, &Mxygal, &Myygal, &rho4gal,
-      1.0e-6, &num_iter);
-   //printf("%.8f %.8f %.8f  %.8f %.8f %.8f %d\n", A_I, *x0_gal, *y0_gal, Mxxgal, Myygal, rho4gal, num_iter);
-
+   try {
+       find_ellipmom_2(&Iprime, &A_I, x0_gal, y0_gal, &Mxxgal, &Mxygal, &Myygal, &rho4gal, 1.0e-6, &num_iter);
+   } catch (lsst::pex::exceptions::RuntimeErrorException& e) {
+       LSST_EXCEPT_ADD(e, "Measuring Iprime");
+       throw e;
+   } 
    
    if (num_iter == NUM_ITER_DEFAULT) {
       *x0_gal = x0_old;
@@ -2118,6 +2115,14 @@ unsigned int measure_shape_ext(RECT_IMAGE *gal_image, RECT_IMAGE *PSF, int max_o
  *
  * For BJ and LINEAR methods, returns 1 if measurement fails.
  */
+namespace {
+   enum { EST_BJ = 1,
+          EST_LINEAR = 2,
+          EST_KSB = 3,
+          EST_REGAUSS = 4,
+          EST_SHAPELET = 5
+   };
+}
 
 unsigned int general_shear_estimator(RECT_IMAGE *gal_image, RECT_IMAGE *PSF,
    OBJECT_DATA *gal_data, OBJECT_DATA *PSF_data, char *shear_est, unsigned long flags) {
@@ -2132,13 +2137,6 @@ unsigned int general_shear_estimator(RECT_IMAGE *gal_image, RECT_IMAGE *PSF,
 
    double epsilon = 1.0e-6;
    
-   /* Estimator macros */
-#define EST_BJ 1
-#define EST_LINEAR 2
-#define EST_KSB 3
-#define EST_REGAUSS 4
-#define EST_SHAPELET 5
-
    /* Figure out which estimator is wanted */
    length_shear_est = (int) strlen(shear_est);
    if (length_shear_est==0) return 0x4000;
@@ -2160,8 +2158,14 @@ unsigned int general_shear_estimator(RECT_IMAGE *gal_image, RECT_IMAGE *PSF,
 
    /* Measure the galaxy */
    Mxx_gal = Myy_gal = gal_data->sigma * gal_data->sigma; Mxy_gal = 0.;
-   find_ellipmom_2(gal_image, &A_gal, &(gal_data->x0), &(gal_data->y0), &Mxx_gal, &Mxy_gal,
-                   &Myy_gal, &rho4_gal, epsilon, &num_iter);
+   try {
+       find_ellipmom_2(gal_image, &A_gal, &(gal_data->x0), &(gal_data->y0), &Mxx_gal, &Mxy_gal,
+                       &Myy_gal, &rho4_gal, epsilon, &num_iter);
+   } catch (lsst::pex::exceptions::RuntimeErrorException& e) {
+       LSST_EXCEPT_ADD(e, "Measuring object");
+       throw e;
+   } 
+
    if (num_iter == NUM_ITER_DEFAULT) {
        return 1;
    } else {
@@ -2174,8 +2178,13 @@ unsigned int general_shear_estimator(RECT_IMAGE *gal_image, RECT_IMAGE *PSF,
    x0 = PSF_data->x0;
    y0 = PSF_data->y0;
    Mxx_psf = Myy_psf = PSF_data->sigma * PSF_data->sigma; Mxy_psf = 0.;
-   find_ellipmom_2(PSF, &A_psf, &x0, &y0, &Mxx_psf, &Mxy_psf, &Myy_psf,
-                   &rho4_psf, epsilon, &num_iter);
+   try {
+       find_ellipmom_2(PSF, &A_psf, &x0, &y0, &Mxx_psf, &Mxy_psf, &Myy_psf, &rho4_psf, epsilon, &num_iter);
+   } catch (lsst::pex::exceptions::RuntimeErrorException& e) {
+       LSST_EXCEPT_ADD(e, "Measuring PSF");
+       throw e;
+   } 
+       
    if (num_iter == NUM_ITER_DEFAULT) {
        return 1;
    } else {
@@ -2200,8 +2209,14 @@ unsigned int general_shear_estimator(RECT_IMAGE *gal_image, RECT_IMAGE *PSF,
          x0 = PSF_data->x0;
          y0 = PSF_data->y0;
          Mxx_psf = Myy_psf = PSF_data->sigma * PSF_data->sigma; Mxy_psf = 0.;
-         find_ellipmom_2(PSF, &A_psf, &x0, &y0, &Mxx_psf, &Mxy_psf, &Myy_psf,
-            &rho4_psf, epsilon, &num_iter);
+         try {
+             find_ellipmom_2(PSF, &A_psf, &x0, &y0, &Mxx_psf, &Mxy_psf, &Myy_psf, &rho4_psf,
+                             epsilon, &num_iter);
+         } catch (lsst::pex::exceptions::RuntimeErrorException& e) {
+             LSST_EXCEPT_ADD(e, "Measuring PSF");
+             throw e;
+         } 
+             
          if (num_iter == NUM_ITER_DEFAULT) {
             return 1;
          } else {
@@ -2214,8 +2229,14 @@ unsigned int general_shear_estimator(RECT_IMAGE *gal_image, RECT_IMAGE *PSF,
          x0 = gal_data->x0;
          y0 = gal_data->y0;
          Mxx_gal = Myy_gal = gal_data->sigma * gal_data->sigma; Mxy_gal = 0.;
-         find_ellipmom_2(gal_image, &A_gal, &x0, &y0, &Mxx_gal, &Mxy_gal,
-            &Myy_gal, &rho4_gal, epsilon, &num_iter);
+         try {
+             find_ellipmom_2(gal_image, &A_gal, &x0, &y0, &Mxx_gal, &Mxy_gal,
+                             &Myy_gal, &rho4_gal, epsilon, &num_iter);
+         } catch (lsst::pex::exceptions::RuntimeErrorException& e) {
+             LSST_EXCEPT_ADD(e, "Measuring object");
+             throw e;
+         } 
+             
          if (num_iter == NUM_ITER_DEFAULT) {
             return 1;
          } else {

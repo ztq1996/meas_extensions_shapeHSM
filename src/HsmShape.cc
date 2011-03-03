@@ -147,9 +147,9 @@ afwDetection::Shape::Ptr extendShapeHsm::HsmShape::doMeasure(
     //shape->setFlags(shape->getFlags() | Flags::SHAPE_UNWEIGHTED);
     extendShapeHsm::HsmShape::Ptr shape =
         extendShapeHsm::HsmShape::Ptr(new extendShapeHsm::HsmShape(x, xErr, y, yErr,
-                                                             ixx, ixxErr,
-                                                             ixy, ixyErr,
-                                                             iyy, iyyErr));
+                                                                   ixx, ixxErr,
+                                                                   ixy, ixyErr,
+                                                                   iyy, iyyErr));
 
     shape->set<SIGMA>(shearEst.getSigma());
     
