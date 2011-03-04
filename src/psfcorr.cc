@@ -963,15 +963,19 @@ void find_ellipmom_2(RECT_IMAGE *data, double *A, double *x0, double *y0,
       /* If the moments have gotten too large, or the centroid is out of range, report a failure */
 #define MAX_AMOMENT 5000.0
 #define MAX_ASHIFT 5.0
-      if (fabs(*Mxx)>MAX_AMOMENT || fabs(*Mxy)>MAX_AMOMENT || fabs(*Myy)>MAX_AMOMENT
-         || fabs(*x0-x00)>MAX_ASHIFT || fabs(*y0-y00)>MAX_ASHIFT) {
+      if (
+          fabs(*Mxx)>MAX_AMOMENT || fabs(*Mxy)>MAX_AMOMENT || fabs(*Myy)>MAX_AMOMENT ||
+          fabs(*x0-x00)>MAX_ASHIFT || fabs(*y0-y00)>MAX_ASHIFT ||
+          isnan(*Mxx) || isnan(*Myy) || isnan(*Mxy)
+         ) {
           throw LSST_EXCEPT(pexExcept::RuntimeErrorException, "Error: adaptive moment failed");
-         }
+      }
 
       if (++ *num_iter > MAX_MOM2_ITER) {
-         fprintf(stderr,"Warning: too many iterations in find_mom_2.\n");
-         convergence_factor = 0.;
-         *num_iter = NUM_ITER_DEFAULT;
+          throw LSST_EXCEPT(pexExcept::RuntimeErrorException, "Error: exceeded max iterations in find_mom_2.\n");
+          //fprintf(stderr,"Warning: too many iterations in find_mom_2.\n");
+          //convergence_factor = 0.;
+          //*num_iter = NUM_ITER_DEFAULT;
       }
    }
 
