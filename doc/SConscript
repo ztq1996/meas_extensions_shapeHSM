@@ -1,0 +1,9 @@
+# -*- python -*-
+Import('env')
+
+doxy = env.Doxygen("htmlDir", "doxygen.conf")
+## do I want to ignore anything?
+
+#env.Ignore(doxy, Glob("../python/lsst/meas/algorithms/*_wrap.cc"))
+
+

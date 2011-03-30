@@ -1,0 +1,181 @@
+/**
+\mainpage lsst::shapeHSM;  method for shape estimation
+
+\section secIntro Introduction
+
+
+These are the methods used for shape estimation: 
+   -  <b>The re-gaussianisation estimator.</b> 
+  Takes in galaxy and PSF images and computes a PSF-corrected ellipticity (e1,e2) using the re-Gaussianization method of <a href = "http://arxiv.org/abs/astro-ph/0301054">Hirata & Seljak (2003) </a>.  The ellipticity computed corresponds to <a href = "http://arxiv.org/abs/astro-ph/0107431">Bernstein & Jarvis (2002)</a> definition.
+
+   - <b>Bernstein and Jarvis estimator. </b>
+This routine cleans up the PSF by shearing to the circular-PSF frame, then applying the resolution factor, then un-shearing. According to <a href = "http://arxiv.org/abs/astro-ph/0107431">Bernstein and Jarvis (2002)</a>. 
+
+
+   -  <b>Linear estimator.</b>
+This routine cleans up the PSF by shearing to the circular-PSF frame, then applying the resolution factor, then un-shearing. See appendix B/C of <a href = "http://arxiv.org/abs/astro-ph/0301054">Hirata & Seljak (2003)</a> (but note that there is a complex-conjugation erros in all formulae in App. C which is corrected within this code). 
+ 
+   -  <b>KSB estimator.</b> 
+Uses the galaxy and PSF images to compute an estimator for the shear (e1,e2) using the method of <a href = "http://arxiv.org/abs/astro-ph/9411005"> Kaiser, Squires, and Broadhurst (1995)</a>, updated to include the anisotropic PSF correction of <a href = "http://arxiv.org/abs/astro-ph/9601194">Luppino and Kaiser (1997)</a>. 
+ 
+   -  <b>Shapelet basis estimator.</b> 
+Measures the ellipticity of a galaxy based on the <a href = "http://www.astro.caltech.edu/~rjm/shapelets/">shapelet method</a> described in <a href = "http://arxiv.org/abs/astro-ph/0408445">Massey and Refregier (2006)</a>. 
+
+
+
+See \ref secMEAS_SHAPE : the example driver code for description of how to use the methods, and what the outputs are for the various methods. 
+
+
+*/
+
+//-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+//namespace lsst { namespace shapeHSM { namespace meas_shape {
+/**
+\page secMEAS_SHAPE The example driver code 
+
+\section secMEAS_SHAPE The example driver code
+
+
+Code to run the shape estimator can be found in \link meas_shape.cc \endlink. 
+The required inputs are fits files of the galaxy of interest, the psf for that star, the centroid guess for x and y, the sky variance per pixel and which type of estimator to be used. 
+
+
+The output is in the format: status, galaxy e1, galaxy e2, measurement type (ellipticity or shear), measurement responsivity, galaxy resolution, shear signal, galaxy sigma, galaxy flux. 
+The definition of the output is different for each algorithm, and is described in the sections below for each algorithm. 
+
+Notes: 
+ - "sigma" is used to refer to both the width of the galaxy/PSF, and the error on the galaxy ellipticity estimator. 
+ - "responsivity" is not actually calculated in any method and is always returned as "1.0"; it is repackaged into the term "a4c" in the code (the circular special case of Bernstein & Jarvis' a4 parameter), which is not currently accessible from the galaxy data. 
+
+\subsection secEGREGAUSS The Re-Gaussianisation method
+ 
+
+Possible input flags: : 
+ - 0x00000001: recompute galaxy flux by summing unmasked pixels
+ - 0x00000002: recompute galaxy flux from Gaussian-quartic fit (overrides 0x00000001)
+ - 0x00000004: cut off Gaussian approximator at NSIG_RG sigma (saves computation time in the convolution step)
+ - 0x00000008: cut off PSF residual at NSIG_RG2 sigma (saves computation time in the convolution step)
+
+The example code \link meas_shape.cc\endlink can be run on test data using this method with the command:
+ -  "./examples/meas_shape test/data/image.0.fits tests/data/psf.0.fits 35.9 19.8 35.0 REGAUSS "
+
+The output is interpreted as follows:
+ - status: bit-encoded. 
+   - 0 if success
+   - 0x0001 = PSF adaptive moment failure to converge
+   - 0x0002 = galaxy adaptive moment failure to converge
+   - 0x0004 = galaxy smaller than PSF
+   - 0x0008 = adaptive measurement of re-Gaussianized image failed to converge
+   - 0x8000 if the shape estimator is un-identified. 
+ - Galaxy e1/e2: measured ellipticity e+/ex of the galaxy. 
+ - Measurement type: this method measures the ellipticity ("e"). 
+ - Galaxy responsivity: this method does not measure the responsivity of the estimator, and so returns 1. 
+ - Galaxy resolution: calculated as 1.0 - (Mxx_psf + Myy_psf)/(Mxx_gal + Myy_gal), where Mxx and Myy are the adaptive moments of the psf or galaxy. 
+ - Shear sigma: Not part of the algorithm, this number is calculated within the example macro. Very rough error estimate calculated as sqrt( 4*pi*sky variance) * galaxy_sigma / (galaxy_resolution * galaxy_flux).  
+ - Galaxy sigma: Not calculated within the algorithm - must be set before calling the general_shear_estimator. In the example \link meas_shape.cc\endlink macro it is set as 2.5 arcsec. 
+ - Galaxy flux: in counts. 
+
+
+
+\subsection secEGBJ Bernstein and Jarvis estimator
+
+
+The example code \link meas_shape.cc\endlink can be run on test data using this method with the command:
+ -  "./examples/meas_shape test/data/image.0.fits tests/data/psf.0.fits 35.9 19.8 35.0 BJ "
+
+The output is interpreted as follows:
+ - status: bit-encoded. 
+   - 0 if success
+   - 1 if failure
+   - 0x8000 if the shape estimator is un-identified. 
+ - Galaxy e1/e2: measured ellipticity e+/ex of the galaxy. 
+ - Measurement type: this method measures the ellipticity ("e"). 
+ - Galaxy responsivity: this method does not measure the responsivity of the estimator, and so returns 1. 
+ - Galaxy resolution: calculated as in <a href = "http://arxiv.org/abs/astro-ph/0107431">Bernstein and Jarvis (2002)</a>. 
+ - Shear sigma: Not part of the algorithm, this number is calculated within the example macro. Very rough error estimate calculated as sqrt( 4*pi*sky variance) * galaxy_sigma / (galaxy_resolution * galaxy_flux).  
+ - Galaxy sigma: Calculated as ( (Mxx_gal*Myy_gal) - (Mxw_gal*Mx_gal) ) ^0.25, where Mxx, Myy and Mxy are the adaptive elliptical moments calculated from the best-fit gaussian. 
+ - Galaxy flux: calculated as 2 * adaptive amplitude of the best-fit gaussian. 
+
+
+
+\subsection secEGLINEAR Linear estimator
+
+
+The example code \link meas_shape.cc\endlink can be run on test data using this method with the command:
+ -  "./examples/meas_shape test/data/image.0.fits tests/data/psf.0.fits 35.9 19.8 35.0 LINEAR "
+
+The output is interpreted as follows:
+ - status: bit-encoded. 
+   - 0 if success
+   - 1 if failure
+   - 0x8000 if the shape estimator is un-identified. 
+ - Galaxy e1/e2: measured ellipticity e+/ex of the galaxy. 
+ - Measurement type: this method measures the ellipticity ("e"). 
+ - Galaxy responsivity: this method does not measure the responsivity of the estimator, and so returns 1. 
+ - Galaxy resolution: calculated as in <a href = "http://arxiv.org/abs/astro-ph/0107431">Bernstein and Jarvis (2002)</a>. 
+ - Shear sigma: Not part of the algorithm, this number is calculated within the example macro. Very rough error estimate calculated as sqrt( 4*pi*sky variance) * galaxy_sigma / (galaxy_resolution * galaxy_flux).  
+ - Galaxy sigma: Calculated as ( (Mxx_gal*Myy_gal) - (Mxw_gal*Mx_gal) ) ^0.25, where Mxx, Myy and Mxy are the adaptive elliptical moments calculated from the best-fit gaussian. 
+ - Galaxy flux: calculated as 2 * adaptive amplitude of the best-fit gaussian. 
+
+
+
+
+\subsection secEGKSB KSB estimator
+
+The example code \link meas_shape.cc\endlink can be run on test data using this method with the command:
+ -  "./examples/meas_shape test/data/image.0.fits tests/data/psf.0.fits 35.9 19.8 35.0 KSB "
+
+The output is interpreted as follows:
+ - status: bit-encoded. 
+   - 0 if success
+   - 1 if failure
+   - 0x8000 if the shape estimator is un-identified. 
+ - Galaxy e1/e2: measured shear e+/ex of the galaxy. 
+ - Measurement type: this method measures the shear ("g"). 
+ - Galaxy responsivity: this method does not measure the responsivity of the estimator, and so returns 1. 
+ - Galaxy resolution: calculated as 1 - ((sigma_psf * sigma_psf)/(sigma_gal * sigma_gal) ), where sigma is the radius of the PSF or galaxy, given in pixels. 
+ - Shear sigma: Not part of the algorithm, this number is calculated within the example macro. Very rough error estimate calculated as sqrt( 4*pi*sky variance) * galaxy_sigma / (galaxy_resolution * galaxy_flux).  
+ - Galaxy sigma: Calculated as ( (Mxx_gal*Myy_gal) - (Mxw_gal*Mx_gal) ) ^0.25, where Mxx, Myy and Mxy are the adaptive elliptical moments calculated from the best-fit gaussian. 
+ - Galaxy flux: calculated as 3.545 * sigma_gal * 0th moment of galaxy (as calculated from the adaptive moment algorithm).  
+
+
+
+\subsection secEGSHAPELET Shapelets estimator
+
+The input flags can be: 
+ - 0x00000001: for deconvolved image,  use sigma^2 that is the difference between sigma^2_gal and sigma^2_PSF (default is sigma^2_deconv = sigma^2_gal)
+ - 0x00000002: re-measure the galaxy at new centroid
+ - 0x00000004: increases sigma^2 for the galaxy weight by a factor of sqrt(2)
+ - 0x00000008: increases sigma^2 for the galaxy weight by a factor of 2
+ - 0x00000010: use input scale radius for galaxy (also uses input centroid if flag 0x00000002 is not set)
+
+
+The example code \link meas_shape.cc\endlink can be run on test data using this method with the command:
+ -  "./examples/meas_shape test/data/image.0.fits tests/data/psf.0.fits 35.9 19.8 35.0 SHAPELET8,8 "
+The specifier for this method is slightly different - note that the order of the shapelet decomposition is given by the two numbers "8,8". 
+
+The output is interpreted as follows:
+
+ - status: bit-encoded. 
+   - 0 if success
+   - 1 if failure
+   - 0x0001 = PSF adaptive moment failure to converge (used input weight)
+   - 0x0002 = galaxy adaptive moment failure to converge (used input weight)
+   - 0x0004 = centroid iteration failed to converge (used non-iterative centroid)
+   - 0x8000 if the shape estimator is un-identified. 
+ - Galaxy e1/e2: measured shear e+/ex of the galaxy. 
+ - Measurement type: this method measures the shear ("g"). 
+ - Galaxy responsivity: this method does not measure the responsivity of the estimator, and so returns 1. 
+ - Galaxy resolution: calculated as 1 - ((sigma_psf * sigma_psf)/(sigma_gal * sigma_gal) ), where sigma is the radius of the PSF or galaxy, given in pixels. 
+ - Shear sigma: Not part of the algorithm, this number is calculated within the example macro. Very rough error estimate calculated as sqrt( 4*pi*sky variance) * galaxy_sigma / (galaxy_resolution * galaxy_flux).  
+ - Galaxy sigma: Calculated as ( (Mxx_gal*Myy_gal) - (Mxw_gal*Mx_gal) ) ^0.25, where Mxx, Myy and Mxy are the adaptive elliptical moments calculated from the best-fit gaussian. 
+ - Galaxy flux: calculated as 3.545 * sigma_gal * 0th moment of galaxy (as calculated from the adaptive moment algorithm).  
+
+
+\example meas_shape.cc
+
+
+*/
+}}}
