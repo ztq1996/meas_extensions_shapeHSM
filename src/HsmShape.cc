@@ -129,8 +129,8 @@ afwDetection::Shape::Ptr extendShapeHsm::HsmShape::doMeasure(
                                _max_order_psf % _max_order_gal).str());
         }
     }
-    _status = shearEst.measure(algName);
-    
+    _status = shearEst.measure(algName);   
+ 
     float x = shearEst.getX();
     float xErr = 0.0;
     float y = shearEst.getY();
@@ -151,6 +151,7 @@ afwDetection::Shape::Ptr extendShapeHsm::HsmShape::doMeasure(
                                                                    ixy, ixyErr,
                                                                    iyy, iyyErr));
 
+    shape->set<SHAPE_STATUS>(_status);
     shape->set<SIGMA>(shearEst.getSigma());
     
     // if we have ellipticities 'e' put them in e1/e2

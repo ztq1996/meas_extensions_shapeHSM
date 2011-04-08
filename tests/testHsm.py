@@ -172,13 +172,17 @@ class ShapeTestCase(unittest.TestCase):
                 
                 # shearsig won't match exactly
                 # we're using skyvar=sqrt(bkgd) instead of measured value ... expected a difference
-                ["shearsig", float(known["shearsig"]),      shearsig,          0.065], 
+                ["shearsig", float(known["shearsig"]),      shearsig,          0.065],
+                ["shapeStatus", 0,                          s.getShapeStatus(), 0],
                 ]
 
             
             for test in tests:
                 label, know, hsm, limit = test
-                err = (hsm-know)/know
+                if know != 0:
+                    err = (hsm-know)/know
+                else:
+                    err = hsm-know
                 msgTmp = "%-12s %s  %5s:   %6.6f %6.6f  (val-known)/known = %.3g\n" % (algName, imageid,
                                                                                        label, know, hsm, err)
                 if not numpy.isfinite(err) or abs(err) > limit:
