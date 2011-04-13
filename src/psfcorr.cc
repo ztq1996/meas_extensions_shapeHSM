@@ -1702,6 +1702,8 @@ unsigned int psf_corr_regauss(RECT_IMAGE *gal_image, RECT_IMAGE *PSF, double *e1
    /* Get the elliptical adaptive moments of PSF */
    Mxxpsf = Myypsf = *sig_psf * *sig_psf;
    Mxypsf = 0.;
+   x0_old = *x0_psf;
+   y0_old = *y0_psf;
    try {
        find_ellipmom_2(PSF, &A_g, x0_psf, y0_psf, &Mxxpsf, &Mxypsf, &Myypsf, &rho4psf, 1.0e-6, &num_iter);
    } catch (lsst::pex::exceptions::RuntimeErrorException& e) {
@@ -1717,6 +1719,8 @@ unsigned int psf_corr_regauss(RECT_IMAGE *gal_image, RECT_IMAGE *PSF, double *e1
    /* Get the elliptical adaptive moments of galaxy */
    Mxxgal = Myygal = *sig_gal * *sig_gal;
    Mxygal = 0.;
+   x0_old = *x0_gal;
+   y0_old = *y0_gal;
    try {
        find_ellipmom_2(gal_image, &A_I, x0_gal, y0_gal, &Mxxgal, &Mxygal, &Myygal,
                        &rho4gal, 1.0e-6, &num_iter);
@@ -1860,6 +1864,8 @@ unsigned int psf_corr_regauss(RECT_IMAGE *gal_image, RECT_IMAGE *PSF, double *e1
    fast_convolve_image_1(&fgauss, &PSF_resid, &Iprime);
 
    /* Now that Iprime is constructed, we measure it */
+   x0_old = *x0_gal;
+   y0_old = *y0_gal;
    try {
        find_ellipmom_2(&Iprime, &A_I, x0_gal, y0_gal, &Mxxgal, &Mxygal, &Myygal, &rho4gal, 1.0e-6, &num_iter);
    } catch (lsst::pex::exceptions::RuntimeErrorException& e) {
