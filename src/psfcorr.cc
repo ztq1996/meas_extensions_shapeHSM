@@ -966,7 +966,7 @@ void find_ellipmom_2(RECT_IMAGE *data, double *A, double *x0, double *y0,
       if (
           fabs(*Mxx)>MAX_AMOMENT || fabs(*Mxy)>MAX_AMOMENT || fabs(*Myy)>MAX_AMOMENT ||
           fabs(*x0-x00)>MAX_ASHIFT || fabs(*y0-y00)>MAX_ASHIFT ||
-          isnan(*Mxx) || isnan(*Myy) || isnan(*Mxy)
+          isnan(*Mxx) || isnan(*Myy) || isnan(*Mxy) || isnan(*x0) || isnan(*y0)
          ) {
           throw LSST_EXCEPT(pexExcept::RuntimeErrorException, "Error: adaptive moment failed");
       }
