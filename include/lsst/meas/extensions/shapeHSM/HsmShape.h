@@ -98,7 +98,7 @@ private:
     static int _max_order_psf;
     static int _max_order_gal;
     static std::vector<std::string> _badMaskPlanes;
-    static int _status;
+    static short _status;
     HsmShape(void) : lsst::afw::detection::Shape() { }
     LSST_SERIALIZE_PARENT(lsst::afw::detection::Shape);
 };

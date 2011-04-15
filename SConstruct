@@ -27,7 +27,7 @@ except AttributeError:
     import lsst.afw.SconsUtils
     scons.ConfigureDependentProducts = lsst.afw.SconsUtils.ConfigureDependentProducts
 
-libs = "meas_algorithms afw daf_base daf_data daf_persistence "
+libs = "meas_algorithms ndarray afw daf_base daf_data daf_persistence "
 libs += "pex_logging pex_exceptions pex_policy security boost minuit2 utils wcslib"
 
 env = scons.makeEnv(thisPkg, r"$HeadURL$",

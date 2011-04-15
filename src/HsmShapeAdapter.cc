@@ -35,6 +35,7 @@
 #include "lsst/meas/algorithms/PSF.h"
 
 namespace afwMath        = lsst::afw::math;
+namespace afwGeom        = lsst::afw::geom;
 namespace afwImage       = lsst::afw::image;
 namespace afwDetection   = lsst::afw::detection;
 namespace extendShapeHsm = lsst::meas::extensions::shapeHSM;
@@ -60,12 +61,13 @@ extendShapeHsm::HsmShapeAdapter<ExposureT>::HsmShapeAdapter(
         _bbox = _source->getFootprint()->getBBox();
     } else {
         CONST_PTR(ImageT) imTmp = exposure->getMaskedImage().getImage();
-        _bbox = afwImage::BBox(imTmp->getXY0(), imTmp->getWidth(), imTmp->getHeight());
+        _bbox = afwGeom::Box2I(afwGeom::Point2I(imTmp->getXY0()), 
+                               afwGeom::Extent2I(imTmp->getWidth(), imTmp->getHeight()));
     }
 
     // make a shallow image copy in the bbox, allocate the image structure and copy into it
     CONST_PTR(ImageT) img =
-        boost::make_shared<ImageT>(*exposure->getMaskedImage().getImage(), _bbox, false);
+        boost::make_shared<ImageT>(*exposure->getMaskedImage().getImage(), _bbox, afwImage::LOCAL, false);
     
     allocate_rect_image(&_atlasImage, 0, img->getWidth() - 1, 0, img->getHeight() - 1);
     for (int iY=0; iY < img->getHeight(); ++iY) {
@@ -86,7 +88,7 @@ extendShapeHsm::HsmShapeAdapter<ExposureT>::HsmShapeAdapter(
     
     // shallow copy the mask and use the user-provided badPixelMask to set the mask structure
     CONST_PTR(MaskT) msk =
-        boost::make_shared<MaskT>(*exposure->getMaskedImage().getMask(), _bbox, false);
+        boost::make_shared<MaskT>(*exposure->getMaskedImage().getMask(), _bbox, afwImage::LOCAL, false);
     
     for (int iY = 0; iY < msk->getHeight(); ++iY) {
         int iX = 0;
@@ -96,14 +98,14 @@ extendShapeHsm::HsmShapeAdapter<ExposureT>::HsmShapeAdapter(
     }
     
     // init the galaxyData
-    double x = _peak->getFx() - _bbox.getX0();
-    double y = _peak->getFy() - _bbox.getY0();
+    double x = _peak->getFx() - _bbox.getMinX();
+    double y = _peak->getFy() - _bbox.getMinY();
     _galaxyData.x0 = x;
     _galaxyData.y0 = y;
 
     
     // get a local image of the psf, allocate the psf structure and copy the psf into it
-    typename PsfImageT::Ptr psf = exposure->getPsf()->computeImage(lsst::afw::geom::makePointD(x, y));
+    typename PsfImageT::Ptr psf = exposure->getPsf()->computeImage(afwGeom::Point2D(x, y));
     allocate_rect_image(&_psfImage, 0, psf->getWidth() - 1, 0, psf->getHeight() - 1);
     for (int iY = 0; iY < psf->getHeight(); ++iY) {
         int iX = 0;

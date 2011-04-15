@@ -6,7 +6,7 @@ thisPkg   = env.thisPkg
 pythonPkg = env.pythonPkg
 
 incProds = "utils daf_base daf_data daf_persistence pex_exceptions "
-incProds += "pex_logging pex_policy security afw meas_algorithms"
+incProds += "pex_logging pex_policy security ndarray afw meas_algorithms"
 env.CheckSwig("python", ilang="c++", includedProducts=incProds)
 
 sharedObj = "_" + pythonPkg

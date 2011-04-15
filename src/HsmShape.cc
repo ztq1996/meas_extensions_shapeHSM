@@ -54,7 +54,7 @@ double extendShapeHsm::HsmShape::_background = 0.0;    // the frame's background
 int extendShapeHsm::HsmShape::_max_order_psf = 8;   // used only for HSM_SHAPELET
 int extendShapeHsm::HsmShape::_max_order_gal = 8;   // used only for HSM_SHAPELET
 std::vector<std::string> extendShapeHsm::HsmShape::_badMaskPlanes = std::vector<std::string>();
-int extendShapeHsm::HsmShape::_status = -1; 
+short extendShapeHsm::HsmShape::_status = -1; 
 
 // Use templates to allow the different algorithms to registered with the same boilerplate code.
 // The adapter just needs to be called with a different string for the corresponding algorithm

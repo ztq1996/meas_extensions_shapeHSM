@@ -52,6 +52,7 @@ namespace measAlgorithms = lsst::meas::algorithms;
 namespace afwDetection = lsst::afw::detection;
 namespace afwImage = lsst::afw::image;
 namespace afwMath = lsst::afw::math;
+namespace afwGeom = lsst::afw::geom;
 
 typedef afwImage::Exposure<float, short unsigned int, float> ExposureT;
 typedef ExposureT::MaskedImageT MImage;
@@ -65,7 +66,7 @@ BOOST_AUTO_TEST_CASE(HsmMoments) {
     float bkgd = 100.0;
     int xwidth = 100;
     int ywidth = 100;
-    MImage mimg(xwidth, ywidth);
+    MImage mimg(afwGeom::Extent2I(xwidth, ywidth));
     *mimg.getImage() = bkgd;
 
     int x = 30;
@@ -82,7 +83,7 @@ BOOST_AUTO_TEST_CASE(HsmMoments) {
     float sigma = 1.0;
     afwDetection::Psf::Ptr psf = afwDetection::createPsf("SingleGaussian", kwid, kwid, sigma);
     exposure->setPsf(psf);
-    exposure->setWcs(*afwImage::makeWcs(afwGeom::makePointD(0.0, 0.0), afwGeom::makePointD(1.0, 1.0),
+    exposure->setWcs(*afwImage::makeWcs(afwGeom::Point2D(0.0, 0.0), afwGeom::Point2D(1.0, 1.0),
                                         0.2/3600.0, 0.0, 0.0, 0.2/3600.0));
     
     

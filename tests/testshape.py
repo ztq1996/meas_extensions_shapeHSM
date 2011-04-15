@@ -57,7 +57,7 @@ class HsmMomentTestCase(unittest.TestCase):
         self.I0 = 1000.0
 
         # make a masked image and an exposure
-        im = afwImage.ImageF(100, 100)
+        im = afwImage.ImageF(afwGeom.Extent2I(100, 100))
         im.set(self.bkgd)
         im.set(self.x, self.y, self.I0 + self.bkgd)
         msk = afwImage.MaskU(im.getDimensions()); msk.set(0)

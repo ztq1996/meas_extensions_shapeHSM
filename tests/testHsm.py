@@ -112,7 +112,7 @@ class ShapeTestCase(unittest.TestCase):
             img = afwImage.ImageF(imgFile)
             img -= self.bkgd
             nx, ny = img.getWidth(), img.getHeight()
-            msk = afwImage.MaskU(nx, ny, 0x0)
+            msk = afwImage.MaskU(afwGeom.Extent2I(nx, ny), 0x0)
             var = afwImage.ImageF(imgFile)
             mimg = afwImage.MaskedImageF(img, msk, var)
 
@@ -126,7 +126,7 @@ class ShapeTestCase(unittest.TestCase):
                             mimg.set(i, j, (mpix[0], msk.getPlaneBitMask("BAD"), mpix[2]))
 
             exposure = afwImage.makeExposure(mimg)
-            exposure.setWcs(afwImage.makeWcs(afwGeom.makePointD(0.0,0.0), afwGeom.makePointD(1.0,1.0),
+            exposure.setWcs(afwImage.makeWcs(afwGeom.Point2D(0.0,0.0), afwGeom.Point2D(1.0,1.0),
                                              1.0/(2.53*3600.0), 0.0, 0.0, 1.0/(2.53*3600.0)))
 
             

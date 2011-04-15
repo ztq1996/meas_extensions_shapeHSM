@@ -73,8 +73,8 @@ public:
     /*
      * Accessors for the HSM outputs
      */
-    double getX()     { return _galaxyData.x0 + _bbox.getX0(); }
-    double getY()     { return _galaxyData.y0 + _bbox.getY0(); }
+    double getX()     { return _galaxyData.x0 + _bbox.getMinX(); }
+    double getY()     { return _galaxyData.y0 + _bbox.getMinY(); }
     double getE1()    { return _galaxyData.e1; }
     double getE1Err() { return getShearSig(); }
     double getE2()    { return _galaxyData.e2; }
@@ -103,7 +103,7 @@ private:
     CONST_PTR(ExposureT) _exposure;
     CONST_PTR(lsst::afw::detection::Peak) _peak;
     CONST_PTR(lsst::afw::detection::Source) _source;
-    lsst::afw::image::BBox _bbox;
+    lsst::afw::geom::Box2I _bbox;
     lsst::afw::image::MaskPixel _badPixelMask;
     RECT_IMAGE _atlasImage;
     RECT_IMAGE _psfImage;
