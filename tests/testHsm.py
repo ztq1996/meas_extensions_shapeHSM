@@ -158,7 +158,7 @@ class ShapeTestCase(unittest.TestCase):
             ##########################################
             # see how we did
 
-            e1, e2, shearsig = s.getE1(), s.getE2(), s.getE1Err()
+            e1, e2, shearsig = s.getE1(), s.getE2(), 2.0 * s.getE1Err()
             if re.search("(KSB|SHAPELET)", algName):
                 e1, e2, shearsig = s.getShear1(), s.getShear2(), s.getShear1Err()
                 
@@ -171,7 +171,7 @@ class ShapeTestCase(unittest.TestCase):
                 ["resolution", float(known['resolution']),  s.getResolution(), limit],
                 
                 # shearsig won't match exactly
-                # we're using skyvar=sqrt(bkgd) instead of measured value ... expected a difference
+                # we're using skyvar=mean(var) instead of measured value ... expected a difference
                 ["shearsig", float(known["shearsig"]),      shearsig,          0.065],
                 ["shapeStatus", 0,                          s.getShapeStatus(), 0],
                 ]
