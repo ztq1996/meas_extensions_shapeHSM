@@ -159,14 +159,14 @@ afwDetection::Shape::Ptr extendShapeHsm::HsmShape::doMeasure(
     char meas_type = shearEst.getMeasType();
     if (meas_type == 'e') {
         shape->set<E1>(shearEst.getE1());
-        shape->set<E1_ERR>(shearEst.getE1Err());
+        shape->set<E1_ERR>(0.5 * shearEst.getShearSig());
         shape->set<E2>(shearEst.getE2());
-        shape->set<E2_ERR>(shearEst.getE2Err());
+        shape->set<E2_ERR>(0.5 * shearEst.getShearSig());
     } else if (meas_type == 'g') {
         shape->set<SHEAR1>(shearEst.getE1());
-        shape->set<SHEAR1_ERR>(shearEst.getE1Err());
+        shape->set<SHEAR1_ERR>(shearEst.getShearSig());
         shape->set<SHEAR2>(shearEst.getE2());
-        shape->set<SHEAR2_ERR>(shearEst.getE2Err());
+        shape->set<SHEAR2_ERR>(shearEst.getShearSig());
     }
 
     shape->set<RESOLUTION>(shearEst.getResolution());

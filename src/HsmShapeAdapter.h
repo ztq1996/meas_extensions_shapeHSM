@@ -76,9 +76,7 @@ public:
     double getX()     { return _galaxyData.x0 + _bbox.getMinX(); }
     double getY()     { return _galaxyData.y0 + _bbox.getMinY(); }
     double getE1()    { return _galaxyData.e1; }
-    double getE1Err() { return getShearSig(); }
     double getE2()    { return _galaxyData.e2; }
-    double getE2Err() { return getShearSig(); }
     
     double getFlux()  { return _galaxyData.flux; }
     double getResponsivity() { return _galaxyData.responsivity; }
