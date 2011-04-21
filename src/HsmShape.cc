@@ -50,7 +50,6 @@ namespace extendShapeHsm = lsst::meas::extensions::shapeHSM;
 
 LSST_REGISTER_SERIALIZER(extendShapeHsm::HsmShape)
 
-double extendShapeHsm::HsmShape::_background = 0.0;    // the frame's background level
 int extendShapeHsm::HsmShape::_max_order_psf = 8;   // used only for HSM_SHAPELET
 int extendShapeHsm::HsmShape::_max_order_gal = 8;   // used only for HSM_SHAPELET
 std::vector<std::string> extendShapeHsm::HsmShape::_badMaskPlanes = std::vector<std::string>();
@@ -106,7 +105,7 @@ afwDetection::Shape::Ptr extendShapeHsm::HsmShape::doMeasure(
     afwImage::MaskPixel badPixelMask =
         exposure->getMaskedImage().getMask()->getPlaneBitMask(_badMaskPlanes);
     typename extendShapeHsm::HsmShapeAdapter<ExposureT>
-        shearEst(exposure, peak, source, badPixelMask, _background);
+        shearEst(exposure, peak, source, badPixelMask);
 
     // some fussiness here.
     // we usually just want alg.getName() to pass to the ShearEstimator.measure() method.

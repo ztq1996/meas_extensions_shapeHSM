@@ -69,10 +69,6 @@ public:
     
     static bool doConfigure(lsst::pex::policy::Policy const& policy) {
 
-        if (policy.exists("background")) {
-            _background = policy.getDouble("background");
-        }
-
         // a little sloppy ... these should only exist for HSM_SHAPELET
         // but it hurts no one to have them handled when defined by other HSM shapes.
         if (policy.exists("max_order_psf")) {
@@ -94,7 +90,6 @@ public:
     }
     
 private:
-    static double _background;
     static int _max_order_psf;
     static int _max_order_gal;
     static std::vector<std::string> _badMaskPlanes;

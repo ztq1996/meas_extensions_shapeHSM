@@ -57,8 +57,7 @@ public:
                     CONST_PTR(ExposureT) exposure,
                     CONST_PTR(lsst::afw::detection::Peak) peak,
                     CONST_PTR(lsst::afw::detection::Source) source=PTR(lsst::afw::detection::Source)(),
-                    lsst::afw::image::MaskPixel badPixelMask=0x0,
-                    double background=0
+                    lsst::afw::image::MaskPixel badPixelMask=0x0
                    );
     
     ~HsmShapeAdapter();

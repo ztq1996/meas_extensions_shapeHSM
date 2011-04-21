@@ -3,25 +3,20 @@
 
 shape: {
     HSM_BJ: {
-        background: 0.0
 	badmaskplanes: "BAD" "SAT" "INTRP"
     }
     HSM_LINEAR: {
-        background: 0.0
 	badmaskplanes: "BAD" "SAT" "INTRP"
     }
     HSM_KSB: {
-        background: 0.0
 	badmaskplanes: "BAD" "SAT" "INTRP"
     }
     HSM_REGAUSS: {
-        background: 0.0
 	badmaskplanes: "BAD" "SAT" "INTRP"
     }
     HSM_SHAPELET: {
     	max_order_psf: 8
 	max_order_gal: 8
-        background: 0.0
 	badmaskplanes: "BAD" "SAT" "INTRP"
     }
 }

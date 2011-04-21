@@ -50,8 +50,7 @@ extendShapeHsm::HsmShapeAdapter<ExposureT>::HsmShapeAdapter(
     CONST_PTR(ExposureT) exposure,          ///< exposure containing the pixels to measure
     CONST_PTR(afwDetection::Peak) peak,     ///< location of the object to measure
     CONST_PTR(afwDetection::Source) source, ///< source object containing Footprint of the object
-    afwImage::MaskPixel badPixelMask,       ///< specify mask bits for pixels to *ignore*
-    double background                       ///< local background
+    afwImage::MaskPixel badPixelMask        ///< specify mask bits for pixels to *ignore*
                                                         ) :
     _exposure(exposure), _peak(peak), _source(source), _badPixelMask(badPixelMask) {
 
@@ -66,25 +65,23 @@ extendShapeHsm::HsmShapeAdapter<ExposureT>::HsmShapeAdapter(
     }
 
     // make a shallow image copy in the bbox, allocate the image structure and copy into it
-    CONST_PTR(ImageT) img =
-        boost::make_shared<ImageT>(*exposure->getMaskedImage().getImage(), _bbox, afwImage::LOCAL, false);
+    CONST_PTR(MaskedImageT) img = 
+        boost::make_shared<MaskedImageT>(exposure->getMaskedImage(), _bbox, afwImage::LOCAL, false);
     
     allocate_rect_image(&_atlasImage, 0, img->getWidth() - 1, 0, img->getHeight() - 1);
     for (int iY=0; iY < img->getHeight(); ++iY) {
         int iX = 0;
-        for (typename ImageT::x_iterator ptr = img->row_begin(iY);  ptr != img->row_end(iY); ++ptr, ++iX) {
+        for (typename ImageT::x_iterator ptr = img->getImage()->row_begin(iY); 
+             ptr != img->getImage()->row_end(iY); ++ptr, ++iX) {
             _atlasImage.image[iX][iY] = static_cast<double>(*ptr);
         }
     }
 
-#if 0
     afwMath::StatisticsControl sctrl;
     sctrl.setAndMask(_badPixelMask);
-    afwMath::Statistics stat = afwMath::makeStatistics(exposure->getMaskedImage(), afwMath::VARIANCECLIP, sctrl);
-    _skyvar = stat.getValue(afwMath::VARIANCECLIP);
-#else
-    _skyvar = sqrt(background);
-#endif
+    afwMath::Statistics stat = afwMath::makeStatistics(*img->getVariance(), *img->getMask(),
+                                                       afwMath::MEDIAN, sctrl);
+    _skyvar = sqrt(stat.getValue(afwMath::MEDIAN));
     
     // shallow copy the mask and use the user-provided badPixelMask to set the mask structure
     CONST_PTR(MaskT) msk =
