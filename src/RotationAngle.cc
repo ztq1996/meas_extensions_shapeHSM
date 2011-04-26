@@ -47,13 +47,13 @@ namespace {
 class RotationAngle : public afwDetection::Astrometry
 {
 protected:
-    enum { EAST = NVALUE, NORTH };
+    enum { EAST = Astrometry::NVALUE, NORTH, NVALUE };
 public:
     typedef boost::shared_ptr<RotationAngle> Ptr;
     typedef boost::shared_ptr<RotationAngle const> ConstPtr;
 
     /// Ctor
-    RotationAngle(double east, double north) {
+    RotationAngle(double east, double north) : afwDetection::Astrometry() {
         init();
         // Everything has to be set, even to a meaningless value
         set<X>(std::numeric_limits<double>::quiet_NaN());
