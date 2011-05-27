@@ -37,9 +37,8 @@ namespace afwGeom = lsst::afw::geom;
 
 namespace lsst {
 namespace meas {
-namespace algorithms {
-
-namespace {
+namespace extensions {
+namespace shapeHSM {
 
 /**
  * @brief A class that calculates the rotation angles (angles between x axis of CCD and East,North)
@@ -79,6 +78,9 @@ public:
 
     double getEast() const { return afwDetection::Astrometry::get<EAST, double>(); }
     double getNorth() const { return afwDetection::Astrometry::get<NORTH, double>(); }
+private:
+    RotationAngle(void) : afwDetection::Astrometry() { }
+    LSST_SERIALIZE_PARENT(lsst::afw::detection::Astrometry);
 };
 
 template<typename ExposureT>
@@ -108,7 +110,7 @@ afwDetection::Astrometry::Ptr RotationAngle::doMeasure(CONST_PTR(ExposureT) imag
  * @cond
  */
 #define INSTANTIATE(TYPE) \
-    MeasureAstrometry<afwImage::Exposure<TYPE> >::declare("ROTANGLE", \
+    lsst::meas::algorithms::MeasureAstrometry<afwImage::Exposure<TYPE> >::declare("ROTANGLE", \
         &RotationAngle::doMeasure<afwImage::Exposure<TYPE> > \
         )
 
@@ -117,6 +119,8 @@ volatile bool isInstance[] = {
     INSTANTIATE(float),
     INSTANTIATE(double),
 };
+
+LSST_REGISTER_SERIALIZER(RotationAngle);
 
 // \endcond
 
