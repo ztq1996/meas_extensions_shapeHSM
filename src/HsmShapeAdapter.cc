@@ -95,10 +95,14 @@ extendShapeHsm::HsmShapeAdapter<ExposureT>::HsmShapeAdapter(
     }
     
     // init the galaxyData
-    double x = _peak->getFx() - _bbox.getMinX();
-    double y = _peak->getFy() - _bbox.getMinY();
-    _galaxyData.x0 = x;
-    _galaxyData.y0 = y;
+
+    // use these to get the local PSF
+    double x = _peak->getFx();
+    double y = _peak->getFy();
+
+    // adjust these so _galaxyData knows the location in the footprint image
+    _galaxyData.x0 = x - _bbox.getMinX();
+    _galaxyData.y0 = y - _bbox.getMinY();
 
     
     // get a local image of the psf, allocate the psf structure and copy the psf into it
