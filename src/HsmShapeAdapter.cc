@@ -30,7 +30,7 @@
  * This adapter/wrapper written by S. Bickerton
  */
 
-#include "HsmShapeAdapter.h"
+#include "lsst/meas/extensions/shapeHSM/HsmShapeAdapter.h"
 #include "lsst/afw/math/Statistics.h"
 #include "lsst/meas/algorithms/PSF.h"
 

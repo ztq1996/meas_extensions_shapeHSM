@@ -37,8 +37,7 @@
 #include "lsst/meas/algorithms/Measure.h"
 
 #include "lsst/meas/extensions/shapeHSM/HsmShape.h"
-
-#include "HsmShapeAdapter.h"
+#include "lsst/meas/extensions/shapeHSM/HsmShapeAdapter.h"
 
 namespace pexExceptions = lsst::pex::exceptions;
 namespace pexLogging = lsst::pex::logging;

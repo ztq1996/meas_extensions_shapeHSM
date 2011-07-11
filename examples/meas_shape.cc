@@ -27,7 +27,7 @@ along with meas_shape.  If not, see <http://www.gnu.org/licenses/>.
 #include <string.h>
 //#include "/u/rmandelb/software/cfitsio/fitsio.h"
 #include "fitsio.h"
-#include "../src/psfcorr.h"
+#include "lsst/meas/extensions/shapeHSM/psfcorr.h"
 
 #define Pi 3.141592653589793
 #define ARCSEC 2.53 /* pixels */

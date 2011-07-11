@@ -24,7 +24,7 @@
 #if !defined(LSST_MEAS_EXTENSIONS_SHAPEHSM_ADAPTER_H)
 #define LSST_MEAS_EXTENSIONS_SHAPEHSM_ADAPTER_H
 
-#include "psfcorr.h"
+#include "lsst/meas/extensions/shapeHSM/psfcorr.h"
 
 #include "lsst/afw/image.h"
 #include "lsst/afw/detection.h"

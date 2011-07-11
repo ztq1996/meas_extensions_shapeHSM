@@ -29,7 +29,7 @@ along with meas_shape.  If not, see <http://www.gnu.org/licenses/>.
 #include "lsst/pex/exceptions.h"
 namespace pexExcept = lsst::pex::exceptions;
 
-#include "psfcorr.h"
+#include "lsst/meas/extensions/shapeHSM/psfcorr.h"
 
 #define Pi    M_PI
 #define TwoPi (2.0*M_PI)
