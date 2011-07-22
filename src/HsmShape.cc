@@ -57,27 +57,27 @@ short extendShapeHsm::HsmShape::_status = -1;
 // Use templates to allow the different algorithms to registered with the same boilerplate code.
 // The adapter just needs to be called with a different string for the corresponding algorithm
 // We don't want to rewrite the same code for each one.  By registering (see below) the names
-// for templates instantiated with these classes, we can pull out the string (char* rather).
+// for templates instantiated with these classes, we can pull out the string.
 namespace {
     class Bj {
     public:
-        const char *getName() { return std::string("BJ").c_str(); }
+        std::string getName() { return "BJ"; }
     };
     class Linear {
     public:
-        const char *getName() { return std::string("LINEAR").c_str(); }
+        std::string getName() { return "LINEAR"; }
     };
     class Ksb {
     public:
-        const char *getName() { return std::string("KSB").c_str(); }
+        std::string getName() { return "KSB"; }
     };
     class Regauss {
     public:
-        const char *getName() { return std::string("REGAUSS").c_str(); }
+        std::string getName() { return "REGAUSS"; }
     };
     class Shapelet {
     public:
-        const char *getName() { return std::string("SHAPELET").c_str(); }
+        std::string getName() { return "SHAPELET"; }
     };
 }
 
@@ -110,17 +110,13 @@ afwDetection::Shape::Ptr extendShapeHsm::HsmShape::doMeasure(
     // we usually just want alg.getName() to pass to the ShearEstimator.measure() method.
     // but HSM_SHAPELET also needs two integers appended to the char*, so we must handle that.
     AlgorithmT alg;
-    int const maxChar = 32;
-    char algName[maxChar];
-    strncpy(algName, alg.getName(), maxChar);
+    std::string algName = alg.getName();
     
-    if (strncmp(algName, "SHAPELET", maxChar) == 0) {
+    if (algName == "SHAPELET") {
         
-        // limit order sizes
-        // partly to prevent exceeding maxChar characters, but mainly to avoid absurdly high values
-        // for the algorithm
+        // limit order sizes to avoid absurdly high values for the algorithm
         if ((_max_order_psf < 100) && (_max_order_gal < 100)) {
-            sprintf(algName, "%s%d,%d", alg.getName(), _max_order_psf, _max_order_gal);
+            algName += (boost::format("%d,%d") % _max_order_psf % _max_order_gal).str();
         } else {
             throw LSST_EXCEPT(pexExceptions::InvalidParameterException,
                               (boost::format("max_order_psf (%d) and max_order_gal (%d) must be <100") %
