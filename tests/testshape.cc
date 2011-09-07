@@ -36,6 +36,7 @@
 #include "lsst/afw/image/ImageAlgorithm.h"
 #include "lsst/meas/algorithms/Measure.h"
 #include "lsst/afw/math/Integrate.h"
+#include "lsst/afw/coord/Coord.h"
 
 #include "lsst/meas/extensions/shapeHSM/HsmShape.h"
 
@@ -53,6 +54,7 @@ namespace afwDetection = lsst::afw::detection;
 namespace afwImage = lsst::afw::image;
 namespace afwMath = lsst::afw::math;
 namespace afwGeom = lsst::afw::geom;
+namespace afwCoord = lsst::afw::coord;
 
 typedef afwImage::Exposure<float, short unsigned int, float> ExposureT;
 typedef ExposureT::MaskedImageT MImage;
@@ -83,9 +85,9 @@ BOOST_AUTO_TEST_CASE(HsmMoments) {
     float sigma = 1.0;
     afwDetection::Psf::Ptr psf = afwDetection::createPsf("SingleGaussian", kwid, kwid, sigma);
     exposure->setPsf(psf);
-    exposure->setWcs(*afwImage::makeWcs(afwGeom::Point2D(0.0, 0.0), afwGeom::Point2D(1.0, 1.0),
+    exposure->setWcs(*afwImage::makeWcs(afwCoord::makeCoord(afwCoord::ICRS, 0.0 * afwGeom::degrees, 0.0 * afwGeom::degrees),
+                                        afwGeom::Point2D(1.0, 1.0),
                                         0.2/3600.0, 0.0, 0.0, 0.2/3600.0));
-    
     
     // Add a Gaussian to the image
     float sigma_xx = std::pow(1.5, 2);
