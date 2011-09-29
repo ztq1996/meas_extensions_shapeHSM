@@ -125,7 +125,7 @@ class HsmMomentTestCase(unittest.TestCase):
         im -= self.bkgd
         
         for algName in algorithmNames:
-            shapeFinder = algorithms.makeMeasureShape(None)
+            shapeFinder = algorithms.makeMeasureShape(self.exposure)
             shapeFinder.addAlgorithm(algName)
             self.policy.set(algName+".background", self.bkgd)
             shapeFinder.configure(self.policy)
@@ -133,10 +133,14 @@ class HsmMomentTestCase(unittest.TestCase):
             if display:
                 ds9.mtv(self.mimg)
 
-            shapeFinder.setImage(self.exposure)
+            peak = afwDetection.Peak(self.x, self.y)
+            patch = algorithms.makeExposurePatch(self.exposure, peak, 
+                                                 afwDetection.Footprint(self.exposure.getBBox()))
 
-            s = shapeFinder.measure(afwDetection.Peak(self.x, self.y)).find(algName)
+            source = afwDetection.Source(0)
+            source.setFootprint(afwDetection.Footprint(self.exposure.getBBox()))
 
+            s = shapeFinder.measure(patch, source).find(algName)
 
             # see how we did
             Ixx, Iyy, Ixy = s.getIxx(), s.getIyy(), s.getIxy()

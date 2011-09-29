@@ -49,20 +49,10 @@ template<typename ExposureT>
 extendShapeHsm::HsmShapeAdapter<ExposureT>::HsmShapeAdapter(
     CONST_PTR(ExposureT) exposure,          ///< exposure containing the pixels to measure
     CONST_PTR(afwDetection::Peak) peak,     ///< location of the object to measure
-    CONST_PTR(afwDetection::Source) source, ///< source object containing Footprint of the object
+    afwDetection::Footprint const& foot,    ///< Footprint of the object
     afwImage::MaskPixel badPixelMask        ///< specify mask bits for pixels to *ignore*
                                                         ) :
-    _exposure(exposure), _peak(peak), _source(source), _badPixelMask(badPixelMask) {
-
-
-    // decide on the bbox, default to the whole image if the source or footprint aren't specified
-    if (_source && _source->getFootprint()) {
-        _bbox = _source->getFootprint()->getBBox();
-    } else {
-        CONST_PTR(ImageT) imTmp = exposure->getMaskedImage().getImage();
-        _bbox = afwGeom::Box2I(afwGeom::Point2I(imTmp->getXY0()), 
-                               afwGeom::Extent2I(imTmp->getWidth(), imTmp->getHeight()));
-    }
+    _exposure(exposure), _peak(peak), _badPixelMask(badPixelMask), _bbox(foot.getBBox()) {
 
     // make a shallow image copy in the bbox, allocate the image structure and copy into it
     CONST_PTR(MaskedImageT) img = 
