@@ -35,6 +35,7 @@ import lsst.meas.algorithms as algorithms
 import lsst.utils.tests as utilsTests
 import lsst.afw.detection as afwDetection
 import lsst.afw.geom as afwGeom
+import lsst.afw.coord as afwCoord
 import lsst.afw.display.ds9 as ds9
 
 import lsst.meas.extensions.shapeHSM.hsmLib as hsmLib
@@ -126,7 +127,8 @@ class ShapeTestCase(unittest.TestCase):
                             mimg.set(i, j, (mpix[0], msk.getPlaneBitMask("BAD"), mpix[2]))
 
             exposure = afwImage.makeExposure(mimg)
-            exposure.setWcs(afwImage.makeWcs(afwGeom.Point2D(0.0,0.0), afwGeom.Point2D(1.0,1.0),
+            exposure.setWcs(afwImage.makeWcs(afwCoord.makeCoord(afwCoord.ICRS, 0. * afwGeom.degrees, 0. * afwGeom.degrees),
+                                             afwGeom.Point2D(1.0,1.0),
                                              1.0/(2.53*3600.0), 0.0, 0.0, 1.0/(2.53*3600.0)))
 
             
