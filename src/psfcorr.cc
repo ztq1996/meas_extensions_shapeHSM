@@ -31,8 +31,9 @@ namespace pexExcept = lsst::pex::exceptions;
 
 #include "lsst/meas/extensions/shapeHSM/psfcorr.h"
 
-#define Pi    M_PI
-#define TwoPi (2.0*M_PI)
+#include "lsst/afw/geom/Angle.h"
+#define Pi    lsst::afw::geom::PI
+#define TwoPi lsst::afw::geom::TWOPI
 
 
 
