@@ -153,13 +153,11 @@ class ShapeTestCase(unittest.TestCase):
             x, y = float(known['x']), float(known['y'])
             x2, y2 = int(x+0.5), int(y+0.5)
 
-            peak = afwDetection.Peak(x2, y2)
-            patch = algorithms.makeExposurePatch(exposure, peak, afwDetection.Footprint(exposure.getBBox()))
-
+            center = afwGeom.Point2D(x2, y2)
             source = afwDetection.Source(0)
             source.setFootprint(afwDetection.Footprint(exposure.getBBox()))
 
-            s = shapeFinder.measure(patch, source).find(algorithmName)
+            s = shapeFinder.measure(source, exposure, center).find(algorithmName)
 
             ##########################################
             # see how we did

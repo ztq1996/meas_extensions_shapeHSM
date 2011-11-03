@@ -147,14 +147,13 @@ BOOST_AUTO_TEST_CASE(HsmMoments) {
         policy.add(alg+".badmaskplanes", "SAT");
         
         measureShape->configure(policy);
-        CONST_PTR(afwDetection::Peak) peak = boost::make_shared<afwDetection::Peak>(x, y);
-        
-        PTR(afwDetection::Footprint) foot = boost::make_shared<afwDetection::Footprint>(exposure->getBBox());
-        PTR(measAlgorithms::ExposurePatch<ExposureT>) patch = 
-            measAlgorithms::makeExposurePatch<ExposureT>(exposure, peak, foot);
-        afwDetection::Source const& source(0);
 
-        afwDetection::Shape::Ptr shape = measureShape->measure(*patch, source)->find(alg);
+        afwGeom::Point2D center(x, y);
+        PTR(afwDetection::Footprint) foot = boost::make_shared<afwDetection::Footprint>(exposure->getBBox());
+        afwDetection::Source source(0);
+        source.setFootprint(foot);
+
+        afwDetection::Shape::Ptr shape = measureShape->measure(source, exposure, center)->find(alg);
 
         // compare to known values
         float Ixx = shape->getIxx();

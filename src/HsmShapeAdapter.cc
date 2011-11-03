@@ -48,11 +48,11 @@ namespace measAlg        = lsst::meas::algorithms;
 template<typename ExposureT>
 extendShapeHsm::HsmShapeAdapter<ExposureT>::HsmShapeAdapter(
     CONST_PTR(ExposureT) exposure,          ///< exposure containing the pixels to measure
-    CONST_PTR(afwDetection::Peak) peak,     ///< location of the object to measure
+    afwGeom::Point2D const& center,         ///< location of the object to measure
     afwDetection::Footprint const& foot,    ///< Footprint of the object
     afwImage::MaskPixel badPixelMask        ///< specify mask bits for pixels to *ignore*
-                                                        ) :
-    _exposure(exposure), _peak(peak), _badPixelMask(badPixelMask), _bbox(foot.getBBox()) {
+    ) :
+    _exposure(exposure), _center(center), _badPixelMask(badPixelMask), _bbox(foot.getBBox()) {
 
     // make a shallow image copy in the bbox, allocate the image structure and copy into it
     CONST_PTR(MaskedImageT) img = 
@@ -87,8 +87,8 @@ extendShapeHsm::HsmShapeAdapter<ExposureT>::HsmShapeAdapter(
     // init the galaxyData
 
     // use these to get the local PSF
-    double x = _peak->getFx();
-    double y = _peak->getFy();
+    double x = _center.getX();
+    double y = _center.getY();
 
     // adjust these so _galaxyData knows the location in the footprint image
     _galaxyData.x0 = x - _bbox.getMinX();

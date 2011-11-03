@@ -82,8 +82,8 @@ public:
     virtual std::string getName() const = 0;
     virtual std::string getAdapterName() const { return getName().substr(4); }
 
-    virtual PTR(afwDet::Shape) measureOne(ExposurePatch<ExposureT> const& patch,
-                                          afwDet::Source const& source) const;
+    virtual PTR(afwDet::Shape) measureSingle(afwDet::Source const&, afwDet::Source const&,
+                                             ExposurePatch<ExposureT> const&) const;
 protected:
     std::vector<std::string> _badMaskPlanes;
 };
@@ -168,11 +168,13 @@ private:
  * @brief Given an image and a pixel position, return a Shape using the HSM algorithm
  */
 template<typename ExposureT>
-PTR(afwDet::Shape) HsmShapeBase<ExposureT>::measureOne(ExposurePatch<ExposureT> const& patch,
-                                                       afwDet::Source const& source) const
+PTR(afwDet::Shape) HsmShapeBase<ExposureT>::measureSingle(
+    afwDet::Source const& target,
+    afwDet::Source const& source,
+    ExposurePatch<ExposureT> const& patch
+    ) const
 {
     CONST_PTR(ExposureT) exposure = patch.getExposure();
-    CONST_PTR(afwDet::Peak) peak = patch.getPeak();
     CONST_PTR(afwDet::Footprint) foot = patch.getFootprint();
 
     typedef typename ExposureT::MaskedImageT MaskedImageT;
@@ -180,7 +182,7 @@ PTR(afwDet::Shape) HsmShapeBase<ExposureT>::measureOne(ExposurePatch<ExposureT> 
     
     afwImage::MaskPixel badPixelMask =
         exposure->getMaskedImage().getMask()->getPlaneBitMask(_badMaskPlanes);
-    extendShapeHsm::HsmShapeAdapter<ExposureT> shearEst(exposure, peak, *foot, badPixelMask);
+    extendShapeHsm::HsmShapeAdapter<ExposureT> shearEst(exposure, patch.getCenter(), *foot, badPixelMask);
     
     short status = shearEst.measure(getAdapterName());   
  

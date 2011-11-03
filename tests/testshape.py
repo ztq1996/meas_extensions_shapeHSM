@@ -133,14 +133,11 @@ class HsmMomentTestCase(unittest.TestCase):
             if display:
                 ds9.mtv(self.mimg)
 
-            peak = afwDetection.Peak(self.x, self.y)
-            patch = algorithms.makeExposurePatch(self.exposure, peak, 
-                                                 afwDetection.Footprint(self.exposure.getBBox()))
-
+            center = afwGeom.Point2D(self.x, self.y)
             source = afwDetection.Source(0)
             source.setFootprint(afwDetection.Footprint(self.exposure.getBBox()))
 
-            s = shapeFinder.measure(patch, source).find(algName)
+            s = shapeFinder.measure(source, self.exposure, center).find(algName)
 
             # see how we did
             Ixx, Iyy, Ixy = s.getIxx(), s.getIyy(), s.getIxy()
