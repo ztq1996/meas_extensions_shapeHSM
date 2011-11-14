@@ -38,6 +38,7 @@
 
 #include "lsst/meas/extensions/shapeHSM/HsmShapeAdapter.h"
 
+namespace pexPolicy = lsst::pex::policy;
 namespace pexExceptions = lsst::pex::exceptions;
 namespace pexLogging = lsst::pex::logging;
 namespace afwDet = lsst::afw::detection;
