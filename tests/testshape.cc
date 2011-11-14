@@ -38,9 +38,6 @@
 #include "lsst/afw/math/Integrate.h"
 #include "lsst/afw/coord/Coord.h"
 
-#include "lsst/meas/extensions/shapeHSM/HsmShape.h"
-
-
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MODULE HsmShape
 
@@ -140,7 +137,7 @@ BOOST_AUTO_TEST_CASE(HsmMoments) {
         std::string alg = *it;
         
         measAlgorithms::MeasureShape<ExposureT>::Ptr measureShape =
-            measAlgorithms::makeMeasureShape<ExposureT::Ptr>();
+            measAlgorithms::makeMeasureShape<ExposureT>(*exposure);
         measureShape->addAlgorithm(alg);
         pexPolicy::Policy policy;
         policy.set(alg+".background", bkgd);
@@ -150,10 +147,13 @@ BOOST_AUTO_TEST_CASE(HsmMoments) {
         policy.add(alg+".badmaskplanes", "SAT");
         
         measureShape->configure(policy);
-        CONST_PTR(afwDetection::Peak) peak = boost::make_shared<afwDetection::Peak>(x, y);
-        measureShape->setImage(exposure);
 
-        afwDetection::Shape::Ptr shape = measureShape->measure(peak)->find(alg);
+        afwGeom::Point2D center(x, y);
+        PTR(afwDetection::Footprint) foot = boost::make_shared<afwDetection::Footprint>(exposure->getBBox());
+        afwDetection::Source source(0);
+        source.setFootprint(foot);
+
+        afwDetection::Shape::Ptr shape = measureShape->measure(source, exposure, center)->find(alg);
 
         // compare to known values
         float Ixx = shape->getIxx();

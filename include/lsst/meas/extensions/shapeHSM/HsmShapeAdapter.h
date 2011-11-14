@@ -55,8 +55,8 @@ public:
      */
     HsmShapeAdapter(
                     CONST_PTR(ExposureT) exposure,
-                    CONST_PTR(lsst::afw::detection::Peak) peak,
-                    CONST_PTR(lsst::afw::detection::Source) source=PTR(lsst::afw::detection::Source)(),
+                    lsst::afw::geom::Point2D const& center,
+                    lsst::afw::detection::Footprint const& foot,
                     lsst::afw::image::MaskPixel badPixelMask=0x0
                    );
     
@@ -98,8 +98,7 @@ public:
     
 private:
     CONST_PTR(ExposureT) _exposure;
-    CONST_PTR(lsst::afw::detection::Peak) _peak;
-    CONST_PTR(lsst::afw::detection::Source) _source;
+    lsst::afw::geom::Point2D _center;
     lsst::afw::geom::Box2I _bbox;
     lsst::afw::image::MaskPixel _badPixelMask;
     RECT_IMAGE _atlasImage;

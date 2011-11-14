@@ -143,19 +143,21 @@ class ShapeTestCase(unittest.TestCase):
 
             
             # perform the shape measurement
-            shapeFinder = algorithms.makeMeasureShape(None)
+            shapeFinder = algorithms.makeMeasureShape(exposure)
 
             algorithmName = "HSM_" + algName
             shapeFinder.addAlgorithm(algorithmName)
             self.policy.set(algorithmName+".background", self.bkgd)
             shapeFinder.configure(self.policy)
 
-            shapeFinder.setImage(exposure)
-
             x, y = float(known['x']), float(known['y'])
             x2, y2 = int(x+0.5), int(y+0.5)
-            peak = afwDetection.Peak(x2, y2)
-            s = shapeFinder.measure(peak).find(algorithmName)
+
+            center = afwGeom.Point2D(x2, y2)
+            source = afwDetection.Source(0)
+            source.setFootprint(afwDetection.Footprint(exposure.getBBox()))
+
+            s = shapeFinder.measure(source, exposure, center).find(algorithmName)
 
             ##########################################
             # see how we did

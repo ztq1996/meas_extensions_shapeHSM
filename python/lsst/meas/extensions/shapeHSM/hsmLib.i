@@ -44,13 +44,11 @@ Various swigged-up C++ classes for testing
 
 /* **EDIT** all remaining lines to include your header and handle shared pointer to your class */
 %{
-#include "lsst/meas/extensions/shapeHSM/HsmShape.h"
 #include "lsst/meas/extensions/shapeHSM/HsmShapeAdapter.h"
 %}
 
 SWIG_SHARED_PTR_DERIVED(HsmShapePtr, lsst::afw::detection::Shape, lsst::meas::extensions::shapeHSM::HsmShape);
 
-%include "lsst/meas/extensions/shapeHSM/HsmShape.h"
 %include "lsst/meas/extensions/shapeHSM/HsmShapeAdapter.h"
 
 
