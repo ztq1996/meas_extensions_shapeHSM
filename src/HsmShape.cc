@@ -204,29 +204,29 @@ PTR(afwDet::Shape) HsmShapeBase<ExposureT>::measureSingle(
     PTR(afwDet::Shape) shape = PTR(afwDet::Shape)(new afwDet::Shape(x, xErr, y, yErr, ixx, ixxErr, 
                                                                     ixy, ixyErr, iyy, iyyErr));
 
-    shape->set<afwDet::Shape::SHAPE_STATUS, short>(status);
-    shape->set<afwDet::Shape::SIGMA, double>(shearEst.getSigma());
+    shape->setShapeStatus(status);
+    shape->setSigma(shearEst.getSigma());
     
     // if we have ellipticities 'e' put them in e1/e2
     // if we have shear 'g', put them in shear1/shear2
     char meas_type = shearEst.getMeasType();
     if (meas_type == 'e') {
-        shape->set<afwDet::Shape::E1, double>(shearEst.getE1());
-        shape->set<afwDet::Shape::E1_ERR, double>(0.5 * shearEst.getShearSig());
-        shape->set<afwDet::Shape::E2, double>(shearEst.getE2());
-        shape->set<afwDet::Shape::E2_ERR, double>(0.5 * shearEst.getShearSig());
+        shape->setE1(shearEst.getE1());
+        shape->setE1Err(0.5 * shearEst.getShearSig());
+        shape->setE2(shearEst.getE2());
+        shape->setE2Err(0.5 * shearEst.getShearSig());
     } else if (meas_type == 'g') {
-        shape->set<afwDet::Shape::SHEAR1, double>(shearEst.getE1());
-        shape->set<afwDet::Shape::SHEAR1_ERR, double>(shearEst.getShearSig());
-        shape->set<afwDet::Shape::SHEAR2, double>(shearEst.getE2());
-        shape->set<afwDet::Shape::SHEAR2_ERR, double>(shearEst.getShearSig());
+        shape->setShear1(shearEst.getE1());
+        shape->setShear1Err(shearEst.getShearSig());
+        shape->setShear2(shearEst.getE2());
+        shape->setShear2Err(shearEst.getShearSig());
     }
 
-    shape->set<afwDet::Shape::RESOLUTION, double>(shearEst.getResolution());
+    shape->setResolution(shearEst.getResolution());
     
-    shape->set<afwDet::Shape::PSF_IXX, double>(shearEst.getPsfIxx());
-    shape->set<afwDet::Shape::PSF_IXY, double>(shearEst.getPsfIxy());
-    shape->set<afwDet::Shape::PSF_IYY, double>(shearEst.getPsfIyy());
+    shape->setPsfIxx(shearEst.getPsfIxx());
+    shape->setPsfIxy(shearEst.getPsfIxy());
+    shape->setPsfIyy(shearEst.getPsfIyy());
 
     return shape;
 }
