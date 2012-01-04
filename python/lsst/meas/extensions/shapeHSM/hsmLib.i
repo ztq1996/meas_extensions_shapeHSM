@@ -40,17 +40,16 @@ Various swigged-up C++ classes for testing
 
 %lsst_exceptions()
 
-%import "lsst/afw/detection/detectionLib.i"
+%include "lsst/afw/detection/detectionLib.i"
 
 /* **EDIT** all remaining lines to include your header and handle shared pointer to your class */
 %{
 #include "lsst/meas/extensions/shapeHSM/HsmShapeAdapter.h"
 %}
 
-SWIG_SHARED_PTR_DERIVED(HsmShapePtr, lsst::afw::detection::Shape, lsst::meas::extensions::shapeHSM::HsmShape);
+%shared_ptr(lsst::meas::extensions::shapeHSM::HsmShape)
 
 %include "lsst/meas/extensions/shapeHSM/HsmShapeAdapter.h"
-
 
 %define %declareShape(PIXTYPE, SUFFIX)
 %template(HsmShapeAdapter ## SUFFIX) lsst::meas::extensions::shapeHSM::HsmShapeAdapter<lsst::afw::image::Exposure<PIXTYPE> >;
