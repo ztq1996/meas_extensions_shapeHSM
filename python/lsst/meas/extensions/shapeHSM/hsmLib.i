@@ -36,6 +36,14 @@ Various swigged-up C++ classes for testing
 %pythonnondynamic;
 %naturalvar;  // use const reference typemaps
 
+%{
+#include "lsst/pex/logging.h"
+#include "lsst/afw/image.h"
+#include "lsst/afw/cameraGeom.h"
+#include "lsst/afw/detection.h"
+#include "lsst/afw/detection/AperturePhotometry.h"
+%}
+
 %include "lsst/p_lsstSwig.i"
 
 %lsst_exceptions()
