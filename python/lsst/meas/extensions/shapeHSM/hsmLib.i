@@ -43,6 +43,7 @@ Various swigged-up C++ classes for testing
 #include "lsst/afw/detection.h"
 #include "lsst/afw/geom.h"
 #include "lsst/afw/geom/ellipses.h"
+#include "lsst/meas/algorithms.h"
 %}
 
 %include "lsst/p_lsstSwig.i"
@@ -52,12 +53,22 @@ Various swigged-up C++ classes for testing
 %import "lsst/afw/detection/detectionLib.i"
 %import "lsst/afw/geom/geomLib.i"
 %import "lsst/afw/geom/ellipses/ellipsesLib.i"
+%import "lsst/meas/algorithms/algorithmsLib.i"
 
 %{
 #include "lsst/meas/extensions/shapeHSM/HsmShapeAdapter.h"
+#include "lsst/meas/extensions/shapeHSM/HsmShapeControl.h"
 %}
 
+%shared_ptr(lsst::meas::extensions::shapeHSM::HsmShapeControl);
+%shared_ptr(lsst::meas::extensions::shapeHSM::HsmShapeBjControl);
+%shared_ptr(lsst::meas::extensions::shapeHSM::HsmShapeLinearControl);
+%shared_ptr(lsst::meas::extensions::shapeHSM::HsmShapeKsbControl);
+%shared_ptr(lsst::meas::extensions::shapeHSM::HsmShapeRegaussControl);
+%shared_ptr(lsst::meas::extensions::shapeHSM::HsmShapeShapeletControl);
+
 %include "lsst/meas/extensions/shapeHSM/HsmShapeAdapter.h"
+%include "lsst/meas/extensions/shapeHSM/HsmShapeControl.h"
 
 
 %define %declareShape(PIXTYPE, SUFFIX)
