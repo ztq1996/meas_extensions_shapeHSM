@@ -52,7 +52,7 @@ extendShapeHsm::HsmShapeAdapter<ExposureT>::HsmShapeAdapter(
     afwDetection::Footprint const& foot,    ///< Footprint of the object
     afwImage::MaskPixel badPixelMask        ///< specify mask bits for pixels to *ignore*
     ) :
-    _exposure(exposure), _center(center), _badPixelMask(badPixelMask), _bbox(foot.getBBox()) {
+    _exposure(exposure), _center(center), _bbox(foot.getBBox()), _badPixelMask(badPixelMask) {
 
     // make a shallow image copy in the bbox, allocate the image structure and copy into it
     CONST_PTR(MaskedImageT) img = 
