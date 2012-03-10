@@ -20,11 +20,6 @@
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 
-from hsmLib import *
-import lsst.utils
+from .hsmLib import *
+from .version import *
 
-def version():
-    """Return current version. If a different version is setup, return that too"""
-
-    HeadURL = r"$HeadURL$"
-    return lsst.utils.version(HeadURL, "meas_extensions_shapeHSM")
