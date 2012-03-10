@@ -55,7 +55,7 @@ public:
      * constructor
      */
     HsmShapeAdapter(
-                    CONST_PTR(ExposureT) exposure,
+                    ExposureT const & exposure,
                     lsst::afw::geom::Point2D const& center,
                     lsst::afw::detection::Footprint const& foot,
                     lsst::afw::image::MaskPixel badPixelMask=0x0
@@ -110,7 +110,7 @@ public:
     }
     
 private:
-    CONST_PTR(ExposureT) _exposure;
+    ExposureT _exposure;
     lsst::afw::geom::Point2D _center;
     lsst::afw::geom::Box2I _bbox;
     lsst::afw::image::MaskPixel _badPixelMask;

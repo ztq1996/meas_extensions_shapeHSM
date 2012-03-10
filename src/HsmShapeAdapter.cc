@@ -47,7 +47,7 @@ namespace measAlg        = lsst::meas::algorithms;
  */
 template<typename ExposureT>
 extendShapeHsm::HsmShapeAdapter<ExposureT>::HsmShapeAdapter(
-    CONST_PTR(ExposureT) exposure,          ///< exposure containing the pixels to measure
+    ExposureT const & exposure,          ///< exposure containing the pixels to measure
     afwGeom::Point2D const& center,         ///< location of the object to measure
     afwDetection::Footprint const& foot,    ///< Footprint of the object
     afwImage::MaskPixel badPixelMask        ///< specify mask bits for pixels to *ignore*
@@ -56,7 +56,7 @@ extendShapeHsm::HsmShapeAdapter<ExposureT>::HsmShapeAdapter(
 
     // make a shallow image copy in the bbox, allocate the image structure and copy into it
     CONST_PTR(MaskedImageT) img = 
-        boost::make_shared<MaskedImageT>(exposure->getMaskedImage(), _bbox, afwImage::LOCAL, false);
+        boost::make_shared<MaskedImageT>(exposure.getMaskedImage(), _bbox, afwImage::LOCAL, false);
     
     allocate_rect_image(&_atlasImage, 0, img->getWidth() - 1, 0, img->getHeight() - 1);
     for (int iY=0; iY < img->getHeight(); ++iY) {
@@ -75,7 +75,7 @@ extendShapeHsm::HsmShapeAdapter<ExposureT>::HsmShapeAdapter(
     
     // shallow copy the mask and use the user-provided badPixelMask to set the mask structure
     CONST_PTR(MaskT) msk =
-        boost::make_shared<MaskT>(*exposure->getMaskedImage().getMask(), _bbox, afwImage::LOCAL, false);
+        boost::make_shared<MaskT>(*exposure.getMaskedImage().getMask(), _bbox, afwImage::LOCAL, false);
     
     for (int iY = 0; iY < msk->getHeight(); ++iY) {
         int iX = 0;
@@ -96,7 +96,7 @@ extendShapeHsm::HsmShapeAdapter<ExposureT>::HsmShapeAdapter(
 
     
     // get a local image of the psf, allocate the psf structure and copy the psf into it
-    typename PsfImageT::Ptr psf = exposure->getPsf()->computeImage(afwGeom::Point2D(x, y));
+    typename PsfImageT::Ptr psf = exposure.getPsf()->computeImage(afwGeom::Point2D(x, y));
     allocate_rect_image(&_psfImage, 0, psf->getWidth() - 1, 0, psf->getHeight() - 1);
     for (int iY = 0; iY < psf->getHeight(); ++iY) {
         int iX = 0;
@@ -109,7 +109,7 @@ extendShapeHsm::HsmShapeAdapter<ExposureT>::HsmShapeAdapter(
     // init the psfData structure
     _psfData.x0 = 0.5 * (_psfImage.xmin + _psfImage.xmax);
     _psfData.y0 = 0.5 * (_psfImage.ymin + _psfImage.ymax);
-    measAlg::PsfAttributes psfAttrib(exposure->getPsf(),
+    measAlg::PsfAttributes psfAttrib(exposure.getPsf(),
                                      static_cast<int>(_psfData.x0), static_cast<int>(_psfData.y0));
     _psfData.sigma = psfAttrib.computeGaussianWidth(measAlg::PsfAttributes::ADAPTIVE_MOMENT);
     _galaxyData.sigma = 2.5*_psfData.sigma;
