@@ -22,14 +22,6 @@
  * see <http://www.lsstcorp.org/LegalNotices/>.
  */
 
-/**
- * \file
- * Measure adaptive moments.
- *
- * Originally provided by Phil Fischer, based on code from Tim McKay's group.  Error calculations by Dave
- * Johnston.  Major reworking by RHL for SDSS, and now a major rewrite for LSST
- */
-
 #include "lsst/pex/exceptions.h"
 #include "lsst/pex/logging/Trace.h"
 #include "lsst/afw/image.h"
@@ -37,205 +29,212 @@
 #include "lsst/meas/algorithms/Measure.h"
 
 #include "lsst/meas/extensions/shapeHSM/HsmShapeAdapter.h"
+#include "lsst/meas/extensions/shapeHSM/HsmShapeControl.h"
 
-namespace pexPolicy = lsst::pex::policy;
-namespace pexExceptions = lsst::pex::exceptions;
-namespace pexLogging = lsst::pex::logging;
-namespace afwDet = lsst::afw::detection;
-namespace afwImage = lsst::afw::image;
-namespace measAlg  = lsst::meas::algorithms;
+namespace lsst { namespace meas { namespace extensions { namespace shapeHSM {
 
-namespace extendShapeHsm = lsst::meas::extensions::shapeHSM;
+namespace {
 
-namespace lsst { namespace meas { namespace algorithms {
-
-template<typename ExposureT>
-class HsmShapeBase : public Algorithm<afwDet::Shape, ExposureT>
-{
-public:
-    typedef Algorithm<afwDet::Shape, ExposureT> AlgorithmT;
-    typedef boost::shared_ptr<HsmShapeBase> Ptr;
-    typedef boost::shared_ptr<HsmShapeBase const> ConstPtr;
-
-    /// Ctor
-    HsmShapeBase(std::vector<std::string> const& badMaskPlanes=std::vector<std::string>()) :
-        AlgorithmT(), _badMaskPlanes(badMaskPlanes) {}
-
-    virtual void configure(pexPolicy::Policy const& policy) {
-        if (policy.exists("badmaskplanes")) {
-            std::vector<std::string> planes = policy.getStringArray("badmaskplanes");
-            _badMaskPlanes.clear();
-            for (std::vector<std::string>::const_iterator it = planes.begin(); it != planes.end(); ++it) {
-                _badMaskPlanes.push_back(*it);
-            }
-        }
+// helper function for HsmShapeAlgorithm ctor
+inline afw::table::Key<double>
+addEllipticityField(std::string name, char n, char measType, afw::table::Schema & schema, std::string doc) {
+    name.push_back('.');
+    name.push_back(measType);
+    name.push_back(n);
+    if (n == '1') {
+        doc += " (+";
+    } else {
+        doc += " (x";
     }
-
-    virtual PTR(afwDet::Shape) measureNull(void) const {
-        double const NaN = std::numeric_limits<double>::quiet_NaN();
-        return boost::shared_ptr<afwDet::Shape>(new afwDet::Shape(NaN, NaN, NaN, NaN, NaN, 
-                                                                  NaN, NaN, NaN, NaN, NaN));
+    if (measType == 'e') {
+        doc += " component of ellipticity)";
+    } else {
+        doc += " component of estimated shear)";
     }
-
-    // We usually just want alg.getName() to pass to the
-    // ShearEstimator.measure() method, but HSM_SHAPELET also needs two integers
-    // appended to the string, so we must handle that.
-    virtual std::string getName() const = 0;
-    virtual std::string getAdapterName() const { return getName().substr(4); }
-
-    virtual PTR(afwDet::Shape) measureSingle(afwDet::Source const&, afwDet::Source const&,
-                                             ExposurePatch<ExposureT> const&) const;
-protected:
-    std::vector<std::string> _badMaskPlanes;
-};
-
-/// CRTP to clone the derived classes that are all the same
-template<typename ExposureT, typename HsmShapeDerived>
-class HsmShapeCloner : public HsmShapeBase<ExposureT> {
-public:
-    HsmShapeCloner(std::vector<std::string> const& badMaskPlanes) : HsmShapeBase<ExposureT>(badMaskPlanes) {}
-    virtual PTR(typename HsmShapeBase<ExposureT>::AlgorithmT) clone() const {
-        return boost::make_shared<HsmShapeDerived>(this->_badMaskPlanes);
-    }
-};
-
-template<typename ExposureT> 
-class HsmShapeBj : public HsmShapeCloner<ExposureT, HsmShapeBj<ExposureT> > {
-public:
-    HsmShapeBj(std::vector<std::string> const& badMaskPlanes=std::vector<std::string>()) : 
-        HsmShapeCloner<ExposureT, HsmShapeBj<ExposureT> >(badMaskPlanes) {}
-    virtual std::string getName() const { return "HSM_BJ"; }
-};
-
-template<typename ExposureT>
-class HsmShapeLinear : public HsmShapeCloner<ExposureT, HsmShapeLinear<ExposureT> > {
-public:
-    HsmShapeLinear(std::vector<std::string> const& badMaskPlanes=std::vector<std::string>()) : 
-        HsmShapeCloner<ExposureT, HsmShapeLinear<ExposureT> >(badMaskPlanes) {}
-    virtual std::string getName() const { return "HSM_LINEAR"; }
-};
-
-template<typename ExposureT>
-class HsmShapeKsb : public HsmShapeCloner<ExposureT, HsmShapeKsb<ExposureT> > {
-public:
-    HsmShapeKsb(std::vector<std::string> const& badMaskPlanes=std::vector<std::string>()) : 
-        HsmShapeCloner<ExposureT, HsmShapeKsb<ExposureT> >(badMaskPlanes) {}
-    virtual std::string getName() const { return "HSM_KSB"; }
-};
-
-template<typename ExposureT>
-class HsmShapeRegauss : public HsmShapeCloner<ExposureT, HsmShapeRegauss<ExposureT> > {
-public:
-    HsmShapeRegauss(std::vector<std::string> const& badMaskPlanes=std::vector<std::string>()) : 
-        HsmShapeCloner<ExposureT, HsmShapeRegauss<ExposureT> >(badMaskPlanes) {}
-    virtual std::string getName() const { return "HSM_REGAUSS"; }
-};
-
-template<typename ExposureT>
-class HsmShapeShapelet : public HsmShapeBase<ExposureT> {
-public:
-    HsmShapeShapelet(int max_order_psf=8, int max_order_gal=8, 
-                     std::vector<std::string> badMaskPlanes=std::vector<std::string>()) :
-        HsmShapeBase<ExposureT>(badMaskPlanes), _max_order_psf(max_order_psf), 
-        _max_order_gal(max_order_gal) {}
-
-    virtual std::string getName() const { return "HSM_SHAPELET"; }
-    virtual std::string getAdapterName() const {
-        return getName().substr(4) + (boost::format("%d,%d") % _max_order_psf % _max_order_gal).str();
-    }
-
-    virtual void configure(pexPolicy::Policy const& policy) {
-        if (policy.exists("max_order_psf")) {
-            _max_order_psf = policy.getInt("max_order_psf");
-        }
-        if (policy.exists("max_order_gal")) {
-            _max_order_gal = policy.getInt("max_order_gal");
-        }
-        HsmShapeBase<ExposureT>::configure(policy);
-    }
-
-    virtual PTR(typename HsmShapeBase<ExposureT>::AlgorithmT) clone() const {
-        return boost::make_shared<HsmShapeShapelet>(_max_order_psf, _max_order_gal, 
-                                                    this->_badMaskPlanes);
-    }
-
-private:
-    int _max_order_psf;
-    int _max_order_gal;
-};
-
-
-/**
- * @brief Given an image and a pixel position, return a Shape using the HSM algorithm
- */
-template<typename ExposureT>
-PTR(afwDet::Shape) HsmShapeBase<ExposureT>::measureSingle(
-    afwDet::Source const& target,
-    afwDet::Source const& source,
-    ExposurePatch<ExposureT> const& patch
-    ) const
-{
-    CONST_PTR(ExposureT) exposure = patch.getExposure();
-    CONST_PTR(afwDet::Footprint) foot = patch.getFootprint();
-
-    typedef typename ExposureT::MaskedImageT MaskedImageT;
-    typedef typename ExposureT::MaskedImageT::Image ImageT;
-    
-    afwImage::MaskPixel badPixelMask =
-        exposure->getMaskedImage().getMask()->getPlaneBitMask(_badMaskPlanes);
-    extendShapeHsm::HsmShapeAdapter<ExposureT> shearEst(exposure, patch.getCenter(), *foot, badPixelMask);
-    
-    short status = shearEst.measure(getAdapterName());   
- 
-    float x = shearEst.getX();
-    float xErr = 0.0;
-    float y = shearEst.getY();
-    float yErr = 0.0;
-    
-    float ixx = shearEst.getIxx();
-    float ixy = shearEst.getIxy();
-    float iyy = shearEst.getIyy();
-    float ixxErr = 0;
-    float ixyErr = 0;
-    float iyyErr = 0;
-
-    // flags: SHAPE_MAXITER, SHAPE_UNWEIGHTED, SHAPE_UNWEIGHTED_BAD
-    //shape->setFlags(shape->getFlags() | Flags::SHAPE_UNWEIGHTED);
-    PTR(afwDet::Shape) shape = PTR(afwDet::Shape)(new afwDet::Shape(x, xErr, y, yErr, ixx, ixxErr, 
-                                                                    ixy, ixyErr, iyy, iyyErr));
-
-    shape->setShapeStatus(status);
-    shape->setSigma(shearEst.getSigma());
-    
-    // if we have ellipticities 'e' put them in e1/e2
-    // if we have shear 'g', put them in shear1/shear2
-    char meas_type = shearEst.getMeasType();
-    if (meas_type == 'e') {
-        shape->setE1(shearEst.getE1());
-        shape->setE1Err(0.5 * shearEst.getShearSig());
-        shape->setE2(shearEst.getE2());
-        shape->setE2Err(0.5 * shearEst.getShearSig());
-    } else if (meas_type == 'g') {
-        shape->setShear1(shearEst.getE1());
-        shape->setShear1Err(shearEst.getShearSig());
-        shape->setShear2(shearEst.getE2());
-        shape->setShear2Err(shearEst.getShearSig());
-    }
-
-    shape->setResolution(shearEst.getResolution());
-    
-    shape->setPsfIxx(shearEst.getPsfIxx());
-    shape->setPsfIxy(shearEst.getPsfIxy());
-    shape->setPsfIyy(shearEst.getPsfIyy());
-
-    return shape;
+    return schema.addField<double>(name, doc);
 }
 
-LSST_DECLARE_ALGORITHM(HsmShapeBj, afwDet::Shape);
-LSST_DECLARE_ALGORITHM(HsmShapeLinear, afwDet::Shape);
-LSST_DECLARE_ALGORITHM(HsmShapeKsb, afwDet::Shape);
-LSST_DECLARE_ALGORITHM(HsmShapeRegauss, afwDet::Shape);
-LSST_DECLARE_ALGORITHM(HsmShapeShapelet, afwDet::Shape);
+// helper function for HsmShapeAlgorithm ctor
+inline afw::table::Key<double>
+addErrorField(std::string const & name, char measType, afw::table::Schema & schema) {
+    std::string doc = "Uncertainty on ";
+    doc.push_back(measType);
+    doc += "1 and ";
+    doc.push_back(measType);
+    doc += "2 (assumed to be the same)";
+    return schema.addField<double>(name + ".err", doc);
+}
 
+/*
+ *  HSM shape algorithm class - we use one class for all algorithms; all the specialized
+ *  work is done by the control class _makeAlgorithm implementations.
+ *
+ *  We don't inherit from ShapeAlgorithm because none of these compute any errors,
+ *  and we don't want to add fields that are always NaNs.  We probably need to think
+ *  about how to handle the "is-a" ShapeAlgorithm test a little better, but we don't
+ *  rely on it anywhere presently.
+ */
+class HsmShape : public algorithms::Algorithm {
+public:
 
-}}} // namespace
+    /// @brief Initialize with standard field names and customized documentation.
+    HsmShape(
+        HsmShapeControl const & ctrl,
+        std::string const & shearType,
+        char measType,
+        afw::table::Schema & schema,
+        std::string const & doc
+    );
+
+private:
+
+    template <typename PixelT>
+    void _apply(
+        afw::table::SourceRecord & source,
+        afw::image::Exposure<PixelT> const & exposure,
+        afw::geom::Point2D const & center
+    ) const;
+
+    LSST_MEAS_ALGORITHM_PRIVATE_INTERFACE(HsmShape);
+
+    std::string _shearType;
+    afw::table::Centroid::MeasKey _centroidKey;
+    afw::table::Shape::MeasKey _momentsKey;
+    afw::table::Shape::MeasKey _psfMomentsKey;
+    afw::table::Key<double> _e1Key;
+    afw::table::Key<double> _e2Key;
+    afw::table::Key<double> _errKey;
+    afw::table::Key<double> _resolutionKey;
+    afw::table::Key<afw::table::Flag> _flagKey;
+};
+
+HsmShape::HsmShape(
+    HsmShapeControl const & ctrl, 
+    std::string const & shearType,
+    char measType,
+    afw::table::Schema & schema,
+    std::string const & doc
+) : Algorithm(ctrl),
+    _shearType(shearType),
+    _centroidKey(
+        schema.addField<afw::table::Centroid::MeasTag>(ctrl.name + ".centroid", doc + " (centroid)")
+    ),
+    _momentsKey(
+        schema.addField<afw::table::Shape::MeasTag>(ctrl.name + ".moments", doc + " (uncorrected moments)")
+    ),
+    _psfMomentsKey(schema.addField<afw::table::Shape::MeasTag>(ctrl.name + ".psf", doc + " (PSF moments)")),
+    _e1Key(addEllipticityField(ctrl.name, 1, measType, schema, doc)),
+    _e2Key(addEllipticityField(ctrl.name, 2, measType, schema, doc)),
+    _errKey(addErrorField(ctrl.name, measType, schema)),
+    _resolutionKey(
+        schema.addField<double>(ctrl.name + ".resolution", "resolution factor (0=unresolved, 1=resolved)")
+    ),
+    _flagKey(schema.addField<afw::table::Flag>(ctrl.name + ".flags", "set if measurement failed in any way"))
+{}
+
+template<typename PixelT>
+void HsmShape::_apply(
+    afw::table::SourceRecord & source,
+    afw::image::Exposure<PixelT> const & exposure,
+    afw::geom::Point2D const & center
+) const {
+    source.set(_flagKey, true); // bad until we are good
+    std::vector<std::string> const & badMaskPlanes 
+        = static_cast<HsmShapeControl const &>(getControl()).badMaskPlanes;
+
+    afw::image::MaskPixel badPixelMask 
+        = exposure.getMaskedImage().getMask()->getPlaneBitMask(badMaskPlanes);
+    HsmShapeAdapter< afw::image::Exposure<PixelT> > shearEst(
+        exposure, center, *source.getFootprint(), badPixelMask
+    );
+    
+    short status = shearEst.measure(_shearType);   
+
+    source.set(_centroidKey, shearEst.getCentroid());
+    source.set(_momentsKey, shearEst.getMoments());
+    source.set(_psfMomentsKey, shearEst.getPsfMoments());
+    source.set(_e1Key, shearEst.getE1());
+    source.set(_e2Key, shearEst.getE2());
+    source.set(_resolutionKey, shearEst.getResolution());
+
+    char meas_type = shearEst.getMeasType();
+    if (meas_type == 'e') {
+        source.set(_errKey, 0.5 * shearEst.getShearSig());
+    } else if (meas_type == 'g') {
+        source.set(_errKey, shearEst.getShearSig());
+    }
+
+    source.set(_flagKey, !status); 
+}
+
+LSST_MEAS_ALGORITHM_PRIVATE_IMPLEMENTATION(HsmShape);
+
+} // anonymous namespace
+
+PTR(algorithms::AlgorithmControl) HsmShapeBjControl::_clone() const {
+    return boost::make_shared<HsmShapeBjControl>(*this);
+}
+
+PTR(algorithms::AlgorithmControl) HsmShapeLinearControl::_clone() const {
+    return boost::make_shared<HsmShapeLinearControl>(*this);
+}
+
+PTR(algorithms::AlgorithmControl) HsmShapeKsbControl::_clone() const {
+    return boost::make_shared<HsmShapeKsbControl>(*this);
+}
+
+PTR(algorithms::AlgorithmControl) HsmShapeRegaussControl::_clone() const {
+    return boost::make_shared<HsmShapeRegaussControl>(*this);
+}
+
+PTR(algorithms::AlgorithmControl) HsmShapeShapeletControl::_clone() const {
+    return boost::make_shared<HsmShapeShapeletControl>(*this);
+}
+
+PTR(algorithms::Algorithm) HsmShapeBjControl::_makeAlgorithm(
+    afw::table::Schema & schema, PTR(daf::base::PropertyList) const & metadata
+) const {
+    return boost::make_shared<HsmShape>(
+        *this, "BJ", 'e', boost::ref(schema),
+        "PSF-corrected shear using Bernstein & Jarvis (2002) method"
+    );
+}
+
+PTR(algorithms::Algorithm) HsmShapeLinearControl::_makeAlgorithm(
+    afw::table::Schema & schema, PTR(daf::base::PropertyList) const & metadata
+) const {
+    return boost::make_shared<HsmShape>(
+        *this, "LINEAR", 'e', boost::ref(schema),
+        "PSF-corrected shear using Hirata & Seljak (2003) 'linear' method"
+    );
+}
+
+PTR(algorithms::Algorithm) HsmShapeKsbControl::_makeAlgorithm(
+    afw::table::Schema & schema, PTR(daf::base::PropertyList) const & metadata
+) const {
+    return boost::make_shared<HsmShape>(
+        *this, "KSB", 'g', boost::ref(schema),
+        "PSF-corrected shear using KSB method"
+    );
+}
+
+PTR(algorithms::Algorithm) HsmShapeRegaussControl::_makeAlgorithm(
+    afw::table::Schema & schema, PTR(daf::base::PropertyList) const & metadata
+) const {
+    return boost::make_shared<HsmShape>(
+        *this, "REGAUSS", 'e', boost::ref(schema),
+        "PSF-corrected shear using Hirata & Seljak (2003) 'regaussianization' method"
+    );
+}
+
+PTR(algorithms::Algorithm) HsmShapeShapeletControl::_makeAlgorithm(
+    afw::table::Schema & schema, PTR(daf::base::PropertyList) const & metadata
+) const {
+    std::string shearType = (boost::format("SHAPELET%d,%d") % maxOrderPsf % maxOrderGalaxy).str();
+    return boost::make_shared<HsmShape>(
+        *this, shearType, 'g', boost::ref(schema),
+        "PSF-corrected shear using Hirata & Seljak (2003) 'shapelet' method"
+    );
+}
+
+}}}} // namespace lsst::meas::extensions::shapeHSM
