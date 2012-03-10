@@ -28,6 +28,7 @@
 
 #include "lsst/afw/image.h"
 #include "lsst/afw/detection.h"
+#include "lsst/afw/geom/ellipses.h"
 
 namespace lsst {
 namespace meas {
@@ -74,8 +75,12 @@ public:
      */
     double getX()     { return _galaxyData.x0 + _bbox.getMinX(); }
     double getY()     { return _galaxyData.y0 + _bbox.getMinY(); }
+
+    afw::geom::Point2D getCentroid() { return afw::geom::Point2D(getX(), getY()); }
+
     double getE1()    { return _galaxyData.e1; }
     double getE2()    { return _galaxyData.e2; }
+    
     
     double getFlux()  { return _galaxyData.flux; }
     double getResponsivity() { return _galaxyData.responsivity; }
@@ -87,10 +92,18 @@ public:
     double getIxy()   { return _galaxyData.mxy; }
     double getSigma() { return _galaxyData.sigma; }
 
+    afw::geom::ellipses::Quadrupole getMoments() {
+        return afw::geom::ellipses::Quadrupole(getIxx(), getIyy(), getIxy());
+    }
+
     double getPsfIxx()   { return _psfData.mxx; }
     double getPsfIyy()   { return _psfData.myy; }
     double getPsfIxy()   { return _psfData.mxy; }
     double getPsfSigma() { return _psfData.sigma; }
+
+    afw::geom::ellipses::Quadrupole getPsfMoments() {
+        return afw::geom::ellipses::Quadrupole(getPsfIxx(), getPsfIyy(), getPsfIxy());
+    }
 
     double getShearSig() {
         return sqrt( 4.0*M_PI*_skyvar ) * _galaxyData.sigma / (_galaxyData.resolution * _galaxyData.flux);

@@ -41,7 +41,8 @@ Various swigged-up C++ classes for testing
 #include "lsst/afw/image.h"
 #include "lsst/afw/cameraGeom.h"
 #include "lsst/afw/detection.h"
-#include "lsst/afw/detection/AperturePhotometry.h"
+#include "lsst/afw/geom.h"
+#include "lsst/afw/geom/ellipses.h"
 %}
 
 %include "lsst/p_lsstSwig.i"
@@ -49,13 +50,12 @@ Various swigged-up C++ classes for testing
 %lsst_exceptions()
 
 %import "lsst/afw/detection/detectionLib.i"
+%import "lsst/afw/geom/geomLib.i"
+%import "lsst/afw/geom/ellipses/ellipsesLib.i"
 
-/* **EDIT** all remaining lines to include your header and handle shared pointer to your class */
 %{
 #include "lsst/meas/extensions/shapeHSM/HsmShapeAdapter.h"
 %}
-
-SWIG_SHARED_PTR_DERIVED(HsmShapePtr, lsst::afw::detection::Shape, lsst::meas::extensions::shapeHSM::HsmShape);
 
 %include "lsst/meas/extensions/shapeHSM/HsmShapeAdapter.h"
 
