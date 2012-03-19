@@ -34,10 +34,11 @@ import lsst.afw.geom as afwGeom
 import lsst.meas.algorithms as algorithms
 import lsst.utils.tests as utilsTests
 import lsst.afw.detection as afwDetection
+import lsst.afw.table as afwTable
 
 import lsst.afw.display.ds9 as ds9
 
-import lsst.meas.extensions.shapeHSM.hsmLib as hsmLib
+import lsst.meas.extensions.shapeHSM as hsm
 
 try:
     type(verbose)
@@ -118,26 +119,31 @@ class HsmMomentTestCase(unittest.TestCase):
         """Test that the un-psf-corrected moments are correct"""
 
         # measure shape with our algorithm
-        algorithmNames = ["HSM_BJ", "HSM_LINEAR", "HSM_KSB", "HSM_REGAUSS", "HSM_SHAPELET"]
+        algorithmNames = ["shape.hsm.bj", "shape.hsm.linear", "shape.hsm.ksb",
+                          "shape.hsm.regauss", "shape.hsm.shapelet"]
 
         mim = self.exposure.getMaskedImage()
         im  = mim.getImage()
         im -= self.bkgd
         
         for algName in algorithmNames:
-            shapeFinder = algorithms.makeMeasureShape(self.exposure)
-            shapeFinder.addAlgorithm(algName)
-            self.policy.set(algName+".background", self.bkgd)
-            shapeFinder.configure(self.policy)
+            schema = afwTable.SourceTable.makeMinimalSchema()
+            msConfig = algorithms.SourceMeasurementConfig()
+            msConfig.algorithms.names = [algName]
+            shapeFinder = msConfig.makeMeasureSources(schema)
 
             if display:
                 ds9.mtv(self.mimg)
 
             center = afwGeom.Point2D(self.x, self.y)
-            source = afwDetection.Source(0)
+            table = afwTable.SourceTable.make(schema)
+            source = table.makeRecord()
             source.setFootprint(afwDetection.Footprint(self.exposure.getBBox()))
 
-            s = shapeFinder.measure(source, self.exposure, center).find(algName)
+            shapeFinder.apply(source, self.exposure, center)
+
+            p = source.get(algName + ".centroid")
+            s = source.get(algName + ".moments")
 
             # see how we did
             Ixx, Iyy, Ixy = s.getIxx(), s.getIyy(), s.getIxy()
@@ -150,8 +156,8 @@ class HsmMomentTestCase(unittest.TestCase):
             print "A2, B2 = %.5f, %.5f" % (A2, B2)         
 
             # 1/100 pixel limit
-            self.assertTrue(abs(self.x - s.getX()) < 1e-2, "%g v. %g" % (self.x, s.getX()))
-            self.assertTrue(abs(self.y - s.getY()) < 1e-2, "%g v. %g" % (self.y, s.getY()))
+            self.assertTrue(abs(self.x - p.getX()) < 1e-2, "%g v. %g" % (self.x, p.getX()))
+            self.assertTrue(abs(self.y - p.getY()) < 1e-2, "%g v. %g" % (self.y, p.getY()))
 
             # need higher limit for these (they're just placeholder shapes computed, after all)
             self.assertTrue(abs(s.getIxx() - self.sigma_xx) < 2e-2*(1 + self.sigma_xx),

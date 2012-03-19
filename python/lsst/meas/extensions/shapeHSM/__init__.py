@@ -20,11 +20,13 @@
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 
-from hsmLib import *
-import lsst.utils
+from .hsmLib import *
+from .version import *
 
-def version():
-    """Return current version. If a different version is setup, return that too"""
-
-    HeadURL = r"$HeadURL$"
-    return lsst.utils.version(HeadURL, "meas_extensions_shapeHSM")
+import lsst.meas.algorithms
+lsst.meas.algorithms.AlgorithmRegistry.register("shape.hsm.bj", HsmShapeBjControl)
+lsst.meas.algorithms.AlgorithmRegistry.register("shape.hsm.linear", HsmShapeLinearControl)
+lsst.meas.algorithms.AlgorithmRegistry.register("shape.hsm.ksb", HsmShapeKsbControl)
+lsst.meas.algorithms.AlgorithmRegistry.register("shape.hsm.regauss", HsmShapeRegaussControl)
+lsst.meas.algorithms.AlgorithmRegistry.register("shape.hsm.shapelet", HsmShapeShapeletControl)
+del lsst # cleanup namespace
