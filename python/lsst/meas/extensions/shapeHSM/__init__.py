@@ -23,3 +23,10 @@
 from .hsmLib import *
 from .version import *
 
+import lsst.meas.algorithms
+lsst.meas.algorithms.AlgorithmRegistry.register("shape.hsm.bj", HsmShapeBjControl)
+lsst.meas.algorithms.AlgorithmRegistry.register("shape.hsm.linear", HsmShapeLinearControl)
+lsst.meas.algorithms.AlgorithmRegistry.register("shape.hsm.ksb", HsmShapeKsbControl)
+lsst.meas.algorithms.AlgorithmRegistry.register("shape.hsm.regauss", HsmShapeRegaussControl)
+lsst.meas.algorithms.AlgorithmRegistry.register("shape.hsm.shapelet", HsmShapeShapeletControl)
+del lsst # cleanup namespace

@@ -104,6 +104,7 @@ private:
     afw::table::Key<double> _e1Key;
     afw::table::Key<double> _e2Key;
     afw::table::Key<double> _errKey;
+    afw::table::Key<double> _sigmaKey;
     afw::table::Key<double> _resolutionKey;
     afw::table::Key<afw::table::Flag> _flagKey;
 };
@@ -123,11 +124,14 @@ HsmShape::HsmShape(
         schema.addField<afw::table::Shape::MeasTag>(ctrl.name + ".moments", doc + " (uncorrected moments)")
     ),
     _psfMomentsKey(schema.addField<afw::table::Shape::MeasTag>(ctrl.name + ".psf", doc + " (PSF moments)")),
-    _e1Key(addEllipticityField(ctrl.name, 1, measType, schema, doc)),
-    _e2Key(addEllipticityField(ctrl.name, 2, measType, schema, doc)),
+    _e1Key(addEllipticityField(ctrl.name, '1', measType, schema, doc)),
+    _e2Key(addEllipticityField(ctrl.name, '2', measType, schema, doc)),
     _errKey(addErrorField(ctrl.name, measType, schema)),
     _resolutionKey(
         schema.addField<double>(ctrl.name + ".resolution", "resolution factor (0=unresolved, 1=resolved)")
+    ),
+    _sigmaKey(
+        schema.addField<double>(ctrl.name + ".sigma", doc + " (width)")
     ),
     _flagKey(schema.addField<afw::table::Flag>(ctrl.name + ".flags", "set if measurement failed in any way"))
 {}
@@ -148,13 +152,14 @@ void HsmShape::_apply(
         exposure, center, *source.getFootprint(), badPixelMask
     );
     
-    short status = shearEst.measure(_shearType);   
+    short status = shearEst.measure(_shearType);
 
     source.set(_centroidKey, shearEst.getCentroid());
     source.set(_momentsKey, shearEst.getMoments());
     source.set(_psfMomentsKey, shearEst.getPsfMoments());
     source.set(_e1Key, shearEst.getE1());
     source.set(_e2Key, shearEst.getE2());
+    source.set(_sigmaKey, shearEst.getSigma());
     source.set(_resolutionKey, shearEst.getResolution());
 
     char meas_type = shearEst.getMeasType();
@@ -164,7 +169,7 @@ void HsmShape::_apply(
         source.set(_errKey, shearEst.getShearSig());
     }
 
-    source.set(_flagKey, !status); 
+    source.set(_flagKey, status); 
 }
 
 LSST_MEAS_ALGORITHM_PRIVATE_IMPLEMENTATION(HsmShape);

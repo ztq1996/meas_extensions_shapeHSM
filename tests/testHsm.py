@@ -34,11 +34,12 @@ import lsst.afw.math as afwMath
 import lsst.meas.algorithms as algorithms
 import lsst.utils.tests as utilsTests
 import lsst.afw.detection as afwDetection
+import lsst.afw.table as afwTable
 import lsst.afw.geom as afwGeom
 import lsst.afw.coord as afwCoord
 import lsst.afw.display.ds9 as ds9
 
-import lsst.meas.extensions.shapeHSM.hsmLib as hsmLib
+import lsst.meas.extensions.shapeHSM
 
 try:
     type(verbose)
@@ -143,41 +144,52 @@ class ShapeTestCase(unittest.TestCase):
 
             
             # perform the shape measurement
-            shapeFinder = algorithms.makeMeasureShape(exposure)
-
-            algorithmName = "HSM_" + algName
-            shapeFinder.addAlgorithm(algorithmName)
-            self.policy.set(algorithmName+".background", self.bkgd)
-            shapeFinder.configure(self.policy)
+            schema = afwTable.SourceTable.makeMinimalSchema()
+            msConfig = algorithms.SourceMeasurementConfig()
+            algorithmName = "shape.hsm." + algName.lower()
+            msConfig.algorithms.names = [algorithmName]
+            shapeFinder = msConfig.makeMeasureSources(schema)
 
             x, y = float(known['x']), float(known['y'])
             x2, y2 = int(x+0.5), int(y+0.5)
 
             center = afwGeom.Point2D(x2, y2)
-            source = afwDetection.Source(0)
+            table = afwTable.SourceTable.make(schema)
+            source = table.makeRecord()
             source.setFootprint(afwDetection.Footprint(exposure.getBBox()))
 
-            s = shapeFinder.measure(source, exposure, center).find(algorithmName)
-
+            shapeFinder.apply(source, exposure, center)
+            
             ##########################################
             # see how we did
 
-            e1, e2, shearsig = s.getE1(), s.getE2(), 2.0 * s.getE1Err()
-            if re.search("(KSB|SHAPELET)", algName):
-                e1, e2, shearsig = s.getShear1(), s.getShear2(), s.getShear1Err()
+            s = source.get(algorithmName + ".moments")
+            p = source.get(algorithmName + ".centroid")
+
+            if algName in ("KSB", "SHAPELET"):
+                e1 = source.get(algorithmName + ".g1")
+                e2 = source.get(algorithmName + ".g2")
+                shearsig = source.get(algorithmName + ".err")
+            else:
+                e1 = source.get(algorithmName + ".e1")
+                e2 = source.get(algorithmName + ".e2")
+                shearsig = 2.0 * source.get(algorithmName + ".err")
+            sigma = source.get(algorithmName + ".sigma")
+            resolution = source.get(algorithmName + ".resolution")
+            flags = source.get(algorithmName + ".flags")
                 
             limit = 1.0e-5
             tests = [
                 # label      known-value                 measured              tolerance
-                ["sigma",      float(known['sigma']),       s.getSigma(),      limit],
+                ["sigma",      float(known['sigma']),       sigma,             limit],
                 ["e1",         float(known['e1']),          e1,                limit],
                 ["e2",         float(known['e2']),          e2,                limit],
-                ["resolution", float(known['resolution']),  s.getResolution(), limit],
+                ["resolution", float(known['resolution']),  resolution,        limit],
                 
                 # shearsig won't match exactly
                 # we're using skyvar=mean(var) instead of measured value ... expected a difference
                 ["shearsig", float(known["shearsig"]),      shearsig,          0.065],
-                ["shapeStatus", 0,                          s.getShapeStatus(), 0],
+                ["shapeStatus", 0,                          flags,             0],
                 ]
 
             

@@ -37,6 +37,7 @@
 #include "lsst/meas/algorithms/Measure.h"
 #include "lsst/afw/math/Integrate.h"
 #include "lsst/afw/coord/Coord.h"
+#include "lsst/meas/extensions/shapeHSM/HsmShapeControl.h"
 
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MODULE HsmShape
@@ -46,19 +47,17 @@
 
 using namespace std;
 namespace pexPolicy = lsst::pex::policy;
-namespace measAlgorithms = lsst::meas::algorithms;
+namespace measAlg = lsst::meas::algorithms;
 namespace afwDetection = lsst::afw::detection;
 namespace afwImage = lsst::afw::image;
 namespace afwMath = lsst::afw::math;
+namespace afwTable = lsst::afw::table;
 namespace afwGeom = lsst::afw::geom;
 namespace afwCoord = lsst::afw::coord;
+namespace hsm = lsst::meas::extensions::shapeHSM;
 
 typedef afwImage::Exposure<float, short unsigned int, float> ExposureT;
 typedef ExposureT::MaskedImageT MImage;
-
-
-/**
- */
 
 BOOST_AUTO_TEST_CASE(HsmMoments) {
 
@@ -82,9 +81,13 @@ BOOST_AUTO_TEST_CASE(HsmMoments) {
     float sigma = 1.0;
     afwDetection::Psf::Ptr psf = afwDetection::createPsf("SingleGaussian", kwid, kwid, sigma);
     exposure->setPsf(psf);
-    exposure->setWcs(*afwImage::makeWcs(afwCoord::makeCoord(afwCoord::ICRS, 0.0 * afwGeom::degrees, 0.0 * afwGeom::degrees),
-                                        afwGeom::Point2D(1.0, 1.0),
-                                        0.2/3600.0, 0.0, 0.0, 0.2/3600.0));
+    exposure->setWcs(
+        afwImage::makeWcs(
+            *afwCoord::makeCoord(afwCoord::ICRS, 0.0 * afwGeom::degrees, 0.0 * afwGeom::degrees),
+            afwGeom::Point2D(1.0, 1.0),
+            0.2/3600.0, 0.0, 0.0, 0.2/3600.0
+        )
+    );
     
     // Add a Gaussian to the image
     float sigma_xx = std::pow(1.5, 2);
@@ -122,57 +125,56 @@ BOOST_AUTO_TEST_CASE(HsmMoments) {
 
 
     // measure the shape with our algorithms
-    std::vector<std::string> algList;
-    algList.push_back("HSM_BJ");
-    algList.push_back("HSM_LINEAR");
-    algList.push_back("HSM_KSB");
-    algList.push_back("HSM_REGAUSS");
-    algList.push_back("HSM_SHAPELET");
+    std::vector<PTR(measAlg::AlgorithmControl)> algList;
+    algList.push_back(boost::make_shared<hsm::HsmShapeBjControl>());
+    algList.push_back(boost::make_shared<hsm::HsmShapeLinearControl>());
+    algList.push_back(boost::make_shared<hsm::HsmShapeKsbControl>());
+    algList.push_back(boost::make_shared<hsm::HsmShapeRegaussControl>());
+    algList.push_back(boost::make_shared<hsm::HsmShapeShapeletControl>());
 
     PTR(MImage::Image) img = exposure->getMaskedImage().getImage();
     *img -= bkgd;
 
-    for (std::vector<std::string>::iterator it = algList.begin(); it != algList.end(); ++it) {
-
-        std::string alg = *it;
+    for (
+        std::vector<PTR(measAlg::AlgorithmControl)>::iterator it = algList.begin();
+        it != algList.end();
+        ++it
+    ) {
         
-        measAlgorithms::MeasureShape<ExposureT>::Ptr measureShape =
-            measAlgorithms::makeMeasureShape<ExposureT>(*exposure);
-        measureShape->addAlgorithm(alg);
-        pexPolicy::Policy policy;
-        policy.set(alg+".background", bkgd);
-        policy.set(alg+".max_order_psf", 8);
-        policy.set(alg+".max_order_gal", 8);
-        policy.set(alg+".badmaskplanes", "BAD");
-        policy.add(alg+".badmaskplanes", "SAT");
-        
-        measureShape->configure(policy);
+        afwTable::Schema schema = afwTable::SourceTable::makeMinimalSchema();
+        measAlg::MeasureSources measureShape =
+            measAlg::MeasureSourcesBuilder().addAlgorithm(**it).build(schema);
+        PTR(afwTable::SourceTable) table = afwTable::SourceTable::make(schema);
 
         afwGeom::Point2D center(x, y);
         PTR(afwDetection::Footprint) foot = boost::make_shared<afwDetection::Footprint>(exposure->getBBox());
-        afwDetection::Source source(0);
-        source.setFootprint(foot);
+        PTR(afwTable::SourceRecord) source = table->makeRecord();
+        source->setFootprint(foot);
 
-        afwDetection::Shape::Ptr shape = measureShape->measure(source, exposure, center)->find(alg);
+        measureShape.apply(*source, *exposure, center);
+
+        afwTable::SubSchema s = schema[(**it).name];
+        afwGeom::Point2D p = source->get< afwTable::Point<double> >(s["centroid"]);
+        afwGeom::ellipses::Quadrupole q = source->get< afwTable::Moments<double> >(s["moments"]);
 
         // compare to known values
-        float Ixx = shape->getIxx();
-        float Iyy = shape->getIyy();
-        float Ixy = shape->getIxy();
+        float Ixx = q.getIxx();
+        float Iyy = q.getIyy();
+        float Ixy = q.getIxy();
         float A2 = 0.5*(Ixx + Iyy) + sqrt( pow(0.5*(Ixx - Iyy), 2) + pow(Ixy, 2) );
         float B2 = 0.5*(Ixx + Iyy) - sqrt( pow(0.5*(Ixx - Iyy), 2) + pow(Ixy, 2) );
 
-        printf("Algorithm: %s\n", alg.c_str());
-        printf("x:     %d %.2f\n", x, shape->getX());
-        printf("y:     %d %.2f\n", y, shape->getY());
+        printf("Algorithm: %s\n", (**it).name.c_str());
+        printf("x:     %d %.2f\n", x, p.getX());
+        printf("y:     %d %.2f\n", y, p.getY());
         printf("I_xx:  %.5f %.5f\n", sigma_xx, Ixx);
         printf("I_xy:  %.5f %.5f\n", sigma_xy, Ixy);
         printf("I_yy:  %.5f %.5f\n", sigma_yy, Iyy);
         printf("A2, B2 = %.5f, %.5f\n", A2, B2);      
     
         // 1/100 pixel limit for x,y
-        BOOST_CHECK(fabs(static_cast<double>(x) - shape->getX()) < 1e-2);
-        BOOST_CHECK(fabs(static_cast<double>(y) - shape->getY()) < 1e-2);
+        BOOST_CHECK(fabs(static_cast<double>(x) - p.getX()) < 1e-2);
+        BOOST_CHECK(fabs(static_cast<double>(y) - p.getY()) < 1e-2);
 
         // higher limit for ixx/xy/yy
         BOOST_CHECK(fabs(Ixx - sigma_xx) < 0.02*(1.0+sigma_xx));
