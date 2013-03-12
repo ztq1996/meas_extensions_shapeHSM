@@ -157,7 +157,7 @@ namespace hsm {
                 throw "Unphysical situation: galaxy convolved with PSF is smaller than PSF!\n";
             }
         }
-        catch (char *err_msg) {
+        catch (char const *err_msg) {
             results.error_message = err_msg;
             dbg<<"Caught an error: "<<err_msg<<std::endl;
             throw HSMError(err_msg);
