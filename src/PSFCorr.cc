@@ -121,6 +121,8 @@ namespace hsm {
             results.moments_sigma = std::pow(m_xx*m_yy-m_xy*m_xy, 0.25);
             results.observed_shape.setE1E2((m_xx-m_yy)/(m_xx+m_yy), 2.*m_xy/(m_xx+m_yy));
             results.moments_status = 0;
+            results.moments_centroid.x = gal_data.x0;
+            results.moments_centroid.y = gal_data.y0;
 
             // and if that worked, try doing PSF correction
             gal_data.sigma = results.moments_sigma;
