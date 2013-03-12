@@ -23,13 +23,12 @@
  */
 
 #include "lsst/pex/exceptions.h"
-#include "lsst/pex/logging/Trace.h"
-#include "lsst/afw/image.h"
+#include "lsst/afw/image/Exposure.h"
 #include "lsst/afw/detection/Psf.h"
-#include "lsst/meas/algorithms/Measure.h"
+#include "lsst/afw/math/Statistics.h"
 
-#include "lsst/meas/extensions/shapeHSM/HsmShapeAdapter.h"
 #include "lsst/meas/extensions/shapeHSM/HsmShapeControl.h"
+#include "hsm/PSFCorr.h"
 
 namespace lsst { namespace meas { namespace extensions { namespace shapeHSM {
 
@@ -100,11 +99,12 @@ private:
     std::string _shearType;
     afw::table::Centroid::MeasKey _centroidKey;
     afw::table::Shape::MeasKey _momentsKey;
+#if 0
     afw::table::Shape::MeasKey _psfMomentsKey;
+#endif
     afw::table::Key<double> _e1Key;
     afw::table::Key<double> _e2Key;
     afw::table::Key<double> _errKey;
-    afw::table::Key<double> _sigmaKey;
     afw::table::Key<double> _resolutionKey;
     afw::table::Key<afw::table::Flag> _flagKey;
 };
@@ -123,15 +123,14 @@ HsmShape::HsmShape(
     _momentsKey(
         schema.addField<afw::table::Shape::MeasTag>(ctrl.name + ".moments", doc + " (uncorrected moments)")
     ),
+#if 0
     _psfMomentsKey(schema.addField<afw::table::Shape::MeasTag>(ctrl.name + ".psf", doc + " (PSF moments)")),
+#endif
     _e1Key(addEllipticityField(ctrl.name, '1', measType, schema, doc)),
     _e2Key(addEllipticityField(ctrl.name, '2', measType, schema, doc)),
     _errKey(addErrorField(ctrl.name, measType, schema)),
     _resolutionKey(
         schema.addField<double>(ctrl.name + ".resolution", "resolution factor (0=unresolved, 1=resolved)")
-    ),
-    _sigmaKey(
-        schema.addField<double>(ctrl.name + ".sigma", doc + " (width)")
     ),
     _flagKey(schema.addField<afw::table::Flag>(ctrl.name + ".flags", "set if measurement failed in any way"))
 {}
@@ -148,28 +147,63 @@ void HsmShape::_apply(
 
     afw::image::MaskPixel badPixelMask 
         = exposure.getMaskedImage().getMask()->getPlaneBitMask(badMaskPlanes);
-    HsmShapeAdapter< afw::image::Exposure<PixelT> > shearEst(
-        exposure, center, *source.getFootprint(), badPixelMask
-    );
-    
-    short status = shearEst.measure(_shearType);
 
-    source.set(_centroidKey, shearEst.getCentroid());
-    source.set(_momentsKey, shearEst.getMoments());
-    source.set(_psfMomentsKey, shearEst.getPsfMoments());
-    source.set(_e1Key, shearEst.getE1());
-    source.set(_e2Key, shearEst.getE2());
-    source.set(_sigmaKey, shearEst.getSigma());
-    source.set(_resolutionKey, shearEst.getResolution());
+    afw::geom::Box2I bbox(source.getFootprint()->getBBox());
 
-    char meas_type = shearEst.getMeasType();
-    if (meas_type == 'e') {
-        source.set(_errKey, 0.5 * shearEst.getShearSig());
-    } else if (meas_type == 'g') {
-        source.set(_errKey, shearEst.getShearSig());
+    afw::image::MaskedImage<PixelT> subMaskedImage(exposure.getMaskedImage(), bbox, afw::image::PARENT);
+    afw::image::Image<int> goodPixels(bbox);
+    for (int iY = 0; iY < bbox.getWidth(); ++iY) {
+        afw::image::Mask<>::x_iterator pIn = subMaskedImage.getMask()->row_begin(iY);
+        afw::image::Image<int>::x_iterator pOut = goodPixels.row_begin(iY);
+        afw::image::Image<int>::x_iterator const pOutEnd = goodPixels.row_end(iY);
+        for (; pOut != pOutEnd; ++pOut, ++pIn) {
+            *pOut = (badPixelMask & *pIn) ? 0 : 1;
+        }
     }
 
-    source.set(_flagKey, status); 
+    afw::math::StatisticsControl sctrl;
+    sctrl.setAndMask(badPixelMask);
+    afw::math::Statistics stat = afw::math::makeStatistics(*subMaskedImage.getVariance(),
+                                                           *subMaskedImage.getMask(),
+                                                           afw::math::MEDIAN, sctrl);
+    float skyvar = std::sqrt(stat.getValue(afw::math::MEDIAN));
+
+    galsim::hsm::CppHSMShapeData data = galsim::hsm::EstimateShearHSMView(
+        galsim::makeImageView(*subMaskedImage.getImage()),
+        galsim::makeImageView(*exposure.getPsf()->computeImage(center)),
+        galsim::makeImageView(goodPixels),
+        skyvar, _shearType.c_str(), 0xe,
+        5.0, 3.0, // initial sigmas guesses; should feed previous shape estimate into these
+        1E-6,     // precision used for convergence criteria
+        center.getX(),
+        center.getY()
+    );
+
+    afw::geom::ellipses::Quadrupole moments(
+        afw::geom::ellipses::SeparableDistortionDeterminantRadius(
+            data.observed_shape.distortion,
+            data.moments_sigma
+        )
+    );
+
+    source.set(_centroidKey, data.moments_centroid.point);
+    source.set(_momentsKey, moments);
+#if 0
+    source.set(_psfMomentsKey, shearEst.getPsfMoments());
+#endif
+    source.set(_resolutionKey, data.resolution_factor);
+
+    if (data.meas_type == "e") {
+        source.set(_errKey, 0.5 * data.corrected_shape_err);
+        source.set(_e1Key, data.corrected_e1);
+        source.set(_e2Key, data.corrected_e2);
+    } else if (data.meas_type == "g") {
+        source.set(_errKey, data.corrected_shape_err);
+        source.set(_e1Key, data.corrected_g1);
+        source.set(_e2Key, data.corrected_g2);
+    }
+
+    source.set(_flagKey, data.moments_status | data.correction_status); 
 }
 
 LSST_MEAS_ALGORITHM_PRIVATE_IMPLEMENTATION(HsmShape);
