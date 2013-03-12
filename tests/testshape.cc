@@ -154,6 +154,7 @@ BOOST_AUTO_TEST_CASE(HsmMoments) {
         measureShape.apply(*source, *exposure, center);
 
         afwTable::SubSchema s = schema[(**it).name];
+        bool flag = source->get< afwTable::Flag >(s["flags"]);
         afwGeom::Point2D p = source->get< afwTable::Point<double> >(s["centroid"]);
         afwGeom::ellipses::Quadrupole q = source->get< afwTable::Moments<double> >(s["moments"]);
 
@@ -165,6 +166,7 @@ BOOST_AUTO_TEST_CASE(HsmMoments) {
         float B2 = 0.5*(Ixx + Iyy) - sqrt( pow(0.5*(Ixx - Iyy), 2) + pow(Ixy, 2) );
 
         printf("Algorithm: %s\n", (**it).name.c_str());
+        printf("Flag: %d\n", flag);
         printf("x:     %d %.2f\n", x, p.getX());
         printf("y:     %d %.2f\n", y, p.getY());
         printf("I_xx:  %.5f %.5f\n", sigma_xx, Ixx);
