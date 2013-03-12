@@ -22,8 +22,7 @@
  *******************************************************************/
 
 #include <string>
-#define TMV_DEBUG
-#include "TMV.h"
+#include "Eigen/Core"
 #include "hsm/PSFCorr.h"
 
 //#define DEBUGLOGGING
@@ -352,12 +351,12 @@ namespace hsm {
      *   xstep: change in x at each successive point
      *   Nmax: maximum-order wavefunction to calculate
      *   sigma: width of ground state
-     * > psi: result; psi[n][j] = n th order wavefunction evaluated
+     * > psi: result; psi(n,j) = n th order wavefunction evaluated
      *      at x = xmin+xstep*j.
      */
 
     void qho1d_wf_1(long nx, double xmin, double xstep, long Nmax, double sigma, 
-                    tmv::Matrix<double>& psi) 
+                    Eigen::MatrixXd& psi) 
     {
 
         double beta, beta2__2, norm0;
@@ -382,8 +381,8 @@ namespace hsm {
         norm0 = 0.75112554446494248285870300477623 * std::sqrt(beta);
         x=xmin;
         for(j=0;j<nx;j++) {
-            psi[0][j] = norm0 * std::exp( -beta2__2 * x*x );
-            if (Nmax>=1) psi[1][j] = std::sqrt(2.) * psi[0][j] * beta * x;
+            psi(0,j) = norm0 * std::exp( -beta2__2 * x*x );
+            if (Nmax>=1) psi(1,j) = std::sqrt(2.) * psi(0,j) * beta * x;
             x += xstep;
         }
 
@@ -403,7 +402,7 @@ namespace hsm {
             for(j=0;j<nx;j++) {
 
                 /* The recurrance */
-                psi[n+1][j] = coef1 * x * psi[n][j] + coef2 * psi[n-1][j];         
+                psi(n+1,j) = coef1 * x * psi(n,j) + coef2 * psi(n-1,j);         
 
                 x += xstep; /* Increment x */
             } /* End j loop */
@@ -428,7 +427,7 @@ namespace hsm {
     template <typename T>
     void find_mom_1(
         ConstImageView<T> data, ConstImageView<int> mask,
-        tmv::Matrix<double>& moments, int max_order, 
+        Eigen::MatrixXd& moments, int max_order, 
         double x0, double y0, double sigma)
     {
 
@@ -439,8 +438,8 @@ namespace hsm {
         int ymax = data.getYMax();
         int nx = xmax-xmin+1;
         int ny = ymax-ymin+1;
-        tmv::Matrix<double> psi_x(max_order+1,nx);
-        tmv::Matrix<double> psi_y(max_order+1,ny);
+        Eigen::MatrixXd psi_x(max_order+1,nx);
+        Eigen::MatrixXd psi_y(max_order+1,ny);
 
         /* Compute wavefunctions */
         qho1d_wf_1(nx, (double)xmin - x0, 1., max_order, sigma, psi_x);
@@ -484,7 +483,7 @@ namespace hsm {
     template <typename T>
     void find_mom_2(
         ConstImageView<T> data, ConstImageView<int> mask,
-        tmv::Matrix<double>& moments, int max_order,
+        Eigen::MatrixXd& moments, int max_order,
         double& x0, double& y0, double& sigma, double epsilon, int& num_iter) 
     {
 
@@ -492,7 +491,7 @@ namespace hsm {
         double convergence_factor = 1; /* Ensure at least one iteration. */
 
         num_iter = 0;
-        tmv::Matrix<double> iter_moments(hsm::adapt_order+1,hsm::adapt_order+1);
+        Eigen::MatrixXd iter_moments(hsm::adapt_order+1,hsm::adapt_order+1);
 
 #ifdef N_CHECKVAL
         if (epsilon <= 0) {
@@ -594,7 +593,7 @@ namespace hsm {
         double Minv_yy    =  Mxx/detM;
 
         /* Generate Minv_xx__x_x0__x_x0 array */
-        tmv::Vector<double> Minv_xx__x_x0__x_x0(xmax-xmin+1);
+        Eigen::VectorXd Minv_xx__x_x0__x_x0(xmax-xmin+1);
         for(long x=xmin;x<=xmax;x++) Minv_xx__x_x0__x_x0[x-xmin] = Minv_xx*(x-x0)*(x-x0);
 
         /* Now let's initialize the outputs and then sum
@@ -611,7 +610,7 @@ namespace hsm {
             double x_x0 = xmin - 1 - x0;
             double TwoMinv_xy__y_y0 = TwoMinv_xy * y_y0;
             double Minv_yy__y_y0__y_y0 = Minv_yy * y_y0 * y_y0;
-            const double* mxxptr = Minv_xx__x_x0__x_x0.cptr();
+            const double* mxxptr = Minv_xx__x_x0__x_x0.data();
             for(long x=xmin;x<=xmax;x++) {
                 x_x0 += 1.; // do this increment to x_x0 out here, before the following if
                             // statement, because it has to happen whether we actually use the pixel
@@ -821,11 +820,11 @@ namespace hsm {
         dim4 = dim3 << 1;
 
         /* Allocate & initialize memory */
-        tmv::Matrix<double> m1(dim1,dim1,0.);
-        tmv::Matrix<double> m2(dim1,dim1,0.);
-        tmv::Matrix<double> mout(dim1,dim1,0.);
-        tmv::Vector<double> Ax(dim4,0.);
-        tmv::Vector<double> Bx(dim4,0.);
+        Eigen::MatrixXd m1 = Eigen::MatrixXd::Zero(dim1,dim1);
+        Eigen::MatrixXd m2 = Eigen::MatrixXd::Zero(dim1,dim1);
+        Eigen::MatrixXd mout = Eigen::MatrixXd::Zero(dim1,dim1);
+        Eigen::VectorXd Ax = Eigen::VectorXd::Zero(dim4);
+        Eigen::VectorXd Bx = Eigen::VectorXd::Zero(dim4);
 
         /* Build input maps */
         for(int x=image1.getXMin();x<=image1.getXMax();x++)
@@ -841,15 +840,15 @@ namespace hsm {
          * - put m1 and m2 into the real and imaginary parts of Bx, respectively. */
         for(i=0;i<dim1;i++) for(j=0;j<dim1;j++) {
             k=2*(dim2*i+j);
-            Bx[k  ] = m1[i][j];
-            Bx[k+1] = m2[i][j];
+            Bx[k  ] = m1(i,j);
+            Bx[k+1] = m2(i,j);
         }
 
         /* We've filled only part of Bx, the other locations are for
          * zero padding.  First we separate the real (m1) and imaginary (m2) parts of the FFT,
          * then multiply to get the convolution.
          */
-        fourier_trans_1(Bx.ptr(),dim3,1);
+        fourier_trans_1(Bx.data(),dim3,1);
         for(i=0;i<dim3;i++) {
             i_conj = i==0? 0: dim3-i;      /* part of FFT of B holding complex conjugate mode */
             ii      = 2*i;
@@ -861,10 +860,10 @@ namespace hsm {
             Ax[ii  ] = xr*yr-xi*yi;      /* complex multiplication */
             Ax[ii+1] = xr*yi+xi*yr;
         }
-        fourier_trans_1(Ax.ptr(),dim3,-1);   /* Reverse FFT Ax to get convolved image */
+        fourier_trans_1(Ax.data(),dim3,-1);   /* Reverse FFT Ax to get convolved image */
         for(i=0;i<dim1;i++)
             for(j=0;j<dim1;j++)
-                mout[i][j] = Ax[2*(dim2*i+j)] / (double)dim3;
+                mout(i,j) = Ax[2*(dim2*i+j)] / (double)dim3;
 
         /* Calculate the effective bounding box for the output image,
          * [out_xmin..out_xmax][out_ymin..out_ymax], and the offset between mout and
@@ -1096,8 +1095,8 @@ namespace hsm {
          */
         e1 = e2 = R = hsm::failed_moments;
 
-        tmv::Matrix<double> moments(hsm::ksb_moments_max+1,hsm::ksb_moments_max+1);
-        tmv::Matrix<double> psfmoms(hsm::ksb_moments_max+1,hsm::ksb_moments_max+1);
+        Eigen::MatrixXd moments(hsm::ksb_moments_max+1,hsm::ksb_moments_max+1);
+        Eigen::MatrixXd psfmoms(hsm::ksb_moments_max+1,hsm::ksb_moments_max+1);
 
         /* Determine the adaptive variance of the measured galaxy */
         x0 = x0_gal;
