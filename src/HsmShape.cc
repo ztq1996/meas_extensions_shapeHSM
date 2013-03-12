@@ -168,42 +168,50 @@ void HsmShape::_apply(
                                                            afw::math::MEDIAN, sctrl);
     float skyvar = std::sqrt(stat.getValue(afw::math::MEDIAN));
 
-    galsim::hsm::CppHSMShapeData data = galsim::hsm::EstimateShearHSMView(
-        galsim::makeImageView(*subMaskedImage.getImage()),
-        galsim::makeImageView(*exposure.getPsf()->computeImage(center)),
-        galsim::makeImageView(goodPixels),
-        skyvar, _shearType.c_str(), 0xe,
-        5.0, 3.0, // initial sigmas guesses; should feed previous shape estimate into these
-        1E-6,     // precision used for convergence criteria
-        center.getX(),
-        center.getY()
-    );
+    try {
 
-    afw::geom::ellipses::Quadrupole moments(
-        afw::geom::ellipses::SeparableDistortionDeterminantRadius(
-            data.observed_shape.distortion,
-            data.moments_sigma
-        )
-    );
+        galsim::hsm::CppHSMShapeData data = galsim::hsm::EstimateShearHSMView(
+            galsim::makeImageView(*subMaskedImage.getImage()),
+            galsim::makeImageView(*exposure.getPsf()->computeImage(center)),
+            galsim::makeImageView(goodPixels),
+            skyvar, _shearType.c_str(), 0xe,
+            5.0, 3.0, // initial sigmas guesses; should feed previous shape estimate into these
+            1E-6,     // precision used for convergence criteria
+            center.getX(),
+            center.getY()
+        );
 
-    source.set(_centroidKey, data.moments_centroid.point);
-    source.set(_momentsKey, moments);
+        afw::geom::ellipses::Quadrupole moments(
+            afw::geom::ellipses::SeparableDistortionDeterminantRadius(
+                data.observed_shape.distortion,
+                data.moments_sigma
+            )
+        );
+        
+        source.set(_centroidKey, data.moments_centroid.getPoint());
+        source.set(_momentsKey, moments);
 #if 0
-    source.set(_psfMomentsKey, shearEst.getPsfMoments());
+        source.set(_psfMomentsKey, shearEst.getPsfMoments());
 #endif
-    source.set(_resolutionKey, data.resolution_factor);
-
-    if (data.meas_type == "e") {
-        source.set(_errKey, 0.5 * data.corrected_shape_err);
-        source.set(_e1Key, data.corrected_e1);
-        source.set(_e2Key, data.corrected_e2);
-    } else if (data.meas_type == "g") {
-        source.set(_errKey, data.corrected_shape_err);
-        source.set(_e1Key, data.corrected_g1);
-        source.set(_e2Key, data.corrected_g2);
+        source.set(_resolutionKey, data.resolution_factor);
+        
+        if (data.meas_type == "e") {
+            source.set(_errKey, 0.5 * data.corrected_shape_err);
+            source.set(_e1Key, data.corrected_e1);
+            source.set(_e2Key, data.corrected_e2);
+        } else if (data.meas_type == "g") {
+            source.set(_errKey, data.corrected_shape_err);
+            source.set(_e1Key, data.corrected_g1);
+            source.set(_e2Key, data.corrected_g2);
+        }
+        source.set(_flagKey, data.moments_status | data.correction_status); 
+    } catch (galsim::hsm::HSMError & err) {
+        source.set(_flagKey, 1);
+        throw LSST_EXCEPT(
+            pex::exceptions::RuntimeErrorException,
+            err.what()
+        );
     }
-
-    source.set(_flagKey, data.moments_status | data.correction_status); 
 }
 
 LSST_MEAS_ALGORITHM_PRIVATE_IMPLEMENTATION(HsmShape);
