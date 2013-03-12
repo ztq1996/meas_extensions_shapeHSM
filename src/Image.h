@@ -27,7 +27,13 @@ struct ConstImageView {
     
     int getStride() const { return array.template getStride<0>(); }
 
-    T const & operator()(int x, int y) const { return array[ndarray::makeVector(y, x)]; }
+    lsst::afw::image::Image<T> getImage() const {
+        return lsst::afw::image::Image<T>(array, false, xy0);
+    }
+
+    T const & operator()(int x, int y) const {
+        return array[ndarray::makeVector(y - xy0.getY(), x - xy0.getX())];
+    }
     
     int getXMin() const { return xy0.getX(); }
     int getYMin() const { return xy0.getY(); }
@@ -53,7 +59,9 @@ struct ImageView : public ConstImageView<T> {
 
     int getStride() const { return this->array.template getStride<0>(); }
 
-    T & operator()(int x, int y) const { return this->array[ndarray::makeVector(y, x)]; }
+    T & operator()(int x, int y) const {
+        return this->array[ndarray::makeVector(y - this->xy0.getY(), x - this->xy0.getX())];
+    }
     
     ImageView<T> const & operator*=(T v) const {
         this->array.deep() *= v;

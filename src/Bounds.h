@@ -19,11 +19,12 @@ template <typename T> struct Bounds;
 template <typename T>
 struct Position {
 
-    explicit Position(T x_, T y_) : point(x_, y_), x(point.getX()), y(point.getY()) {}
+    explicit Position(T x_, T y_) : x(x_), y(y_) {}
 
-    lsst::afw::geom::Point<T,2> point;
-    T & x;
-    T & y;
+    lsst::afw::geom::Point<T,2> getPoint() const { return lsst::afw::geom::Point<T,2>(x, y); }
+
+    T x;
+    T y;
 };
 
 template <>
