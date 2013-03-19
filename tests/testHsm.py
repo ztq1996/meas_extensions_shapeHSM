@@ -139,7 +139,7 @@ class ShapeTestCase(unittest.TestCase):
             psfImg -= self.bkgd
             
             kernel = afwMath.FixedKernel(psfImg)
-            kernelPsf = afwDetection.KernelPsf(kernel)
+            kernelPsf = algorithms.KernelPsf(kernel)
             exposure.setPsf(kernelPsf)
 
             

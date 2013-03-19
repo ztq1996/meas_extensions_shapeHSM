@@ -68,7 +68,7 @@ def main(x, y, imgFile, psfFile, algorithm, bkgd):
     psfImg -= bkgd
 
     kernel = afwMath.FixedKernel(psfImg)
-    kernelPsf = afwDetection.KernelPsf(kernel)
+    kernelPsf = algorithms.KernelPsf(kernel)
     exposure.setPsf(kernelPsf)
 
 

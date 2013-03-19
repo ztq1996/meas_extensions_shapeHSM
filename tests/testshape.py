@@ -69,7 +69,7 @@ class HsmMomentTestCase(unittest.TestCase):
         
         kwid = 35
         sigma = 2.5
-        self.psf = afwDetection.createPsf("SingleGaussian", kwid, kwid, sigma)
+        self.psf = algorithms.SingleGaussianPsf(kwid, kwid, sigma)
 
         self.exposure.setPsf(self.psf)
         
