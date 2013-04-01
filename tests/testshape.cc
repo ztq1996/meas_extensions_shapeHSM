@@ -38,6 +38,7 @@
 #include "lsst/afw/math/Integrate.h"
 #include "lsst/afw/coord/Coord.h"
 #include "lsst/meas/extensions/shapeHSM/HsmShapeControl.h"
+#include "lsst/meas/algorithms/SingleGaussianPsf.h"
 
 #define BOOST_TEST_DYN_LINK
 #define BOOST_TEST_MODULE HsmShape
@@ -79,7 +80,7 @@ BOOST_AUTO_TEST_CASE(HsmMoments) {
 
     int kwid = 35;
     float sigma = 1.0;
-    afwDetection::Psf::Ptr psf = afwDetection::createPsf("SingleGaussian", kwid, kwid, sigma);
+    afwDetection::Psf::Ptr psf(new measAlg::SingleGaussianPsf(kwid, kwid, sigma));
     exposure->setPsf(psf);
     exposure->setWcs(
         afwImage::makeWcs(
