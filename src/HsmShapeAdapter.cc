@@ -109,9 +109,7 @@ extendShapeHsm::HsmShapeAdapter<ExposureT>::HsmShapeAdapter(
     // init the psfData structure
     _psfData.x0 = 0.5 * (_psfImage.xmin + _psfImage.xmax);
     _psfData.y0 = 0.5 * (_psfImage.ymin + _psfImage.ymax);
-    measAlg::PsfAttributes psfAttrib(exposure.getPsf(),
-                                     static_cast<int>(_psfData.x0), static_cast<int>(_psfData.y0));
-    _psfData.sigma = psfAttrib.computeGaussianWidth(measAlg::PsfAttributes::ADAPTIVE_MOMENT);
+    _psfData.sigma = exposure.getPsf()->computeShape(center).getTraceRadius();
     _galaxyData.sigma = 2.5*_psfData.sigma;
     
 }
