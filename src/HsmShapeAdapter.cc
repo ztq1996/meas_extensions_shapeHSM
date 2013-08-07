@@ -56,7 +56,7 @@ extendShapeHsm::HsmShapeAdapter<ExposureT>::HsmShapeAdapter(
 
     // make a shallow image copy in the bbox, allocate the image structure and copy into it
     CONST_PTR(MaskedImageT) img = 
-        boost::make_shared<MaskedImageT>(exposure.getMaskedImage(), _bbox, afwImage::LOCAL, false);
+        boost::make_shared<MaskedImageT>(exposure.getMaskedImage(), _bbox, afwImage::PARENT, false);
     
     allocate_rect_image(&_atlasImage, 0, img->getWidth() - 1, 0, img->getHeight() - 1);
     for (int iY=0; iY < img->getHeight(); ++iY) {
@@ -75,7 +75,7 @@ extendShapeHsm::HsmShapeAdapter<ExposureT>::HsmShapeAdapter(
     
     // shallow copy the mask and use the user-provided badPixelMask to set the mask structure
     CONST_PTR(MaskT) msk =
-        boost::make_shared<MaskT>(*exposure.getMaskedImage().getMask(), _bbox, afwImage::LOCAL, false);
+        boost::make_shared<MaskT>(*exposure.getMaskedImage().getMask(), _bbox, afwImage::PARENT, false);
     
     for (int iY = 0; iY < msk->getHeight(); ++iY) {
         int iX = 0;
