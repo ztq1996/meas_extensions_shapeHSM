@@ -67,7 +67,7 @@ void nrerrorOld(const char error_text[])
 void nrerror(const char error_text[])
 /* Numerical Recipes standard error handler */
 {
-    throw LSST_EXCEPT(pexExcept::RuntimeErrorException, error_text);
+    throw LSST_EXCEPT(pexExcept::RuntimeError, error_text);
 }
 
 /* dmatrix
@@ -587,10 +587,10 @@ void qho1d_wf_1(long nx, double xmin, double xstep, long Nmax,
 
 #ifdef N_CHECKVAL
    if (nx<=0) {
-       throw LSST_EXCEPT(pexExcept::RuntimeErrorException, "Error: nx<=0 in qho1d_wf_1");
+       throw LSST_EXCEPT(pexExcept::RuntimeError, "Error: nx<=0 in qho1d_wf_1");
    }
    if (Nmax<0) {
-       throw LSST_EXCEPT(pexExcept::RuntimeErrorException, "Error: Nmax<=0 in qho1d_wf_1");
+       throw LSST_EXCEPT(pexExcept::RuntimeError, "Error: Nmax<=0 in qho1d_wf_1");
    }
 #endif
 
@@ -724,7 +724,7 @@ void find_mom_2(RECT_IMAGE *data, FTYPE **moments, int max_order,
 
 #ifdef N_CHECKVAL
    if (epsilon <= 0) {
-       throw LSST_EXCEPT(pexExcept::RuntimeErrorException, "Error: epsilon out of range in find_mom_2");
+       throw LSST_EXCEPT(pexExcept::RuntimeError, "Error: epsilon out of range in find_mom_2");
    }
 #endif
 
@@ -820,7 +820,7 @@ void find_ellipmom_1(RECT_IMAGE *data, double x0, double y0, double Mxx,
    /* Compute M^{-1} for use in computing weights */
    detM = Mxx * Myy - Mxy * Mxy;
    if (detM<=0 || Mxx<=0 || Myy<=0) {
-       throw LSST_EXCEPT(pexExcept::RuntimeErrorException, "Error: non positive definite adaptive moments");
+       throw LSST_EXCEPT(pexExcept::RuntimeError, "Error: non positive definite adaptive moments");
    }
    Minv_xx    =  Myy/detM;
    TwoMinv_xy = -Mxy/detM * 2.0;
@@ -905,7 +905,7 @@ void find_ellipmom_2(RECT_IMAGE *data, double *A, double *x0, double *y0,
 
 #ifdef N_CHECKVAL
    if (epsilon <= 0) {
-       throw LSST_EXCEPT(pexExcept::RuntimeErrorException, "Error: epsilon out of range in find_mom_2");
+       throw LSST_EXCEPT(pexExcept::RuntimeError, "Error: epsilon out of range in find_mom_2");
    }
 #endif
 
@@ -921,7 +921,7 @@ void find_ellipmom_2(RECT_IMAGE *data, double *A, double *x0, double *y0,
       semi_b2 = *Mxx + *Myy - semi_a2;
 
       if (semi_b2 <= 0) {
-          throw LSST_EXCEPT(pexExcept::RuntimeErrorException,
+          throw LSST_EXCEPT(pexExcept::RuntimeError,
                             "Error: non-positive-definite weight in find_ellipmom_2");
       }
 
@@ -971,11 +971,11 @@ void find_ellipmom_2(RECT_IMAGE *data, double *A, double *x0, double *y0,
           lsst::utils::isnan(*Mxx) || lsst::utils::isnan(*Myy) || lsst::utils::isnan(*Mxy) ||
           lsst::utils::isnan(*x0) || lsst::utils::isnan(*y0)
          ) {
-          throw LSST_EXCEPT(pexExcept::RuntimeErrorException, "Error: adaptive moment failed");
+          throw LSST_EXCEPT(pexExcept::RuntimeError, "Error: adaptive moment failed");
       }
 
       if (++ *num_iter > MAX_MOM2_ITER) {
-          throw LSST_EXCEPT(pexExcept::RuntimeErrorException, "Error: exceeded max iterations in find_mom_2.\n");
+          throw LSST_EXCEPT(pexExcept::RuntimeError, "Error: exceeded max iterations in find_mom_2.\n");
           //fprintf(stderr,"Warning: too many iterations in find_mom_2.\n");
           //convergence_factor = 0.;
           //*num_iter = NUM_ITER_DEFAULT;
@@ -1709,7 +1709,7 @@ unsigned int psf_corr_regauss(RECT_IMAGE *gal_image, RECT_IMAGE *PSF, double *e1
    y0_old = *y0_psf;
    try {
        find_ellipmom_2(PSF, &A_g, x0_psf, y0_psf, &Mxxpsf, &Mxypsf, &Myypsf, &rho4psf, 1.0e-6, &num_iter);
-   } catch (lsst::pex::exceptions::RuntimeErrorException& e) {
+   } catch (lsst::pex::exceptions::RuntimeError& e) {
        LSST_EXCEPT_ADD(e, "Measuring PSF");
        throw e;
    } 
@@ -1727,7 +1727,7 @@ unsigned int psf_corr_regauss(RECT_IMAGE *gal_image, RECT_IMAGE *PSF, double *e1
    try {
        find_ellipmom_2(gal_image, &A_I, x0_gal, y0_gal, &Mxxgal, &Mxygal, &Myygal,
                        &rho4gal, 1.0e-6, &num_iter);
-   } catch (lsst::pex::exceptions::RuntimeErrorException& e) {
+   } catch (lsst::pex::exceptions::RuntimeError& e) {
        LSST_EXCEPT_ADD(e, "Measuring object");
        throw e;
    } 
@@ -1871,7 +1871,7 @@ unsigned int psf_corr_regauss(RECT_IMAGE *gal_image, RECT_IMAGE *PSF, double *e1
    y0_old = *y0_gal;
    try {
        find_ellipmom_2(&Iprime, &A_I, x0_gal, y0_gal, &Mxxgal, &Mxygal, &Myygal, &rho4gal, 1.0e-6, &num_iter);
-   } catch (lsst::pex::exceptions::RuntimeErrorException& e) {
+   } catch (lsst::pex::exceptions::RuntimeError& e) {
        LSST_EXCEPT_ADD(e, "Measuring Iprime");
        throw e;
    } 
@@ -2174,7 +2174,7 @@ unsigned int general_shear_estimator(RECT_IMAGE *gal_image, RECT_IMAGE *PSF,
    try {
        find_ellipmom_2(gal_image, &A_gal, &(gal_data->x0), &(gal_data->y0), &Mxx_gal, &Mxy_gal,
                        &Myy_gal, &rho4_gal, epsilon, &num_iter);
-   } catch (lsst::pex::exceptions::RuntimeErrorException& e) {
+   } catch (lsst::pex::exceptions::RuntimeError& e) {
        LSST_EXCEPT_ADD(e, "Measuring object");
        throw e;
    } 
@@ -2193,7 +2193,7 @@ unsigned int general_shear_estimator(RECT_IMAGE *gal_image, RECT_IMAGE *PSF,
    Mxx_psf = Myy_psf = PSF_data->sigma * PSF_data->sigma; Mxy_psf = 0.;
    try {
        find_ellipmom_2(PSF, &A_psf, &x0, &y0, &Mxx_psf, &Mxy_psf, &Myy_psf, &rho4_psf, epsilon, &num_iter);
-   } catch (lsst::pex::exceptions::RuntimeErrorException& e) {
+   } catch (lsst::pex::exceptions::RuntimeError& e) {
        LSST_EXCEPT_ADD(e, "Measuring PSF");
        throw e;
    } 
@@ -2225,7 +2225,7 @@ unsigned int general_shear_estimator(RECT_IMAGE *gal_image, RECT_IMAGE *PSF,
          try {
              find_ellipmom_2(PSF, &A_psf, &x0, &y0, &Mxx_psf, &Mxy_psf, &Myy_psf, &rho4_psf,
                              epsilon, &num_iter);
-         } catch (lsst::pex::exceptions::RuntimeErrorException& e) {
+         } catch (lsst::pex::exceptions::RuntimeError& e) {
              LSST_EXCEPT_ADD(e, "Measuring PSF");
              throw e;
          } 
@@ -2245,7 +2245,7 @@ unsigned int general_shear_estimator(RECT_IMAGE *gal_image, RECT_IMAGE *PSF,
          try {
              find_ellipmom_2(gal_image, &A_gal, &x0, &y0, &Mxx_gal, &Mxy_gal,
                              &Myy_gal, &rho4_gal, epsilon, &num_iter);
-         } catch (lsst::pex::exceptions::RuntimeErrorException& e) {
+         } catch (lsst::pex::exceptions::RuntimeError& e) {
              LSST_EXCEPT_ADD(e, "Measuring object");
              throw e;
          } 
