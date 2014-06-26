@@ -141,7 +141,7 @@ unsigned extendShapeHsm::HsmShapeAdapter<ExposureT>::measure(
         return  general_shear_estimator(&_atlasImage, &_psfImage,
                                         &_galaxyData, &_psfData,
                                         cShearType, 0xe);
-    } catch (lsst::pex::exceptions::RuntimeErrorException& e) {
+    } catch (lsst::pex::exceptions::RuntimeError& e) {
         LSST_EXCEPT_ADD(e, (boost::format("Using shape algorithm %s") % shearType).str());
         throw e;
     } 
