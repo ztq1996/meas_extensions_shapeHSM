@@ -81,6 +81,8 @@ FTYPE **dmatrix(long nrl, long nrh, long ncl, long nch)
 /* m[nrl..nrh][ncl..nch]                                       */
 /* NR_END has been replaced with its value, 1.                 */
 {
+   assert(nrh >= nrl);
+   assert(nch >= ncl);
    long i,j, nrow=nrh-nrl+1,ncol=nch-ncl+1;
    FTYPE **m;
 
@@ -128,6 +130,8 @@ int **imatrix(long nrl, long nrh, long ncl, long nch)
 /* m[nrl..nrh][ncl..nch]                                       */
 /* NR_END has been replaced with its value, 1.                 */
 {
+   assert(nrh >= nrl);
+   assert(nch >= ncl);
    long i,j, nrow=nrh-nrl+1,ncol=nch-ncl+1;
    int **m;
 
@@ -280,7 +284,7 @@ void gaussjinv(FTYPE **A, int n) {
     */
 
    int *indxc, *indxr, *ipiv;
-   int i,icol,irow,j,k,l,ll;
+   int i,icol = 0,irow = 0,j,k,l,ll;
    double big,dum,pivinv,temp;
           
    /* The integer arrays ipiv, indxr, and indxc are used for    */
