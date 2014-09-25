@@ -1944,6 +1944,7 @@ unsigned int psf_corr_regauss(RECT_IMAGE *gal_image, RECT_IMAGE *PSF, double *e1
  *   0x0001 = PSF adaptive moment failure to converge (used input weight)
  *   0x0002 = galaxy adaptive moment failure to converge (used input weight)
  *   0x0004 = centroid iteration failed to converge (used non-iterative centroid)
+ *   0x0008 = NAN in matrix
  */
 
 unsigned int measure_shape_ext(RECT_IMAGE *gal_image, RECT_IMAGE *PSF, int max_order_psf,
@@ -1955,8 +1956,8 @@ unsigned int measure_shape_ext(RECT_IMAGE *gal_image, RECT_IMAGE *PSF, int max_o
    double dx, dy, a4c;
    double resid_error = 1.;
    int num_shapelets_gal, num_iter;
-   int **index_matrix;
-   FTYPE **moments_psf, **moments_gal, **moments_gal_deconv, **psfmatrix;
+   int **index_matrix = NULL;
+   FTYPE **moments_psf = NULL, **moments_gal = NULL, **moments_gal_deconv = NULL, **psfmatrix = NULL;
    double sig_gal_deconv;
    double x0_gal_orig, y0_gal_orig, sig_gal_orig;
    double x0_psf_orig, y0_psf_orig, sig_psf_orig;
@@ -2017,6 +2018,16 @@ unsigned int measure_shape_ext(RECT_IMAGE *gal_image, RECT_IMAGE *PSF, int max_o
    psfmatrix = dmatrix(0,num_shapelets_gal-1,0,num_shapelets_gal-1);
    convolution_matrix_1(moments_psf, max_order_psf, max_order_gal,
                         sig_gal_deconv, *sig_psf, *sig_gal, psfmatrix, index_matrix);
+
+   // Check matrix for NANs; the Gauss-Jordan inversion can't handle them (and ends up segfaulting)
+   for (int i = 0; i < num_shapelets_gal; ++i) {
+       for (int j = 0; j < num_shapelets_gal; ++j) {
+           if (lsst::utils::isnan(psfmatrix[i][j])) {
+               status |= 0x0008;
+               goto CLEANUP; // Matrices aren't allocated by RAII, so we need to cleanup as in the bad old days
+           }
+       }
+   }
 
    /* of course, we want the deconvolution matrix */
    gaussjinv(psfmatrix, num_shapelets_gal);
@@ -2103,11 +2114,12 @@ unsigned int measure_shape_ext(RECT_IMAGE *gal_image, RECT_IMAGE *PSF, int max_o
    printf("a4c = %lf\n", a4c);
 #endif
 
-   free_imatrix(index_matrix,0,max_order_gal,0,max_order_gal);
-   free_dmatrix(moments_psf,0,max_order_psf,0,max_order_psf);
-   free_dmatrix(moments_gal,0,max_order_gal,0,max_order_gal);
-   free_dmatrix(moments_gal_deconv,0,max_order_gal,0,max_order_gal);
-   free_dmatrix(psfmatrix,0,num_shapelets_gal-1,0,num_shapelets_gal-1);
+CLEANUP:
+   if (index_matrix) free_imatrix(index_matrix,0,max_order_gal,0,max_order_gal);
+   if (moments_psf) free_dmatrix(moments_psf,0,max_order_psf,0,max_order_psf);
+   if (moments_gal) free_dmatrix(moments_gal,0,max_order_gal,0,max_order_gal);
+   if (moments_gal_deconv) free_dmatrix(moments_gal_deconv,0,max_order_gal,0,max_order_gal);
+   if (psfmatrix) free_dmatrix(psfmatrix,0,num_shapelets_gal-1,0,num_shapelets_gal-1);
    return status;
 }
 
