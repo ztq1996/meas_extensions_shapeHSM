@@ -9,12 +9,13 @@ namespace lsst { namespace meas { namespace extensions { namespace shapeHSM {
 class HsmShapeControl : public algorithms::AlgorithmControl {
 public:
     LSST_CONTROL_FIELD(badMaskPlanes, std::vector<std::string>, "Mask planes used to reject bad pixels.");
+    LSST_CONTROL_FIELD(deblendNChild, std::string, "Field name for number of deblend children");
 protected:
 
     HsmShapeControl(HsmShapeControl const & other) :
-        AlgorithmControl(other), badMaskPlanes(other.badMaskPlanes) {}
+        AlgorithmControl(other), badMaskPlanes(other.badMaskPlanes), deblendNChild(other.deblendNChild) {}
 
-    HsmShapeControl(std::string const & name) : AlgorithmControl(name, 1.0) {
+    HsmShapeControl(std::string const & name) : AlgorithmControl(name, 1.0), deblendNChild("") {
         badMaskPlanes.push_back("BAD");
         badMaskPlanes.push_back("SAT");
         badMaskPlanes.push_back("INTRP");

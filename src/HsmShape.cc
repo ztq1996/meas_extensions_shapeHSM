@@ -107,6 +107,8 @@ private:
     afw::table::Key<double> _sigmaKey;
     afw::table::Key<double> _resolutionKey;
     afw::table::Key<afw::table::Flag> _flagKey;
+    bool _hasDeblendKey;
+    afw::table::Key<int> _deblendKey;
 };
 
 HsmShape::HsmShape(
@@ -133,8 +135,13 @@ HsmShape::HsmShape(
     _sigmaKey(
         schema.addField<double>(ctrl.name + ".sigma", doc + " (width)")
     ),
-    _flagKey(schema.addField<afw::table::Flag>(ctrl.name + ".flags", "set if measurement failed in any way"))
-{}
+    _flagKey(schema.addField<afw::table::Flag>(ctrl.name + ".flags", "set if measurement failed in any way")),
+    _hasDeblendKey(ctrl.deblendNChild.size() > 0)
+{
+    if (_hasDeblendKey) {
+        _deblendKey = schema[ctrl.deblendNChild];
+    }
+}
 
 template<typename PixelT>
 void HsmShape::_apply(
@@ -143,6 +150,11 @@ void HsmShape::_apply(
     afw::geom::Point2D const & center
 ) const {
     source.set(_flagKey, true); // bad until we are good
+
+    if (_hasDeblendKey && source.get(_deblendKey) > 0) {
+        throw LSST_EXCEPT(pex::exceptions::RuntimeError, "Ignoring parent source");
+    }
+
     std::vector<std::string> const & badMaskPlanes 
         = static_cast<HsmShapeControl const &>(getControl()).badMaskPlanes;
 
