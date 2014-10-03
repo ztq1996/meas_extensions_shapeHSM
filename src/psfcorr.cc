@@ -36,7 +36,7 @@ namespace pexExcept = lsst::pex::exceptions;
 #define Pi    lsst::afw::geom::PI
 #define TwoPi lsst::afw::geom::TWOPI
 
-
+#define MAX_WIDTH 10.0 /// Maximum (x-x0)/sigma; Gaussian for higher values is zero
 
 #define NSIG_RG   3.0
 #define NSIG_RG2  3.6
@@ -852,8 +852,12 @@ void find_ellipmom_1(RECT_IMAGE *data, double x0, double y0, double Mxx,
              * get elliptical radius and weight.
              */
             y_y0 += 1.;
-            intensity = exp(-0.5 * (rho2 = Minv_xx__x_x0__x_x0 + TwoMinv_xy__x_x0*y_y0 + *(myyptr++)))
-                         * *(imageptr++);
+            double const rho2 = Minv_xx__x_x0__x_x0 + TwoMinv_xy__x_x0*y_y0 + *(myyptr++);
+            double const imageValue = *(imageptr++);
+            if (rho2 > MAX_WIDTH*MAX_WIDTH) {
+                continue;
+            }
+            double const intensity = exp(-0.5*rho2)*imageValue;
 
             /* Now do the addition */
             *A    += intensity;
