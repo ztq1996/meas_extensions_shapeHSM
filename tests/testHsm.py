@@ -36,6 +36,7 @@ import lsst.utils.tests as utilsTests
 import lsst.afw.detection as afwDetection
 import lsst.afw.table as afwTable
 import lsst.afw.geom as afwGeom
+import lsst.afw.geom.ellipses as afwEll
 import lsst.afw.coord as afwCoord
 import lsst.afw.display.ds9 as ds9
 
@@ -83,6 +84,22 @@ sigma_e_expected = np.array([
         [0.185276702, 0.184300955, 0.184300955, 0.173478300],
         [0.073020065, 0.070270966, 0.070270966, 0.061856263] ])
 ### End of GalSim's values
+
+# These values calculated using GalSim's HSM as part of GalSim
+moments_expected = np.array([ # sigma, e1, e2
+    [2.24490427971, 0.336240686301, -0.627372910656],
+    [1.9031778574, 0.150566105384, -0.245272792302],
+    [1.77790760994, 0.112286123389, -0.286203939641],
+    [1.45464873314, -0.155597168978, -0.102008266223],
+    [1.63144648075, 0.22886961923, 0.228813588897],
+    ])
+centroid_expected = np.array([ # x, y
+    [36.218247328, 20.5678722157],
+    [20.325744838, 25.4176650386],
+    [9.54257706283, 12.6134786199],
+    [20.6407850048, 39.5864802706],
+    [58.5008586442, 28.2850942049],
+    ])
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -194,6 +211,22 @@ class ShapeTestCase(unittest.TestCase):
 
         self.assertEqual(nFail, 0, "\n"+msg)
         
+    def testHsmMoments(self):
+        for (i, imageid) in enumerate(file_indices):
+            source = self.runMeasurement("shape.hsm.moments", imageid, x_centroid[i], y_centroid[i])
+            moments = source.get("shape.hsm.moments")
+            centroid = source.get("shape.hsm.moments.centroid")
+
+            self.assertAlmostEqual(centroid[0], centroid_expected[i][0], 3)
+            self.assertAlmostEqual(centroid[1], centroid_expected[i][1], 3)
+
+            expected = afwEll.Quadrupole(afwEll.SeparableDistortionDeterminantRadius(
+                moments_expected[i][1], moments_expected[i][2], moments_expected[i][0]))
+
+            self.assertAlmostEqual(moments.getIxx(), expected.getIxx(), SHAPE_DECIMALS)
+            self.assertAlmostEqual(moments.getIxy(), expected.getIxy(), SHAPE_DECIMALS)
+            self.assertAlmostEqual(moments.getIyy(), expected.getIyy(), SHAPE_DECIMALS)
+
 
         
         
