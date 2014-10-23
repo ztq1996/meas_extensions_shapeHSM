@@ -95,6 +95,52 @@ class ShapeTestCase(unittest.TestCase):
         self.dataDir = os.path.join(os.getenv('MEAS_EXTENSIONS_SHAPEHSM_DIR'), "tests", "data")
         self.bkgd = 1000.0 # standard for atlas image
 
+    def runMeasurement(self, algorithmName, imageid, x, y):
+        """Run the measurement algorithm on an image"""
+        # load the test image
+        imgFile = os.path.join(self.dataDir, "image.%d.fits" % imageid)
+        img = afwImage.ImageF(imgFile)
+        img -= self.bkgd
+        nx, ny = img.getWidth(), img.getHeight()
+        msk = afwImage.MaskU(afwGeom.Extent2I(nx, ny), 0x0)
+        var = afwImage.ImageF(imgFile)
+        mimg = afwImage.MaskedImageF(img, msk, var)
+        msk.getArray()[:] = np.where(np.fabs(img.getArray()) < 1.0e-8, msk.getPlaneBitMask("BAD"), 0)
+
+        exposure = afwImage.makeExposure(mimg)
+        exposure.setWcs(afwImage.makeWcs(afwCoord.makeCoord(afwCoord.ICRS, 0. * afwGeom.degrees, 0. * afwGeom.degrees),
+                                         afwGeom.Point2D(1.0,1.0),
+                                         1.0/(2.53*3600.0), 0.0, 0.0, 1.0/(2.53*3600.0)))
+
+
+        # load the corresponding test psf
+        psfFile = os.path.join(self.dataDir, "psf.%d.fits" % imageid)
+        psfImg = afwImage.ImageD(psfFile)
+        psfImg -= self.bkgd
+
+        kernel = afwMath.FixedKernel(psfImg)
+        kernelPsf = algorithms.KernelPsf(kernel)
+        exposure.setPsf(kernelPsf)
+
+
+        # perform the shape measurement
+        schema = afwTable.SourceTable.makeMinimalSchema()
+        msConfig = algorithms.SourceMeasurementConfig()
+        msConfig.algorithms.names = [algorithmName]
+        shapeFinder = msConfig.makeMeasureSources(schema)
+
+        # Note: It is essential to remove the floating point part of the position for the
+        # Algorithm._apply.  Otherwise, when the PSF is realised it will have been warped
+        # to account for the sub-pixel offset and we won't get *exactly* this PSF.
+        center = afwGeom.Point2D(int(x), int(y))
+        table = afwTable.SourceTable.make(schema)
+        source = table.makeRecord()
+        source.setFootprint(afwDetection.Footprint(exposure.getBBox()))
+
+        shapeFinder.apply(source, exposure, center)
+
+        return source
+
     def testHsmShape(self):
         """Test that we can instantiate and play with a measureShape"""
 
@@ -103,51 +149,8 @@ class ShapeTestCase(unittest.TestCase):
 
         for (algNum, algName), (i, imageid) in itertools.product(enumerate(correction_methods),
                                                                  enumerate(file_indices)):
-
-            # load the test image
-            imgFile = os.path.join(self.dataDir, "image.%d.fits" % imageid)
-            img = afwImage.ImageF(imgFile)
-            img -= self.bkgd
-            nx, ny = img.getWidth(), img.getHeight()
-            msk = afwImage.MaskU(afwGeom.Extent2I(nx, ny), 0x0)
-            var = afwImage.ImageF(imgFile)
-            mimg = afwImage.MaskedImageF(img, msk, var)
-            msk.getArray()[:] = np.where(np.fabs(img.getArray()) < 1.0e-8, msk.getPlaneBitMask("BAD"), 0)
-
-            exposure = afwImage.makeExposure(mimg)
-            exposure.setWcs(afwImage.makeWcs(afwCoord.makeCoord(afwCoord.ICRS, 0. * afwGeom.degrees, 0. * afwGeom.degrees),
-                                             afwGeom.Point2D(1.0,1.0),
-                                             1.0/(2.53*3600.0), 0.0, 0.0, 1.0/(2.53*3600.0)))
-
-            
-            # load the corresponding test psf
-            psfFile = os.path.join(self.dataDir, "psf.%d.fits" % imageid)
-            psfImg = afwImage.ImageD(psfFile)
-            psfImg -= self.bkgd
-            
-            kernel = afwMath.FixedKernel(psfImg)
-            kernelPsf = algorithms.KernelPsf(kernel)
-            exposure.setPsf(kernelPsf)
-
-            
-            # perform the shape measurement
-            schema = afwTable.SourceTable.makeMinimalSchema()
-            msConfig = algorithms.SourceMeasurementConfig()
             algorithmName = "shape.hsm." + algName.lower()
-            msConfig.algorithms.names = [algorithmName]
-            shapeFinder = msConfig.makeMeasureSources(schema)
-
-            x, y = float(x_centroid[i]), float(y_centroid[i])
-
-            # Note: It is essential to remove the floating point part of the position for the
-            # Algorithm._apply.  Otherwise, when the PSF is realised it will have been warped
-            # to account for the sub-pixel offset and we won't get *exactly* this PSF.
-            center = afwGeom.Point2D(int(x), int(y))
-            table = afwTable.SourceTable.make(schema)
-            source = table.makeRecord()
-            source.setFootprint(afwDetection.Footprint(exposure.getBBox()))
-
-            shapeFinder.apply(source, exposure, center)
+            source = self.runMeasurement(algorithmName, imageid, x_centroid[i], y_centroid[i])
             
             ##########################################
             # see how we did
