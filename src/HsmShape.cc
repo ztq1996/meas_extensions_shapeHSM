@@ -26,44 +26,95 @@
 #include "lsst/pex/logging/Trace.h"
 #include "lsst/afw/image.h"
 #include "lsst/afw/detection/Psf.h"
+#include "lsst/afw/math/Statistics.h"
 #include "lsst/meas/algorithms/Measure.h"
 
-#include "lsst/meas/extensions/shapeHSM/HsmShapeAdapter.h"
+#include "galsim/Image.h"
+#include "galsim/hsm/PSFCorr.h"
+
 #include "lsst/meas/extensions/shapeHSM/HsmShapeControl.h"
 
 namespace lsst { namespace meas { namespace extensions { namespace shapeHSM {
 
 namespace {
 
+/// Return appropriate symbol for a measurement type
+char measTypeSymbol(MeasType measType)
+{
+    switch (measType) {
+    case ELLIPTICITY:
+        return 'e';
+    case SHEAR:
+        return 'g';
+    }
+    assert(false);
+}
+
 // helper function for HsmShapeAlgorithm ctor
 inline afw::table::Key<double>
-addEllipticityField(std::string name, char n, char measType, afw::table::Schema & schema, std::string doc) {
+addEllipticityField(std::string name, char n, MeasType measType, afw::table::Schema & schema,
+                    std::string doc) {
     name.push_back('.');
-    name.push_back(measType);
+    name.push_back(measTypeSymbol(measType));
     name.push_back(n);
     if (n == '1') {
         doc += " (+";
     } else {
         doc += " (x";
     }
-    if (measType == 'e') {
+    switch (measType) {
+    case ELLIPTICITY:
         doc += " component of ellipticity)";
-    } else {
+        break;
+    case SHEAR:
         doc += " component of estimated shear)";
+        break;
+    default:
+        assert(false);
     }
     return schema.addField<double>(name, doc);
 }
 
 // helper function for HsmShapeAlgorithm ctor
 inline afw::table::Key<double>
-addErrorField(std::string const & name, char measType, afw::table::Schema & schema) {
+addErrorField(std::string const & name, MeasType measType, afw::table::Schema & schema) {
     std::string doc = "Uncertainty on ";
     doc.push_back(measType);
     doc += "1 and ";
-    doc.push_back(measType);
+    doc.push_back(measTypeSymbol(measType));
     doc += "2 (assumed to be the same)";
     return schema.addField<double>(name + ".err", doc);
 }
+
+/// Convert from afw Image to GalSim's ImageView
+template <typename PixelT>
+class ImageConverter
+{
+public:
+    /// Ctor
+    ///
+    /// ImageView wants us to provide an "owner" for the pixels (so it can hold a
+    /// reference to keep them from being destroyed underneath it?), but ndarray
+    /// doesn't allow us to access a shared_ptr to the pixels.  Instead, we use a
+    /// dummy shared ptr to a single (new) pixel.  The ImageConverter is holding
+    /// on to this too (RAII) so we shouldn't have any memory worries.
+    ImageConverter(PTR(afw::image::Image<PixelT>) image, afw::geom::Box2I box) :
+        _image(image), _owner(new PixelT), _box(box) {}
+    ImageConverter(PTR(afw::image::Image<PixelT>) image) :
+        _image(image), _owner(new PixelT), _box(image->getBBox(afw::image::PARENT)) {}
+
+    /// Conversion
+    galsim::ImageView<PixelT> getImageView() const {
+        galsim::Bounds<int> const bounds(_box.getMinX() + 1, _box.getMaxX() + 1,
+                                         _box.getMinY() + 1, _box.getMaxY() + 1);
+        return galsim::ImageView<PixelT>(_image->getArray().getData(), _owner,
+                                         _image->getArray().template getStride<0>(), bounds);
+    }
+private:
+    PTR(afw::image::Image<PixelT>) _image;
+    boost::shared_ptr<PixelT> _owner;
+    afw::geom::Box2I _box;
+};
 
 /*
  *  HSM shape algorithm class - we use one class for all algorithms; all the specialized
@@ -81,7 +132,7 @@ public:
     HsmShape(
         HsmShapeControl const & ctrl,
         std::string const & shearType,
-        char measType,
+        MeasType measType,
         afw::table::Schema & schema,
         std::string const & doc
     );
@@ -98,12 +149,9 @@ private:
     LSST_MEAS_ALGORITHM_PRIVATE_INTERFACE(HsmShape);
 
     std::string _shearType;
-    afw::table::Centroid::MeasKey _centroidKey;
-    afw::table::Shape::MeasKey _momentsKey;
-    afw::table::Shape::MeasKey _psfMomentsKey;
+    MeasType _measType;
     afw::table::Key<double> _e1Key;
     afw::table::Key<double> _e2Key;
-    afw::table::Key<double> _errKey;
     afw::table::Key<double> _sigmaKey;
     afw::table::Key<double> _resolutionKey;
     afw::table::Key<afw::table::Flag> _flagKey;
@@ -114,26 +162,19 @@ private:
 HsmShape::HsmShape(
     HsmShapeControl const & ctrl, 
     std::string const & shearType,
-    char measType,
+    MeasType measType,
     afw::table::Schema & schema,
     std::string const & doc
 ) : Algorithm(ctrl),
     _shearType(shearType),
-    _centroidKey(
-        schema.addField<afw::table::Centroid::MeasTag>(ctrl.name + ".centroid", doc + " (centroid)")
-    ),
-    _momentsKey(
-        schema.addField<afw::table::Shape::MeasTag>(ctrl.name + ".moments", doc + " (uncorrected moments)")
-    ),
-    _psfMomentsKey(schema.addField<afw::table::Shape::MeasTag>(ctrl.name + ".psf", doc + " (PSF moments)")),
+    _measType(measType),
     _e1Key(addEllipticityField(ctrl.name, '1', measType, schema, doc)),
     _e2Key(addEllipticityField(ctrl.name, '2', measType, schema, doc)),
-    _errKey(addErrorField(ctrl.name, measType, schema)),
-    _resolutionKey(
-        schema.addField<double>(ctrl.name + ".resolution", "resolution factor (0=unresolved, 1=resolved)")
-    ),
     _sigmaKey(
         schema.addField<double>(ctrl.name + ".sigma", doc + " (width)")
+    ),
+    _resolutionKey(
+        schema.addField<double>(ctrl.name + ".resolution", "resolution factor (0=unresolved, 1=resolved)")
     ),
     _flagKey(schema.addField<afw::table::Flag>(ctrl.name + ".flags", "set if measurement failed in any way")),
     _hasDeblendKey(ctrl.deblendNChild.size() > 0)
@@ -149,39 +190,85 @@ void HsmShape::_apply(
     afw::image::Exposure<PixelT> const & exposure,
     afw::geom::Point2D const & center
 ) const {
+    typedef afw::image::Exposure<PixelT> ExposureT;
+
     source.set(_flagKey, true); // bad until we are good
 
     if (_hasDeblendKey && source.get(_deblendKey) > 0) {
         throw LSST_EXCEPT(pex::exceptions::RuntimeError, "Ignoring parent source");
     }
 
-    std::vector<std::string> const & badMaskPlanes 
-        = static_cast<HsmShapeControl const &>(getControl()).badMaskPlanes;
+    HsmShapeControl const& ctrl = static_cast<HsmShapeControl const &>(getControl());
+    std::vector<std::string> const & badMaskPlanes = ctrl.badMaskPlanes;
 
-    afw::image::MaskPixel badPixelMask 
-        = exposure.getMaskedImage().getMask()->getPlaneBitMask(badMaskPlanes);
-    HsmShapeAdapter< afw::image::Exposure<PixelT> > shearEst(
-        exposure, center, *source.getFootprint(), badPixelMask
-    );
-    
-    short status = shearEst.measure(_shearType);
+    afw::image::MaskPixel badPixelMask = exposure.getMaskedImage().getMask()->getPlaneBitMask(badMaskPlanes);
 
-    source.set(_centroidKey, shearEst.getCentroid());
-    source.set(_momentsKey, shearEst.getMoments());
-    source.set(_psfMomentsKey, shearEst.getPsfMoments());
-    source.set(_e1Key, shearEst.getE1());
-    source.set(_e2Key, shearEst.getE2());
-    source.set(_sigmaKey, shearEst.getSigma());
-    source.set(_resolutionKey, shearEst.getResolution());
-
-    char meas_type = shearEst.getMeasType();
-    if (meas_type == 'e') {
-        source.set(_errKey, 0.5 * shearEst.getShearSig());
-    } else if (meas_type == 'g') {
-        source.set(_errKey, shearEst.getShearSig());
+    afw::geom::Box2I bbox = source.getFootprint()->getBBox();
+    if (bbox.getArea() == 0) {
+        throw LSST_EXCEPT(lsst::pex::exceptions::LengthError, "No pixels to measure.");
     }
 
-    source.set(_flagKey, status); 
+    PTR(afw::detection::Psf::Image) psf = exposure.getPsf()->computeImage(center);
+    psf->setXY0(0, 0);
+    ImageConverter<PixelT> const image(exposure.getMaskedImage().getImage(), bbox);
+    ImageConverter<afw::detection::Psf::Image::Pixel> const psfImage(psf);
+
+    // HSM uses a mask where 1=good, 0=bad
+    typedef typename ExposureT::MaskedImageT::Mask MaskT;
+    typedef afw::image::Image<int> ImageI;
+    CONST_PTR(MaskT) afwMask = exposure.getMaskedImage().getMask();
+    PTR(ImageI) hsmMask = boost::make_shared<ImageI>(bbox.getDimensions());
+    for (int y = 0; y < bbox.getHeight(); ++y) {
+        typename MaskT::const_x_iterator in = afwMask->x_at(afwMask->getX0(), y + afwMask->getY0());
+        ImageI::x_iterator out = hsmMask->row_begin(y);
+        ImageI::const_x_iterator end = hsmMask->row_end(y);
+        for (; out != end; ++in, ++out) {
+            *out = (*in & badPixelMask) ? 0 : 1;
+        }
+    }
+    ImageConverter<int> const mask(hsmMask);
+
+    PTR(ImageI) dummyMask = boost::make_shared<ImageI>(psf->getDimensions());
+    *dummyMask = 1;
+    ImageConverter<int> const psfMask(dummyMask);
+
+    // Calculate the sky variance
+    afw::math::StatisticsControl sctrl;
+    sctrl.setAndMask(badPixelMask);
+    typename ExposureT::MaskedImageT::Variance const variance(*exposure.getMaskedImage().getVariance(), bbox);
+    afw::math::Statistics stat = afw::math::makeStatistics(variance, *afwMask, afw::math::MEDIAN, sctrl);
+    double const skyvar = sqrt(stat.getValue(afw::math::MEDIAN));
+
+    double const psfSigma = exposure.getPsf()->computeShape(center).getTraceRadius();
+
+    galsim::hsm::CppShapeData shape, psfShape;
+
+    try {
+        shape = galsim::hsm::EstimateShearView(image.getImageView(), psfImage.getImageView(),
+                                               mask.getImageView(), skyvar, _shearType.c_str(), "FIT",
+                                               2.5*psfSigma, psfSigma, 1.0e-6,
+                                               center.getX() - bbox.getMinX() + 1,
+                                               center.getY() - bbox.getMinY() + 1);
+    } catch (galsim::hsm::HSMError const& e) {
+        throw LSST_EXCEPT(pex::exceptions::RuntimeError, e.what());
+    }
+
+    assert(shape.meas_type[0] == measTypeSymbol(_measType));
+    switch (*shape.meas_type.c_str()) {
+    case 'e':
+        source.set(_e1Key, shape.corrected_e1);
+        source.set(_e2Key, shape.corrected_e2);
+        break;
+    case 'g':
+        source.set(_e1Key, shape.corrected_g1);
+        source.set(_e2Key, shape.corrected_g2);
+        break;
+    default:
+        assert(false);
+    }
+    source.set(_sigmaKey, shape.corrected_shape_err);
+    source.set(_resolutionKey, shape.resolution_factor);
+    source.set(_flagKey, shape.correction_status != 0);
 }
 
 LSST_MEAS_ALGORITHM_PRIVATE_IMPLEMENTATION(HsmShape);
@@ -204,15 +291,11 @@ PTR(algorithms::AlgorithmControl) HsmShapeRegaussControl::_clone() const {
     return boost::make_shared<HsmShapeRegaussControl>(*this);
 }
 
-PTR(algorithms::AlgorithmControl) HsmShapeShapeletControl::_clone() const {
-    return boost::make_shared<HsmShapeShapeletControl>(*this);
-}
-
 PTR(algorithms::Algorithm) HsmShapeBjControl::_makeAlgorithm(
     afw::table::Schema & schema, PTR(daf::base::PropertyList) const & metadata
 ) const {
     return boost::make_shared<HsmShape>(
-        *this, "BJ", 'e', boost::ref(schema),
+        *this, "BJ", ELLIPTICITY, boost::ref(schema),
         "PSF-corrected shear using Bernstein & Jarvis (2002) method"
     );
 }
@@ -221,7 +304,7 @@ PTR(algorithms::Algorithm) HsmShapeLinearControl::_makeAlgorithm(
     afw::table::Schema & schema, PTR(daf::base::PropertyList) const & metadata
 ) const {
     return boost::make_shared<HsmShape>(
-        *this, "LINEAR", 'e', boost::ref(schema),
+        *this, "LINEAR", ELLIPTICITY, boost::ref(schema),
         "PSF-corrected shear using Hirata & Seljak (2003) 'linear' method"
     );
 }
@@ -230,7 +313,7 @@ PTR(algorithms::Algorithm) HsmShapeKsbControl::_makeAlgorithm(
     afw::table::Schema & schema, PTR(daf::base::PropertyList) const & metadata
 ) const {
     return boost::make_shared<HsmShape>(
-        *this, "KSB", 'g', boost::ref(schema),
+        *this, "KSB", SHEAR, boost::ref(schema),
         "PSF-corrected shear using KSB method"
     );
 }
@@ -239,18 +322,8 @@ PTR(algorithms::Algorithm) HsmShapeRegaussControl::_makeAlgorithm(
     afw::table::Schema & schema, PTR(daf::base::PropertyList) const & metadata
 ) const {
     return boost::make_shared<HsmShape>(
-        *this, "REGAUSS", 'e', boost::ref(schema),
+        *this, "REGAUSS", ELLIPTICITY, boost::ref(schema),
         "PSF-corrected shear using Hirata & Seljak (2003) 'regaussianization' method"
-    );
-}
-
-PTR(algorithms::Algorithm) HsmShapeShapeletControl::_makeAlgorithm(
-    afw::table::Schema & schema, PTR(daf::base::PropertyList) const & metadata
-) const {
-    std::string shearType = (boost::format("SHAPELET%d,%d") % maxOrderPsf % maxOrderGalaxy).str();
-    return boost::make_shared<HsmShape>(
-        *this, shearType, 'g', boost::ref(schema),
-        "PSF-corrected shear using Hirata & Seljak (2003) 'shapelet' method"
     );
 }
 

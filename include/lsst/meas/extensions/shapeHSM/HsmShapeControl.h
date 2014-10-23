@@ -6,6 +6,11 @@
 
 namespace lsst { namespace meas { namespace extensions { namespace shapeHSM {
 
+enum MeasType {
+    ELLIPTICITY,                        // We will measure e1,e2
+    SHEAR,                              // We will measure g1,g2
+};
+
 class HsmShapeControl : public algorithms::AlgorithmControl {
 public:
     LSST_CONTROL_FIELD(badMaskPlanes, std::vector<std::string>, "Mask planes used to reject bad pixels.");
@@ -55,19 +60,6 @@ private:
 class HsmShapeRegaussControl : public HsmShapeControl {
 public:
     HsmShapeRegaussControl() : HsmShapeControl("shape.hsm.regauss") {}
-private:
-    virtual PTR(algorithms::AlgorithmControl) _clone() const;
-    virtual PTR(algorithms::Algorithm) _makeAlgorithm(
-        afw::table::Schema & schema, PTR(daf::base::PropertyList) const & metadata
-    ) const;
-};
-
-class HsmShapeShapeletControl : public HsmShapeControl {
-public:
-    LSST_CONTROL_FIELD(maxOrderPsf, int, "Maximum shapelet order for PSF");
-    LSST_CONTROL_FIELD(maxOrderGalaxy, int, "Maximum shapelet order for galaxy");
-
-    HsmShapeShapeletControl() : HsmShapeControl("shape.hsm.shapelet"), maxOrderPsf(8), maxOrderGalaxy(8) {}
 private:
     virtual PTR(algorithms::AlgorithmControl) _clone() const;
     virtual PTR(algorithms::Algorithm) _makeAlgorithm(

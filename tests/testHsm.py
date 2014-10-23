@@ -24,10 +24,10 @@
 import re, os, sys
 import glob
 import math
-import numpy
+import numpy as np
 import unittest
+import itertools
 
-import lsst.pex.policy as pexPolicy
 import lsst.pex.exceptions as pexExceptions
 import lsst.afw.image as afwImage
 import lsst.afw.math as afwMath
@@ -47,6 +47,43 @@ except NameError:
     verbose = 0
     display = False
 
+SIZE_DECIMALS = 2 # Number of decimals for equality in sizes
+SHAPE_DECIMALS = 3 # Number of decimals for equality in shapes
+
+### The following values are pulled directly from GalSim's test_hsm.py:
+file_indices = [0, 2, 4, 6, 8]
+x_centroid = [35.888, 19.44, 8.74, 20.193, 57.94]
+y_centroid = [19.845, 25.047, 11.92, 38.93, 27.73]
+sky_var = [35.01188, 35.93418, 35.15456, 35.11146, 35.16454]
+correction_methods = ["KSB", "BJ", "LINEAR", "REGAUSS"]
+# Note: expected results give shear for KSB and distortion for others, but the results below have
+# converted KSB expected results to distortion for the sake of consistency
+e1_expected = np.array([
+        [0.467603106752, 0.381211727, 0.398856937, 0.401755571],
+        [0.28618443944, 0.199222784, 0.233883543, 0.234257525],
+        [0.271533794146, 0.158049396, 0.183517068, 0.184893412],
+        [-0.293754156071, -0.457024541, 0.123946584, -0.609233462],
+        [0.557720893779, 0.374143023, 0.714147448, 0.435404409] ])
+e2_expected = np.array([
+        [-0.867225166489, -0.734855778, -0.777027588, -0.774684891],
+        [-0.469354341577, -0.395520479, -0.502540961, -0.464466257],
+        [-0.519775291311, -0.471589061, -0.574750641, -0.529664935],
+        [0.345688365839, -0.342047099, 0.120603755, -0.44609129428863525],
+        [0.525728304099, 0.370691830, 0.702724807, 0.433999442] ])
+resolution_expected = np.array([
+        [0.796144249, 0.835624917, 0.835624917, 0.827796187],
+        [0.685023735, 0.699602704, 0.699602704, 0.659457638],
+        [0.634736458, 0.651040481, 0.651040481, 0.614663396],
+        [0.477027015, 0.477210752, 0.477210752, 0.423157447],
+        [0.595205998, 0.611824797, 0.611824797, 0.563582092] ])
+sigma_e_expected = np.array([
+        [0.016924826, 0.014637648, 0.014637648, 0.014465546],
+        [0.075769504, 0.073602324, 0.073602324, 0.064414520],
+        [0.110253112, 0.106222900, 0.106222900, 0.099357106],
+        [0.185276702, 0.184300955, 0.184300955, 0.173478300],
+        [0.073020065, 0.070270966, 0.070270966, 0.061856263] ])
+### End of GalSim's values
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 class ShapeTestCase(unittest.TestCase):
@@ -56,45 +93,7 @@ class ShapeTestCase(unittest.TestCase):
 
         # load the known values
         self.dataDir = os.path.join(os.getenv('MEAS_EXTENSIONS_SHAPEHSM_DIR'), "tests", "data")
-        
-        algNames = []
-
-        knownValuesFile = os.path.join(self.dataDir, "knownValuesTestHsm.dat")
-        self.knownValues = {}
-        columnNums = {}
-        columnNames = [""]*20
-        fp = open(knownValuesFile, 'r')
-        for line in fp.readlines():
-            if len(line.strip()) == 0:
-                continue
-            
-            fields = line.split()
-            if re.search("^#", line):
-                columnNums[fields[2]] = int(fields[1])
-                columnNames[int(fields[1])] = fields[2]
-                continue
-
-            imageid = fields[columnNums['imageid']]
-            algorithm = fields[columnNums['algorithm']]
-            algNames.append(algorithm)
-            name = str(imageid) + '-' + algorithm
-            if not self.knownValues.has_key(name):
-                self.knownValues[name] = {}
-
-            for i in range(2, len(fields)):
-                field = fields[i]
-                fname = columnNames[i]
-                self.knownValues[name][fname] = field
-        fp.close()
-                
-        self.algNames = list(set(algNames))
         self.bkgd = 1000.0 # standard for atlas image
-        
-        policyFile = os.path.join(os.getenv("MEAS_EXTENSIONS_SHAPEHSM_DIR"), "policy", "hsmShape.paf")
-        self.policy = pexPolicy.Policy(policyFile).get("shape")
-        
-    def tearDown(self):
-        del self.policy
 
     def testHsmShape(self):
         """Test that we can instantiate and play with a measureShape"""
@@ -102,30 +101,18 @@ class ShapeTestCase(unittest.TestCase):
         nFail = 0
         msg = ""
 
-        for name, known in self.knownValues.items():
+        for (algNum, algName), (i, imageid) in itertools.product(enumerate(correction_methods),
+                                                                 enumerate(file_indices)):
 
-            imageid, algName = name.split("-")
-
-            #if not name == "6-REGAUSS":
-            #    continue
-            
             # load the test image
-            imgFile = os.path.join(self.dataDir, "image."+imageid+".fits")
+            imgFile = os.path.join(self.dataDir, "image.%d.fits" % imageid)
             img = afwImage.ImageF(imgFile)
             img -= self.bkgd
             nx, ny = img.getWidth(), img.getHeight()
             msk = afwImage.MaskU(afwGeom.Extent2I(nx, ny), 0x0)
             var = afwImage.ImageF(imgFile)
             mimg = afwImage.MaskedImageF(img, msk, var)
-
-            # code won't run if we mask the bad pixels ... worrisome.
-            if False:
-                for i in range(mimg.getWidth()):
-                    for j in range(mimg.getHeight()):
-                        mpix = mimg.get(i, j)
-                        print mpix
-                        if abs(mpix[0]) < 1.0e-8:
-                            mimg.set(i, j, (mpix[0], msk.getPlaneBitMask("BAD"), mpix[2]))
+            msk.getArray()[:] = np.where(np.fabs(img.getArray()) < 1.0e-8, msk.getPlaneBitMask("BAD"), 0)
 
             exposure = afwImage.makeExposure(mimg)
             exposure.setWcs(afwImage.makeWcs(afwCoord.makeCoord(afwCoord.ICRS, 0. * afwGeom.degrees, 0. * afwGeom.degrees),
@@ -134,7 +121,7 @@ class ShapeTestCase(unittest.TestCase):
 
             
             # load the corresponding test psf
-            psfFile = os.path.join(self.dataDir, "psf."+imageid+".fits")
+            psfFile = os.path.join(self.dataDir, "psf.%d.fits" % imageid)
             psfImg = afwImage.ImageD(psfFile)
             psfImg -= self.bkgd
             
@@ -150,10 +137,12 @@ class ShapeTestCase(unittest.TestCase):
             msConfig.algorithms.names = [algorithmName]
             shapeFinder = msConfig.makeMeasureSources(schema)
 
-            x, y = float(known['x']), float(known['y'])
-            x2, y2 = int(x+0.5), int(y+0.5)
+            x, y = float(x_centroid[i]), float(y_centroid[i])
 
-            center = afwGeom.Point2D(x2, y2)
+            # Note: It is essential to remove the floating point part of the position for the
+            # Algorithm._apply.  Otherwise, when the PSF is realised it will have been warped
+            # to account for the sub-pixel offset and we won't get *exactly* this PSF.
+            center = afwGeom.Point2D(int(x), int(y))
             table = afwTable.SourceTable.make(schema)
             source = table.makeRecord()
             source.setFootprint(afwDetection.Footprint(exposure.getBBox()))
@@ -163,45 +152,40 @@ class ShapeTestCase(unittest.TestCase):
             ##########################################
             # see how we did
 
-            s = source.get(algorithmName + ".moments")
-            p = source.get(algorithmName + ".centroid")
-
-            if algName in ("KSB", "SHAPELET"):
-                e1 = source.get(algorithmName + ".g1")
-                e2 = source.get(algorithmName + ".g2")
-                shearsig = source.get(algorithmName + ".err")
+            if algName in ("KSB"):
+                # Need to convert g1,g2 --> e1,e2 because GalSim has done that
+                # for the expected values ("for consistency")
+                g1 = source.get(algorithmName + ".g1")
+                g2 = source.get(algorithmName + ".g2")
+                scale = 2.0/(1.0 + g1**2 + g2**2)
+                e1 = g1*scale
+                e2 = g2*scale
             else:
                 e1 = source.get(algorithmName + ".e1")
                 e2 = source.get(algorithmName + ".e2")
-                shearsig = 2.0 * source.get(algorithmName + ".err")
             sigma = source.get(algorithmName + ".sigma")
             resolution = source.get(algorithmName + ".resolution")
             flags = source.get(algorithmName + ".flags")
                 
-            limit = 1.0e-5
             tests = [
-                # label      known-value                 measured              tolerance
-                ["sigma",      float(known['sigma']),       sigma,             limit],
-                ["e1",         float(known['e1']),          e1,                limit],
-                ["e2",         float(known['e2']),          e2,                limit],
-                ["resolution", float(known['resolution']),  resolution,        limit],
+                # label        known-value                            measured              tolerance
+                ["e1",         float(e1_expected[i][algNum]),         e1,             0.5*10**-SHAPE_DECIMALS],
+                ["e2",         float(e2_expected[i][algNum]),         e2,             0.5*10**-SHAPE_DECIMALS],
+                ["resolution", float(resolution_expected[i][algNum]), resolution,     0.5*10**-SIZE_DECIMALS],
                 
-                # shearsig won't match exactly
+                # sigma won't match exactly because
                 # we're using skyvar=mean(var) instead of measured value ... expected a difference
-                ["shearsig", float(known["shearsig"]),      shearsig,          0.065],
+                ["sigma",      float(sigma_e_expected[i][algNum]),    sigma,             0.07],
                 ["shapeStatus", 0,                          flags,             0],
                 ]
 
             
             for test in tests:
                 label, know, hsm, limit = test
-                if know != 0:
-                    err = (hsm-know)/know
-                else:
-                    err = hsm-know
-                msgTmp = "%-12s %s  %5s:   %6.6f %6.6f  (val-known)/known = %.3g\n" % (algName, imageid,
-                                                                                       label, know, hsm, err)
-                if not numpy.isfinite(err) or abs(err) > limit:
+                err = hsm - know
+                msgTmp = "%-12s %s  %5s:   %6.6f %6.6f  (val-known) = %.3g\n" % (algName, imageid,
+                                                                                 label, know, hsm, err)
+                if not np.isfinite(err) or abs(err) > limit:
                     msg += msgTmp
                     nFail += 1
 
