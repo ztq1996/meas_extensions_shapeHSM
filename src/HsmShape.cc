@@ -32,6 +32,7 @@
 #include "galsim/Image.h"
 #include "galsim/hsm/PSFCorr.h"
 
+#include "lsst/meas/extensions/shapeHSM/HsmAdapter.h"
 #include "lsst/meas/extensions/shapeHSM/HsmShapeControl.h"
 
 namespace lsst { namespace meas { namespace extensions { namespace shapeHSM {
@@ -85,36 +86,6 @@ addErrorField(std::string const & name, MeasType measType, afw::table::Schema & 
     doc += "2 (assumed to be the same)";
     return schema.addField<double>(name + ".err", doc);
 }
-
-/// Convert from afw Image to GalSim's ImageView
-template <typename PixelT>
-class ImageConverter
-{
-public:
-    /// Ctor
-    ///
-    /// ImageView wants us to provide an "owner" for the pixels (so it can hold a
-    /// reference to keep them from being destroyed underneath it?), but ndarray
-    /// doesn't allow us to access a shared_ptr to the pixels.  Instead, we use a
-    /// dummy shared ptr to a single (new) pixel.  The ImageConverter is holding
-    /// on to this too (RAII) so we shouldn't have any memory worries.
-    ImageConverter(PTR(afw::image::Image<PixelT>) image, afw::geom::Box2I box) :
-        _image(image), _owner(new PixelT), _box(box) {}
-    ImageConverter(PTR(afw::image::Image<PixelT>) image) :
-        _image(image), _owner(new PixelT), _box(image->getBBox(afw::image::PARENT)) {}
-
-    /// Conversion
-    galsim::ImageView<PixelT> getImageView() const {
-        galsim::Bounds<int> const bounds(_box.getMinX() + 1, _box.getMaxX() + 1,
-                                         _box.getMinY() + 1, _box.getMaxY() + 1);
-        return galsim::ImageView<PixelT>(_image->getArray().getData(), _owner,
-                                         _image->getArray().template getStride<0>(), bounds);
-    }
-private:
-    PTR(afw::image::Image<PixelT>) _image;
-    boost::shared_ptr<PixelT> _owner;
-    afw::geom::Box2I _box;
-};
 
 /*
  *  HSM shape algorithm class - we use one class for all algorithms; all the specialized
@@ -213,19 +184,9 @@ void HsmShape::_apply(
     ImageConverter<PixelT> const image(exposure.getMaskedImage().getImage(), bbox);
     ImageConverter<afw::detection::Psf::Image::Pixel> const psfImage(psf);
 
-    // HSM uses a mask where 1=good, 0=bad
-    typedef typename ExposureT::MaskedImageT::Mask MaskT;
     typedef afw::image::Image<int> ImageI;
-    CONST_PTR(MaskT) afwMask = exposure.getMaskedImage().getMask();
-    PTR(ImageI) hsmMask = boost::make_shared<ImageI>(bbox.getDimensions());
-    for (int y = 0; y < bbox.getHeight(); ++y) {
-        typename MaskT::const_x_iterator in = afwMask->x_at(afwMask->getX0(), y + afwMask->getY0());
-        ImageI::x_iterator out = hsmMask->row_begin(y);
-        ImageI::const_x_iterator end = hsmMask->row_end(y);
-        for (; out != end; ++in, ++out) {
-            *out = (*in & badPixelMask) ? 0 : 1;
-        }
-    }
+    PTR(typename ExposureT::MaskedImageT::Mask) afwMask = exposure.getMaskedImage().getMask();
+    PTR(ImageI) hsmMask = convertMask(*afwMask, bbox, badPixelMask);
     ImageConverter<int> const mask(hsmMask);
 
     PTR(ImageI) dummyMask = boost::make_shared<ImageI>(psf->getDimensions());
