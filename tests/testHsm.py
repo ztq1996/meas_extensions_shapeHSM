@@ -209,10 +209,11 @@ class ShapeTestCase(unittest.TestCase):
                 scale = 2.0/(1.0 + g1**2 + g2**2)
                 e1 = g1*scale
                 e2 = g2*scale
+                sigma = source.get(algorithmName + ".sigma")
             else:
                 e1 = source.get(algorithmName + ".e1")
                 e2 = source.get(algorithmName + ".e2")
-            sigma = source.get(algorithmName + ".sigma")
+                sigma = 2*source.get(algorithmName + ".sigma")
             resolution = source.get(algorithmName + ".resolution")
             flags = source.get(algorithmName + ".flags")
                 

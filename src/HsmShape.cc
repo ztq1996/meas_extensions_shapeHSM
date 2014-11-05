@@ -219,15 +219,16 @@ void HsmShape::_apply(
     case 'e':
         source.set(_e1Key, shape.corrected_e1);
         source.set(_e2Key, shape.corrected_e2);
+        source.set(_sigmaKey, 0.5*shape.corrected_shape_err);
         break;
     case 'g':
         source.set(_e1Key, shape.corrected_g1);
         source.set(_e2Key, shape.corrected_g2);
+        source.set(_sigmaKey, shape.corrected_shape_err);
         break;
     default:
         assert(false);
     }
-    source.set(_sigmaKey, shape.corrected_shape_err);
     source.set(_resolutionKey, shape.resolution_factor);
     source.set(_flagKey, shape.correction_status != 0);
 }
