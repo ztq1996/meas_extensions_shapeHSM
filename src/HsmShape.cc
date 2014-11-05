@@ -257,7 +257,7 @@ PTR(algorithms::Algorithm) HsmShapeBjControl::_makeAlgorithm(
 ) const {
     return boost::make_shared<HsmShape>(
         *this, "BJ", ELLIPTICITY, boost::ref(schema),
-        "PSF-corrected shear using Bernstein & Jarvis (2002) method"
+        "PSF-corrected ellipticity using Bernstein & Jarvis (2002) method"
     );
 }
 
@@ -266,7 +266,7 @@ PTR(algorithms::Algorithm) HsmShapeLinearControl::_makeAlgorithm(
 ) const {
     return boost::make_shared<HsmShape>(
         *this, "LINEAR", ELLIPTICITY, boost::ref(schema),
-        "PSF-corrected shear using Hirata & Seljak (2003) 'linear' method"
+        "PSF-corrected ellipticity using Hirata & Seljak (2003) 'linear' method"
     );
 }
 
@@ -284,7 +284,7 @@ PTR(algorithms::Algorithm) HsmShapeRegaussControl::_makeAlgorithm(
 ) const {
     return boost::make_shared<HsmShape>(
         *this, "REGAUSS", ELLIPTICITY, boost::ref(schema),
-        "PSF-corrected shear using Hirata & Seljak (2003) 'regaussianization' method"
+        "PSF-corrected ellipticity using Hirata & Seljak (2003) 'regaussianization' method"
     );
 }
 
