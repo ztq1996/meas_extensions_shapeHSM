@@ -93,6 +93,7 @@ void HsmMoments::_apply(
 
     galsim::hsm::CppShapeData shape;
     try {
+        // GalSim's HSM uses the FITS convention of 1,1 for the lower-left corner
         shape = galsim::hsm::FindAdaptiveMomView(image.getImageView(), mask.getImageView(),
                                                  2.5*psfSigma, 1.0e-6,
                                                  center.getX() - bbox.getMinX() + 1,
@@ -106,8 +107,8 @@ void HsmMoments::_apply(
     typedef afw::geom::ellipses::Separable<afw::geom::ellipses::Distortion,
                                            afw::geom::ellipses::DeterminantRadius> Ellipse;
 
-    source.set(_centroidKeys.meas, afw::geom::Point2D(shape.moments_centroid.x + exposure.getX0(),
-                                                      shape.moments_centroid.y + exposure.getY0()));
+    source.set(_centroidKeys.meas, afw::geom::Point2D(shape.moments_centroid.x + bbox.getMinX() - 1.0,
+                                                      shape.moments_centroid.y + bbox.getMinY() - 1.0));
     source.set(getKeys().meas, Ellipse(ellip, radius));
     // XXX calculate errors in shape, centroid?
 

@@ -252,8 +252,9 @@ class ShapeTestCase(unittest.TestCase):
             moments = source.get("shape.hsm.moments")
             centroid = source.get("shape.hsm.moments.centroid")
 
-            self.assertAlmostEqual(centroid[0], centroid_expected[i][0], 3)
-            self.assertAlmostEqual(centroid[1], centroid_expected[i][1], 3)
+            # Centroids from GalSim's HSM use the FITS lower-left corner of 1,1
+            self.assertAlmostEqual(centroid[0], centroid_expected[i][0] - 1, 3)
+            self.assertAlmostEqual(centroid[1], centroid_expected[i][1] - 1, 3)
 
             expected = afwEll.Quadrupole(afwEll.SeparableDistortionDeterminantRadius(
                 moments_expected[i][1], moments_expected[i][2], moments_expected[i][0]))
