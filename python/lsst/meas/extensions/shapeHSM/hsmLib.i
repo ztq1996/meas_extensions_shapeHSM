@@ -65,7 +65,8 @@ Various swigged-up C++ classes for testing
 %shared_ptr(lsst::meas::extensions::shapeHSM::HsmShapeLinearControl);
 %shared_ptr(lsst::meas::extensions::shapeHSM::HsmShapeKsbControl);
 %shared_ptr(lsst::meas::extensions::shapeHSM::HsmShapeRegaussControl);
-%shared_ptr(lsst::meas::extensions::shapeHSM::HsmMomentsControl);
+%shared_ptr(lsst::meas::extensions::shapeHSM::HsmSourceMomentsControl);
+%shared_ptr(lsst::meas::extensions::shapeHSM::HsmPsfMomentsControl);
 
 %include "lsst/meas/extensions/shapeHSM/HsmShapeControl.h"
 %include "lsst/meas/extensions/shapeHSM/HsmMomentsControl.h"

@@ -263,6 +263,37 @@ class ShapeTestCase(unittest.TestCase):
             self.assertAlmostEqual(moments.getIxy(), expected.getIxy(), SHAPE_DECIMALS)
             self.assertAlmostEqual(moments.getIyy(), expected.getIyy(), SHAPE_DECIMALS)
 
+    def testHsmPsfMoments(self):
+        for width in (2.0, 3.0, 4.0):
+            psf = afwDetection.GaussianPsf(29, 29, width)
+            exposure = afwImage.ExposureF(45, 56)
+            exposure.getMaskedImage().set(1.0, 0, 1.0)
+            exposure.setPsf(psf)
+
+            # perform the shape measurement
+            schema = afwTable.SourceTable.makeMinimalSchema()
+            msConfig = algorithms.SourceMeasurementConfig()
+            msConfig.algorithms.names = ["shape.hsm.psfMoments"]
+            shapeFinder = msConfig.makeMeasureSources(schema)
+
+            center = afwGeom.Point2D(int(23), int(34))
+            table = afwTable.SourceTable.make(schema)
+            source = table.makeRecord()
+            source.setFootprint(afwDetection.Footprint(afwGeom.Point2I(center), width))
+            shapeFinder.apply(source, exposure, center)
+
+            moments = source.get("shape.hsm.psfMoments")
+            centroid = source.get("shape.hsm.psfMoments.centroid")
+
+            self.assertAlmostEqual(centroid[0], 0.0, 3)
+            self.assertAlmostEqual(centroid[1], 0.0, 3)
+
+            expected = afwEll.Quadrupole(afwEll.Axes(width, width, 0.0))
+
+            self.assertAlmostEqual(moments.getIxx(), expected.getIxx(), SHAPE_DECIMALS)
+            self.assertAlmostEqual(moments.getIxy(), expected.getIxy(), SHAPE_DECIMALS)
+            self.assertAlmostEqual(moments.getIyy(), expected.getIyy(), SHAPE_DECIMALS)
+
 
         
         

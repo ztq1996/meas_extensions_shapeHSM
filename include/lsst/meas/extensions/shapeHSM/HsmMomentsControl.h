@@ -6,16 +6,16 @@
 
 namespace lsst { namespace meas { namespace extensions { namespace shapeHSM {
 
-class HsmMomentsControl : public algorithms::ShapeControl {
+class HsmSourceMomentsControl : public algorithms::ShapeControl {
 public:
     LSST_CONTROL_FIELD(badMaskPlanes, std::vector<std::string>, "Mask planes used to reject bad pixels.");
 
-    HsmMomentsControl() : ShapeControl("shape.hsm.moments") {}
+    HsmSourceMomentsControl() : ShapeControl("shape.hsm.moments") {}
 
-    HsmMomentsControl(HsmMomentsControl const & other) :
+    HsmSourceMomentsControl(HsmSourceMomentsControl const & other) :
         algorithms::ShapeControl(other), badMaskPlanes(other.badMaskPlanes) {}
 
-    HsmMomentsControl(std::string const & name) : algorithms::ShapeControl(name) {
+    HsmSourceMomentsControl(std::string const & name) : algorithms::ShapeControl(name) {
         badMaskPlanes.push_back("BAD");
         badMaskPlanes.push_back("SAT");
         badMaskPlanes.push_back("INTRP");
@@ -26,6 +26,20 @@ private:
         afw::table::Schema & schema, PTR(daf::base::PropertyList) const & metadata
     ) const;
 };
+
+
+class HsmPsfMomentsControl : public algorithms::ShapeControl {
+public:
+    HsmPsfMomentsControl() : ShapeControl("shape.hsm.psfMoments") {}
+    HsmPsfMomentsControl(std::string const & name) : algorithms::ShapeControl(name) {}
+    HsmPsfMomentsControl(HsmPsfMomentsControl const & other) : algorithms::ShapeControl(other) {}
+private:
+    virtual PTR(algorithms::AlgorithmControl) _clone() const;
+    virtual PTR(algorithms::Algorithm) _makeAlgorithm(
+        afw::table::Schema & schema, PTR(daf::base::PropertyList) const & metadata
+    ) const;
+};
+
 
 }}}} // namespace lsst::meas::extensions::shapeHSM
 

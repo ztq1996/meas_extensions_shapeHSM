@@ -28,5 +28,6 @@ lsst.meas.algorithms.AlgorithmRegistry.register("shape.hsm.bj", HsmShapeBjContro
 lsst.meas.algorithms.AlgorithmRegistry.register("shape.hsm.linear", HsmShapeLinearControl)
 lsst.meas.algorithms.AlgorithmRegistry.register("shape.hsm.ksb", HsmShapeKsbControl)
 lsst.meas.algorithms.AlgorithmRegistry.register("shape.hsm.regauss", HsmShapeRegaussControl)
-lsst.meas.algorithms.AlgorithmRegistry.register("shape.hsm.moments", HsmMomentsControl)
+lsst.meas.algorithms.AlgorithmRegistry.register("shape.hsm.moments", HsmSourceMomentsControl)
+lsst.meas.algorithms.AlgorithmRegistry.register("shape.hsm.psfMoments", HsmPsfMomentsControl)
 del lsst # cleanup namespace
