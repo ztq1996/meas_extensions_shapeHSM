@@ -208,8 +208,8 @@ void HsmShape::_apply(
         shape = galsim::hsm::EstimateShearView(image.getImageView(), psfImage.getImageView(),
                                                mask.getImageView(), skyvar, _shearType.c_str(), "FIT",
                                                2.5*psfSigma, psfSigma, 1.0e-6,
-                                               center.getX() - bbox.getMinX() + 1,
-                                               center.getY() - bbox.getMinY() + 1);
+                                               center.getX() - exposure.getX0() + 1,
+                                               center.getY() - exposure.getY0() + 1);
     } catch (galsim::hsm::HSMError const& e) {
         throw LSST_EXCEPT(pex::exceptions::RuntimeError, e.what());
     }

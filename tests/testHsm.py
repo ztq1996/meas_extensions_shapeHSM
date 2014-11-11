@@ -140,6 +140,12 @@ class ShapeTestCase(unittest.TestCase):
         # load the known values
         self.dataDir = os.path.join(os.getenv('MEAS_EXTENSIONS_SHAPEHSM_DIR'), "tests", "data")
         self.bkgd = 1000.0 # standard for atlas image
+        self.offset = afwGeom.Extent2I(1234, 1234)
+        self.xy0 = afwGeom.Point2I(5678, 9876)
+
+    def tearDown(self):
+        del self.offset
+        del self.xy0
 
     def runMeasurement(self, algorithmName, imageid, x, y):
         """Run the measurement algorithm on an image"""
@@ -152,6 +158,16 @@ class ShapeTestCase(unittest.TestCase):
         var = afwImage.ImageF(imgFile)
         mimg = afwImage.MaskedImageF(img, msk, var)
         msk.getArray()[:] = np.where(np.fabs(img.getArray()) < 1.0e-8, msk.getPlaneBitMask("BAD"), 0)
+
+        # Put it in a bigger image, in case it matters
+        big = afwImage.MaskedImageF(self.offset + mimg.getDimensions())
+        big.getImage().set(0)
+        big.getMask().set(0)
+        big.getVariance().set(self.bkgd)
+        subBig = afwImage.MaskedImageF(big, afwGeom.Box2I(big.getXY0() + self.offset, mimg.getDimensions()))
+        subBig <<= mimg
+        mimg = big
+        mimg.setXY0(self.xy0)
 
         exposure = afwImage.makeExposure(mimg)
         exposure.setWcs(afwImage.makeWcs(afwCoord.makeCoord(afwCoord.ICRS, 0. * afwGeom.degrees, 0. * afwGeom.degrees),
@@ -178,7 +194,7 @@ class ShapeTestCase(unittest.TestCase):
         # Note: It is essential to remove the floating point part of the position for the
         # Algorithm._apply.  Otherwise, when the PSF is realised it will have been warped
         # to account for the sub-pixel offset and we won't get *exactly* this PSF.
-        center = afwGeom.Point2D(int(x), int(y))
+        center = afwGeom.Point2D(int(x), int(y)) + afwGeom.Extent2D(self.offset + afwGeom.Extent2I(self.xy0))
         table = afwTable.SourceTable.make(schema)
         source = table.makeRecord()
         source.setFootprint(afwDetection.Footprint(exposure.getBBox()))
@@ -253,8 +269,9 @@ class ShapeTestCase(unittest.TestCase):
             centroid = source.get("shape.hsm.moments.centroid")
 
             # Centroids from GalSim's HSM use the FITS lower-left corner of 1,1
-            self.assertAlmostEqual(centroid[0], centroid_expected[i][0] - 1, 3)
-            self.assertAlmostEqual(centroid[1], centroid_expected[i][1] - 1, 3)
+            offset = self.xy0 + self.offset
+            self.assertAlmostEqual(centroid[0] - offset.getX(), centroid_expected[i][0] - 1, 3)
+            self.assertAlmostEqual(centroid[1] - offset.getY(), centroid_expected[i][1] - 1, 3)
 
             expected = afwEll.Quadrupole(afwEll.SeparableDistortionDeterminantRadius(
                 moments_expected[i][1], moments_expected[i][2], moments_expected[i][0]))
