@@ -168,6 +168,10 @@ void HsmSourceMoments::_apply(
     if (bbox.getArea() == 0) {
         throw LSST_EXCEPT(lsst::pex::exceptions::LengthError, "No pixels to measure.");
     }
+    if (!bbox.contains(afw::geom::Point2I(center) - afw::geom::Extent2I(exposure.getXY0()))) {
+        throw LSST_EXCEPT(pex::exceptions::RuntimeError,
+                          "Center not contained in footprint bounding box");
+    }
 
     double const psfSigma = exposure.getPsf()->computeShape(center).getTraceRadius();
 

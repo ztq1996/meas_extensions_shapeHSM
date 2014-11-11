@@ -178,6 +178,10 @@ void HsmShape::_apply(
     if (bbox.getArea() == 0) {
         throw LSST_EXCEPT(lsst::pex::exceptions::LengthError, "No pixels to measure.");
     }
+    if (!bbox.contains(afw::geom::Point2I(center) - afw::geom::Extent2I(exposure.getXY0()))) {
+        throw LSST_EXCEPT(pex::exceptions::RuntimeError,
+                          "Center not contained in footprint bounding box");
+    }
 
     PTR(afw::detection::Psf::Image) psf = exposure.getPsf()->computeImage(center);
     psf->setXY0(0, 0);
