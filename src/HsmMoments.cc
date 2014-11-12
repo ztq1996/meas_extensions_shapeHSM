@@ -126,7 +126,7 @@ void HsmMoments::calculate(
     PTR(afw::image::Image<int>) hsmMask = convertMask(*afwMask, bbox, badPixelMask);
     ImageConverter<int> const mask(hsmMask);
 
-    int const x0 = afwImage->getX0() - 1, y0 = afwImage->getY0() - 1;
+    int const x0 = afwImage->getX0(), y0 = afwImage->getY0();
 
     galsim::hsm::CppShapeData shape;
     try {

@@ -268,7 +268,7 @@ class ShapeTestCase(unittest.TestCase):
             moments = source.get("shape.hsm.moments")
             centroid = source.get("shape.hsm.moments.centroid")
 
-            # Centroids from GalSim's HSM use the FITS lower-left corner of 1,1
+            # Centroids from GalSim use the FITS lower-left corner of 1,1
             offset = self.xy0 + self.offset
             self.assertAlmostEqual(centroid[0] - offset.getX(), centroid_expected[i][0] - 1, 3)
             self.assertAlmostEqual(centroid[1] - offset.getY(), centroid_expected[i][1] - 1, 3)

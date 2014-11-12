@@ -25,8 +25,8 @@ public:
 
     /// Conversion
     galsim::ImageView<PixelT> getImageView() const {
-        galsim::Bounds<int> const bounds(_box.getMinX() + 1, _box.getMaxX() + 1,
-                                         _box.getMinY() + 1, _box.getMaxY() + 1);
+        galsim::Bounds<int> const bounds(_box.getMinX(), _box.getMaxX(),
+                                         _box.getMinY(), _box.getMaxY());
         return galsim::ImageView<PixelT>(_image->getArray().getData(), _owner,
                                          _image->getArray().template getStride<0>(), bounds);
     }
