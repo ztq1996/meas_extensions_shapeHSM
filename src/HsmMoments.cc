@@ -197,11 +197,8 @@ void HsmPsfMoments::_apply(
     mask->setXY0(image->getXY0());
 
     double const psfSigma = exposure.getPsf()->computeShape(center).getTraceRadius();
-    HsmMoments::calculate(source, image, mask, image->getBBox(afw::image::PARENT), afw::geom::Point2D(0, 0),
+    HsmMoments::calculate(source, image, mask, image->getBBox(afw::image::LOCAL), afw::geom::Point2D(0, 0),
                           0, psfSigma);
-
-    // Adjust centroid for size of box
-    source.set(_centroidKeys.meas, source.get(_centroidKeys.meas) - afw::geom::Extent2D(image->getXY0()));
 }
 
 LSST_MEAS_ALGORITHM_PRIVATE_IMPLEMENTATION(HsmSourceMoments);
