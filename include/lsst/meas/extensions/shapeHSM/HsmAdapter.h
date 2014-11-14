@@ -21,7 +21,7 @@ public:
     ImageConverter(PTR(afw::image::Image<PixelT>) image, afw::geom::Box2I box) :
         _image(image), _owner(new PixelT), _box(box) {}
     ImageConverter(PTR(afw::image::Image<PixelT>) image) :
-        _image(image), _owner(new PixelT), _box(image->getBBox(afw::image::PARENT)) {}
+        _image(image), _owner(new PixelT), _box(image->getBBox(afw::image::LOCAL)) {}
 
     /// Conversion
     galsim::ImageView<PixelT> getImageView() const {
