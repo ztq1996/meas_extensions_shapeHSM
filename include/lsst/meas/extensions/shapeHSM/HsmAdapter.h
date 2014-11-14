@@ -25,10 +25,14 @@ public:
 
     /// Conversion
     galsim::ImageView<PixelT> getImageView() const {
-        galsim::Bounds<int> const bounds(_box.getMinX(), _box.getMaxX(),
-                                         _box.getMinY(), _box.getMaxY());
-        return galsim::ImageView<PixelT>(_image->getArray().getData(), _owner,
-                                         _image->getArray().template getStride<0>(), bounds);
+        // Make upper bound inclusive: that's the GalSim standard, but not LSST
+        galsim::Bounds<int> const bounds(_box.getMinX(), _box.getMaxX() - 1,
+                                         _box.getMinY(), _box.getMaxY() - 1);
+        typename afw::image::Image<PixelT>::Array array = _image->getArray();
+        int const stride = array.template getStride<0>();
+        // Advance into the array by the box, as GalSim's BaseImage.addressPixel takes it off
+        PixelT* ptr = reinterpret_cast<PixelT*>(array.getData() + _box.getMinY()*stride + _box.getMinX());
+        return galsim::ImageView<PixelT>(ptr, _owner, stride, bounds);
     }
 
 #if 0
