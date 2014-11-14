@@ -30,6 +30,28 @@ public:
         return galsim::ImageView<PixelT>(_image->getArray().getData(), _owner,
                                          _image->getArray().template getStride<0>(), bounds);
     }
+
+#if 0
+    /// Write to FITS
+    ///
+    /// Intended for debugging, as it inspects the ImageView
+    void writeFits(std::string const& filename) const {
+        galsim::ImageView<PixelT> view = getImageView();
+        galsim::Bounds<int> const& bounds = view.getBounds();
+        int const width = view.getXMax() - view.getXMin() + 1;
+        int const height = view.getYMax() - view.getYMin() + 1;
+        afw::image::Image<PixelT> out(width, height);
+        int const x0 = bounds.getXMin(), y0 = bounds.getYMin();
+        for (int y = bounds.getYMin(); y <= bounds.getYMax(); ++y) {
+            for (int x = bounds.getXMin(); x <= bounds.getXMax(); ++x) {
+                out(x - x0, y - y0) = view.at(x, y);
+            }
+        }
+        out.writeFits(filename);
+    }
+    void writeFits(boost::format const& format) const { writeFits(format.str()); }
+#endif
+
 private:
     PTR(afw::image::Image<PixelT>) _image;
     boost::shared_ptr<PixelT> _owner;
