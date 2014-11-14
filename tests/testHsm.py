@@ -282,7 +282,7 @@ class ShapeTestCase(unittest.TestCase):
 
     def testHsmPsfMoments(self):
         for width in (2.0, 3.0, 4.0):
-            psf = afwDetection.GaussianPsf(29, 29, width)
+            psf = afwDetection.GaussianPsf(35, 35, width)
             exposure = afwImage.ExposureF(45, 56)
             exposure.getMaskedImage().set(1.0, 0, 1.0)
             exposure.setPsf(psf)
