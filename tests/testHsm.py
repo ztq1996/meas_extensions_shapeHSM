@@ -197,7 +197,7 @@ class ShapeTestCase(unittest.TestCase):
         center = afwGeom.Point2D(int(x), int(y)) + afwGeom.Extent2D(self.offset + afwGeom.Extent2I(self.xy0))
         table = afwTable.SourceTable.make(schema)
         source = table.makeRecord()
-        source.setFootprint(afwDetection.Footprint(exposure.getBBox()))
+        source.setFootprint(afwDetection.Footprint(exposure.getBBox(afwImage.PARENT)))
 
         shapeFinder.apply(source, exposure, center)
 

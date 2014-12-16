@@ -31,7 +31,10 @@ public:
         typename afw::image::Image<PixelT>::Array array = _image->getArray();
         int const stride = array.template getStride<0>();
         // Advance into the array by the box, as GalSim's BaseImage.addressPixel takes it off
-        PixelT* ptr = reinterpret_cast<PixelT*>(array.getData() + _box.getMinY()*stride + _box.getMinX());
+        // Remove xy0, as that's just on there for convenience (e.g., tract/patch), or it's included
+        // in the box and stride.
+        PixelT* ptr = reinterpret_cast<PixelT*>(array.getData() + (_box.getMinY() - _image->getY0())*stride +
+                                                _box.getMinX() - _image->getX0());
         return galsim::ImageView<PixelT>(ptr, _owner, stride, bounds);
     }
 

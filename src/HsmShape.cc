@@ -178,7 +178,7 @@ void HsmShape::_apply(
     if (bbox.getArea() == 0) {
         throw LSST_EXCEPT(lsst::pex::exceptions::LengthError, "No pixels to measure.");
     }
-    if (!bbox.contains(afw::geom::Point2I(center) - afw::geom::Extent2I(exposure.getXY0()))) {
+    if (!bbox.contains(afw::geom::Point2I(center))) {
         throw LSST_EXCEPT(pex::exceptions::RuntimeError,
                           "Center not contained in footprint bounding box");
     }
@@ -200,7 +200,8 @@ void HsmShape::_apply(
     // Calculate the sky variance
     afw::math::StatisticsControl sctrl;
     sctrl.setAndMask(badPixelMask);
-    typename ExposureT::MaskedImageT::Variance const variance(*exposure.getMaskedImage().getVariance(), bbox);
+    typename ExposureT::MaskedImageT::Variance const variance(*exposure.getMaskedImage().getVariance(), bbox,
+                                                              afw::image::PARENT);
     afw::math::Statistics stat = afw::math::makeStatistics(variance, *afwMask, afw::math::MEDIAN, sctrl);
     double const skyvar = sqrt(stat.getValue(afw::math::MEDIAN));
 
@@ -211,9 +212,7 @@ void HsmShape::_apply(
     try {
         shape = galsim::hsm::EstimateShearView(image.getImageView(), psfImage.getImageView(),
                                                mask.getImageView(), skyvar, _shearType.c_str(), "FIT",
-                                               2.5*psfSigma, psfSigma, 1.0e-6,
-                                               center.getX() - exposure.getX0(),
-                                               center.getY() - exposure.getY0());
+                                               2.5*psfSigma, psfSigma, 1.0e-6, center.getX(), center.getY());
     } catch (galsim::hsm::HSMError const& e) {
         throw LSST_EXCEPT(pex::exceptions::RuntimeError, e.what());
     }
