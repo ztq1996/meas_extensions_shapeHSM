@@ -23,10 +23,10 @@
 from .hsmLib import *
 from .version import *
 
-import lsst.meas.algorithms
-lsst.meas.algorithms.AlgorithmRegistry.register("shape.hsm.bj", HsmShapeBjControl)
-lsst.meas.algorithms.AlgorithmRegistry.register("shape.hsm.linear", HsmShapeLinearControl)
-lsst.meas.algorithms.AlgorithmRegistry.register("shape.hsm.ksb", HsmShapeKsbControl)
-lsst.meas.algorithms.AlgorithmRegistry.register("shape.hsm.regauss", HsmShapeRegaussControl)
-lsst.meas.algorithms.AlgorithmRegistry.register("shape.hsm.shapelet", HsmShapeShapeletControl)
+from lsst.meas.base import *
+wrapSimpleAlgorithm(HsmShapeBjAlgorithm, needsMetadata=False, Control=HsmShapeBjControl, executionOrder=3.0)
+wrapSimpleAlgorithm(HsmShapeLinearAlgorithm, needsMetadata=False, Control=HsmShapeLinearControl, executionOrder=3.0)
+wrapSimpleAlgorithm(HsmShapeKsbAlgorithm, needsMetadata=False, Control=HsmShapeKsbControl, executionOrder=3.0)
+wrapSimpleAlgorithm(HsmShapeRegaussAlgorithm, needsMetadata=False, Control=HsmShapeRegaussControl, executionOrder=3.0)
+wrapSimpleAlgorithm(HsmShapeShapeletAlgorithm, needsMetadata=False, Control=HsmShapeShapeletControl, executionOrder=3.0)
 del lsst # cleanup namespace

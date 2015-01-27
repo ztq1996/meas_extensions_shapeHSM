@@ -57,7 +57,7 @@ Various swigged-up C++ classes for testing
 
 %{
 #include "lsst/meas/extensions/shapeHSM/HsmShapeAdapter.h"
-#include "lsst/meas/extensions/shapeHSM/HsmShapeControl.h"
+#include "lsst/meas/extensions/shapeHSM/HsmShapeAlgorithm.h"
 %}
 
 %shared_ptr(lsst::meas::extensions::shapeHSM::HsmShapeControl);
@@ -67,8 +67,9 @@ Various swigged-up C++ classes for testing
 %shared_ptr(lsst::meas::extensions::shapeHSM::HsmShapeRegaussControl);
 %shared_ptr(lsst::meas::extensions::shapeHSM::HsmShapeShapeletControl);
 
+%shared_ptr(lsst::meas::extensions::shapeHSM::HsmShapeBjAlgorithm);
 %include "lsst/meas/extensions/shapeHSM/HsmShapeAdapter.h"
-%include "lsst/meas/extensions/shapeHSM/HsmShapeControl.h"
+%include "lsst/meas/extensions/shapeHSM/HsmShapeAlgorithm.h"
 
 
 %define %declareShape(PIXTYPE, SUFFIX)

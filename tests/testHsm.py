@@ -27,10 +27,12 @@ import math
 import numpy
 import unittest
 
+import lsst.daf.base as dafBase
 import lsst.pex.policy as pexPolicy
 import lsst.pex.exceptions as pexExceptions
 import lsst.afw.image as afwImage
 import lsst.afw.math as afwMath
+import lsst.meas.base as base
 import lsst.meas.algorithms as algorithms
 import lsst.utils.tests as utilsTests
 import lsst.afw.detection as afwDetection
@@ -46,6 +48,25 @@ try:
 except NameError:
     verbose = 0
     display = False
+
+def makePluginAndCat(alg, name, control=None, metadata=False, centroid=None):
+    if control == None:
+        control=alg.ConfigClass()
+    schema = afwTable.SourceTable.makeMinimalSchema()
+    if centroid:
+        schema.addField(centroid + "_x", type=float)
+        schema.addField(centroid + "_y", type=float)
+        schema.addField(centroid + "_flag", type='Flag')
+    import pdb
+    pdb.set_trace()
+    if metadata:
+        plugin = alg(control, name, schema, dafBase.PropertySet())
+    else:
+        plugin = alg(control, name, schema)
+    cat = afwTable.SourceCatalog(schema)
+    if centroid:
+        cat.defineCentroid(centroid)
+    return plugin, cat
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
@@ -144,12 +165,11 @@ class ShapeTestCase(unittest.TestCase):
 
             
             # perform the shape measurement
-            schema = afwTable.SourceTable.makeMinimalSchema()
-            msConfig = algorithms.SourceMeasurementConfig()
-            algorithmName = "shape.hsm." + algName.lower()
-            msConfig.algorithms.names = [algorithmName]
-            shapeFinder = msConfig.makeMeasureSources(schema)
-
+            msConfig = base.SingleFrameMeasurementConfig()
+            algorithmName = "extensions_shapeHSM_HsmShape" + algName[0:1].upper() +algName[1:].lower()
+            alg = base.SingleFramePlugin.registry[algorithmName].PluginClass
+            control = base.SingleFramePlugin.registry[algorithmName].ConfigClass()
+            plugin, cat = makePluginAndCat(alg, "test", control)
             x, y = float(known['x']), float(known['y'])
             x2, y2 = int(x+0.5), int(y+0.5)
 
