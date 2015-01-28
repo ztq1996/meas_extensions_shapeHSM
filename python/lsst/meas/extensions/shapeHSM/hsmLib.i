@@ -39,14 +39,19 @@ Various swigged-up C++ classes for testing
 %{
 #include "lsst/pex/logging.h"
 #include "lsst/afw/image.h"
+#include "lsst/afw/table.h"
 #include "lsst/afw/cameraGeom.h"
 #include "lsst/afw/detection.h"
 #include "lsst/afw/geom.h"
 #include "lsst/afw/geom/ellipses.h"
 #include "lsst/meas/algorithms.h"
+#include "lsst/afw/table/Source.h"
+#include "lsst/meas/base.h"
+#include "lsst/meas/base/Algorithm.h"
 %}
 
 %include "lsst/p_lsstSwig.i"
+%include "std_vector.i"
 
 %lsst_exceptions()
 
@@ -54,6 +59,7 @@ Various swigged-up C++ classes for testing
 %import "lsst/afw/geom/geomLib.i"
 %import "lsst/afw/geom/ellipses/ellipsesLib.i"
 %import "lsst/meas/algorithms/algorithmsLib.i"
+%import "lsst/meas/base/baseLib.i"
 
 %{
 #include "lsst/meas/extensions/shapeHSM/HsmShapeAdapter.h"

@@ -46,8 +46,7 @@ namespace lsst { namespace meas { namespace extensions { namespace shapeHSM {
 class HsmShapeControl {
 public:
 
-    LSST_CONTROL_FIELD(badMaskPlanes, std::vector<std::string>,
-                       "Mask planes that indicate pixels that should be excluded from the fit");
+    LSST_CONTROL_FIELD(badMaskPlanes, std::vector<std::string>, "Mask planes that indicate pixels that should be excluded from the fit");
 
     /**
      *  @brief Default constructor
@@ -121,12 +120,6 @@ public:
     HsmShapeAlgorithm(Control const & ctrl, std::string const & name, std::string const & shearType, char measType,
                       std::string const & doc, afw::table::Schema & schema);
 
-private:
-
-    // These are private so they doesn't shadow the other overloads in base classes;
-    // we can still call it via the public method on the base class.  We could have
-    // used a using declaration instead, but Swig had trouble with that here.
-
     virtual void measure(
         afw::table::SourceRecord & measRecord,
         afw::image::Exposure<float> const & exposure
@@ -134,8 +127,10 @@ private:
 
     virtual void fail(
         afw::table::SourceRecord & measRecord,
-        base::MeasurementError * error=NULL
+        meas::base::MeasurementError * error=NULL
     ) const;
+
+private:
 
     Control _ctrl;
     std::string _shearType;
