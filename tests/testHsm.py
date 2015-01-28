@@ -167,11 +167,7 @@ class ShapeTestCase(unittest.TestCase):
             algorithmName = "extensions_shapeHSM_HsmShape" + algName[0:1].upper() +algName[1:].lower()
             alg = base.SingleFramePlugin.registry[algorithmName].PluginClass
             control = base.SingleFramePlugin.registry[algorithmName].ConfigClass()
-            #plugin, cat = makePluginAndCat(alg, "test", control)
-            import pdb
-            pdb.set_trace()
-            plugin, cat = makePluginAndCat(lsst.meas.base.CircularApertureFluxAlgorithm, "test", lsst.meas.base.ApertureFluxControl())
-            plugin, cat = makePluginAndCat(lsst.meas.base.NaiveFluxAlgorithm, "test", lsst.meas.base.NaiveFluxControl())
+            plugin, cat = makePluginAndCat(alg, "test", control)
             x, y = float(known['x']), float(known['y'])
             x2, y2 = int(x+0.5), int(y+0.5)
 
