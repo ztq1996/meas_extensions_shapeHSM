@@ -60,17 +60,15 @@ Various swigged-up C++ classes for testing
 #include "lsst/meas/extensions/shapeHSM/HsmShapeAlgorithm.h"
 %}
 
-%shared_ptr(lsst::meas::extensions::shapeHSM::HsmShapeControl);
-%shared_ptr(lsst::meas::extensions::shapeHSM::HsmShapeBjControl);
-%shared_ptr(lsst::meas::extensions::shapeHSM::HsmShapeLinearControl);
-%shared_ptr(lsst::meas::extensions::shapeHSM::HsmShapeKsbControl);
-%shared_ptr(lsst::meas::extensions::shapeHSM::HsmShapeRegaussControl);
-%shared_ptr(lsst::meas::extensions::shapeHSM::HsmShapeShapeletControl);
-
-%shared_ptr(lsst::meas::extensions::shapeHSM::HsmShapeBjAlgorithm);
 %include "lsst/meas/extensions/shapeHSM/HsmShapeAdapter.h"
-%include "lsst/meas/extensions/shapeHSM/HsmShapeAlgorithm.h"
 
+%feature("notabstract") lsst::meas::extensions::shapeHSM::HsmShapeAlgorithm;
+%feature("notabstract") lsst::meas::extensions::shapeHSM::HsmShapeBjAlgorithm;
+%feature("notabstract") lsst::meas::extensions::shapeHSM::HsmShapeShapeletAlgorithm;
+%feature("notabstract") lsst::meas::extensions::shapeHSM::HsmShapeKsbAlgorithm;
+%feature("notabstract") lsst::meas::extensions::shapeHSM::HsmShapeRegaussAlgorithm;
+%feature("notabstract") lsst::meas::extensions::shapeHSM::HsmShapeLinearAlgorithm;
+%include "lsst/meas/extensions/shapeHSM/HsmShapeAlgorithm.h"
 
 %define %declareShape(PIXTYPE, SUFFIX)
 %template(HsmShapeAdapter ## SUFFIX) lsst::meas::extensions::shapeHSM::HsmShapeAdapter<lsst::afw::image::Exposure<PIXTYPE> >;
