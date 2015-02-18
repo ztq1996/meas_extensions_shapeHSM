@@ -143,6 +143,7 @@ BOOST_AUTO_TEST_CASE(HsmMoments) {
     ) {
         
         afwTable::Schema schema = afwTable::SourceTable::makeMinimalSchema();
+        schema.setVersion(0);
         measAlg::MeasureSources measureShape =
             measAlg::MeasureSourcesBuilder().addAlgorithm(**it).build(schema);
         PTR(afwTable::SourceTable) table = afwTable::SourceTable::make(schema);
