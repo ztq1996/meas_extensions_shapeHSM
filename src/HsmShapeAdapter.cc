@@ -30,6 +30,7 @@
  * This adapter/wrapper written by S. Bickerton
  */
 
+#include "lsst/pex/exceptions.h"
 #include "lsst/meas/extensions/shapeHSM/HsmShapeAdapter.h"
 #include "lsst/afw/math/Statistics.h"
 #include "lsst/meas/algorithms/PSF.h"
@@ -53,6 +54,10 @@ extendShapeHsm::HsmShapeAdapter<ExposureT>::HsmShapeAdapter(
     afwImage::MaskPixel badPixelMask        ///< specify mask bits for pixels to *ignore*
     ) :
     _exposure(exposure), _center(center), _bbox(foot.getBBox()), _badPixelMask(badPixelMask) {
+
+    if (_bbox.getArea() == 0) {
+        throw LSST_EXCEPT(lsst::pex::exceptions::LengthError, "No pixels to measure.");
+    }
 
     // make a shallow image copy in the bbox, allocate the image structure and copy into it
     CONST_PTR(MaskedImageT) img = 
