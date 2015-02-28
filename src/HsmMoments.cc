@@ -38,82 +38,8 @@
 
 namespace lsst { namespace meas { namespace extensions { namespace shapeHSM {
 
-namespace {
-
-
-/// Base class to measure HSM adaptive moments
-///
-/// Use this to consolidate common code for HsmSourceMoments and HsmPsfMoments
-class HsmMoments : public algorithms::ShapeAlgorithm {
-public:
-    /// @brief Initialize with standard field names and customized documentation.
-    template <typename ControlT>
-    HsmMoments(ControlT const & ctrl, afw::table::Schema & schema, char const* doc) :
-        algorithms::ShapeAlgorithm(ctrl, schema, doc),
-        _centroidKeys(addCentroidFields(schema, ctrl.name + ".centroid",
-                                        "centroid measured with HSM adaptive moment shape algorithm"))
-        {}
-
-    /// Calculate moments
-    template <typename PixelT>
-    void calculate(
-        afw::table::SourceRecord& source, // Source for recording moments
-        PTR(afw::image::Image<PixelT>) const& afwImage, // Image on which to measure moments
-        PTR(afw::image::Mask<afw::image::MaskPixel>) const& afwMask, // Mask for image
-        afw::geom::Box2I const& bbox,     // Bounding box
-        afw::geom::Point2D const& center, // Starting center for measuring moments
-        afw::image::MaskPixel const badPixelMask, // Bitmask for bad pixels
-        float const width            // PSF width estimate, for starting moments
-        ) const;
-
-protected:
-    afw::table::KeyTuple<afw::table::Centroid> _centroidKeys;
-};
-
-
-/// Class to measure HSM adaptive moments of source
-class HsmSourceMoments : public HsmMoments {
-public:
-    /// @brief Initialize with standard field names and customized documentation.
-    HsmSourceMoments(HsmSourceMomentsControl const & ctrl, afw::table::Schema & schema, char const* doc) :
-        HsmMoments(ctrl, schema, doc) {}
-
-private:
-
-    template <typename PixelT>
-    void _apply(
-        afw::table::SourceRecord & source,
-        afw::image::Exposure<PixelT> const & exposure,
-        afw::geom::Point2D const & center
-    ) const;
-
-    LSST_MEAS_ALGORITHM_PRIVATE_INTERFACE(HsmSourceMoments);
-
-};
-
-/// Class to measure HSM adaptive moments of PSF
-class HsmPsfMoments : public HsmMoments {
-public:
-    /// @brief Initialize with standard field names and customized documentation.
-    HsmPsfMoments(HsmPsfMomentsControl const & ctrl, afw::table::Schema & schema, char const* doc) :
-        HsmMoments(ctrl, schema, doc) {}
-
-private:
-
-    template <typename PixelT>
-    void _apply(
-        afw::table::SourceRecord & source,
-        afw::image::Exposure<PixelT> const & exposure,
-        afw::geom::Point2D const & center
-    ) const;
-
-    LSST_MEAS_ALGORITHM_PRIVATE_INTERFACE(HsmPsfMoments);
-
-};
-
-
-template <typename PixelT>
-void HsmMoments::calculate(
+template<typename PixelT>
+void HsmMomentsAlgorithm::calculate(
     afw::table::SourceRecord& source,
     PTR(afw::image::Image<PixelT>) const& afwImage,
     PTR(afw::image::Mask<afw::image::MaskPixel>) const& afwMask,
@@ -140,25 +66,25 @@ void HsmMoments::calculate(
     typedef afw::geom::ellipses::Separable<afw::geom::ellipses::Distortion,
                                            afw::geom::ellipses::DeterminantRadius> Ellipse;
 
-    source.set(_centroidKeys.meas, afw::geom::Point2D(shape.moments_centroid.x, shape.moments_centroid.y));
-    source.set(getKeys().meas, Ellipse(ellip, radius));
+    base::CentroidResult centroidResult;
+    centroidResult.x = shape.moments_centroid.x;
+    centroidResult.y = shape.moments_centroid.y;
+    source.set(_centroidResultKey, centroidResult);
+    base::ShapeResult shapeResult;
+    shapeResult.setShape(Ellipse(ellip, radius));
+    source.set(_momentsKey, shapeResult);
     // XXX calculate errors in shape, centroid?
 
-    source.set(getKeys().flag, false);
 }
 
-
-
-template<typename PixelT>
-void HsmSourceMoments::_apply(
+void HsmSourceMomentsAlgorithm::measure(
     afw::table::SourceRecord & source,
-    afw::image::Exposure<PixelT> const & exposure,
-    afw::geom::Point2D const & center
+    afw::image::Exposure<float> const & exposure
 ) const {
-    source.set(getKeys().flag, true); // bad until we are good
 
-    HsmSourceMomentsControl const& ctrl = static_cast<HsmSourceMomentsControl const &>(getControl());
-    std::vector<std::string> const & badMaskPlanes = ctrl.badMaskPlanes;
+    afw::geom::Point2D center = _centroidExtractor(source, _flagHandler);
+
+    std::vector<std::string> const & badMaskPlanes = _ctrl.badMaskPlanes;
     afw::image::MaskPixel badPixelMask = exposure.getMaskedImage().getMask()->getPlaneBitMask(badMaskPlanes);
 
     afw::geom::Box2I bbox = source.getFootprint()->getBBox();
@@ -172,18 +98,20 @@ void HsmSourceMoments::_apply(
 
     double const psfSigma = exposure.getPsf()->computeShape(center).getTraceRadius();
 
-    HsmMoments::calculate(source, exposure.getMaskedImage().getImage(), exposure.getMaskedImage().getMask(),
+    HsmMomentsAlgorithm::calculate(source, exposure.getMaskedImage().getImage(), exposure.getMaskedImage().getMask(),
                           bbox, center, badPixelMask, 2.5*psfSigma);
 }
 
+void HsmSourceMomentsAlgorithm::fail(afw::table::SourceRecord & measRecord, base::MeasurementError * error) const {
+    _flagHandler.handleFailure(measRecord, error);
+}
 
-template<typename PixelT>
-void HsmPsfMoments::_apply(
+void HsmPsfMomentsAlgorithm::measure(
     afw::table::SourceRecord & source,
-    afw::image::Exposure<PixelT> const & exposure,
-    afw::geom::Point2D const & center
+    afw::image::Exposure<float> const & exposure
 ) const {
-    source.set(getKeys().flag, true); // bad until we are good
+
+    afw::geom::Point2D center = _centroidExtractor(source, _flagHandler);
 
     typedef afw::image::Mask<afw::image::MaskPixel> Mask;
     PTR(afw::detection::Psf::Image) image = exposure.getPsf()->computeKernelImage(center);
@@ -194,33 +122,11 @@ void HsmPsfMoments::_apply(
     mask->setXY0(image->getXY0());
 
     double const psfSigma = exposure.getPsf()->computeShape(center).getTraceRadius();
-    HsmMoments::calculate(source, image, mask, image->getBBox(afw::image::PARENT), afw::geom::Point2D(0, 0),
+    HsmMomentsAlgorithm::calculate(source, image, mask, image->getBBox(afw::image::PARENT), afw::geom::Point2D(0, 0),
                           0, psfSigma);
 }
 
-LSST_MEAS_ALGORITHM_PRIVATE_IMPLEMENTATION(HsmSourceMoments);
-LSST_MEAS_ALGORITHM_PRIVATE_IMPLEMENTATION(HsmPsfMoments);
-
-} // anonymous namespace
-
-PTR(algorithms::AlgorithmControl) HsmSourceMomentsControl::_clone() const {
-    return boost::make_shared<HsmSourceMomentsControl>(*this);
+void HsmPsfMomentsAlgorithm::fail(afw::table::SourceRecord & measRecord, base::MeasurementError * error) const {
+    _flagHandler.handleFailure(measRecord, error);
 }
-
-PTR(algorithms::Algorithm) HsmSourceMomentsControl::_makeAlgorithm(
-    afw::table::Schema & schema, PTR(daf::base::PropertyList) const & metadata
-) const {
-    return boost::make_shared<HsmSourceMoments>(*this, boost::ref(schema), "source adaptive moments from HSM");
-}
-
-PTR(algorithms::AlgorithmControl) HsmPsfMomentsControl::_clone() const {
-    return boost::make_shared<HsmPsfMomentsControl>(*this);
-}
-
-PTR(algorithms::Algorithm) HsmPsfMomentsControl::_makeAlgorithm(
-    afw::table::Schema & schema, PTR(daf::base::PropertyList) const & metadata
-) const {
-    return boost::make_shared<HsmPsfMoments>(*this, boost::ref(schema), "PSF adaptive moments from HSM");
-}
-
 }}}} // namespace lsst::meas::extensions::shapeHSM
