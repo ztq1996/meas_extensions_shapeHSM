@@ -1,4 +1,26 @@
-// -*- lsst-c++ -*-
+// -*- LSST-C++ -*-
+/*
+ * LSST Data Management System
+ * Copyright 2008-2015 AURA/LSST
+ *
+ * This product includes software developed by the
+ * LSST Project (http://www.lsst.org/).
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the LSST License Statement and
+ * the GNU General Public License along with this program.  If not,
+ * see <http://www.lsstcorp.org/LegalNotices/>.
+ */
+
 #ifndef LSST_MEAS_EXTENSIONS_SHAPEHSM_HsmShapeControl_h_INCLUDED
 #define LSST_MEAS_EXTENSIONS_SHAPEHSM_HsmShapeControl_h_INCLUDED
 
@@ -15,6 +37,7 @@ enum MeasType {
     ELLIPTICITY,                        // We will measure e1,e2
     SHEAR,                              // We will measure g1,g2
 };
+
 /**
  *  @brief A C++ control class to handle HsmShapeAlgorithm's configuration
  *
@@ -27,7 +50,6 @@ enum MeasType {
  */
 class HsmShapeControl {
 public:
-
     LSST_CONTROL_FIELD(deblendNChild, std::string, "Field name for number of deblend children");
     LSST_CONTROL_FIELD(badMaskPlanes, std::vector<std::string>, "Mask planes that indicate pixels that should be excluded from the fit");
 
@@ -84,7 +106,6 @@ public:
  */
 class HsmShapeAlgorithm : public base::SimpleAlgorithm {
 public:
-
     enum {
         FAILURE=base::FlagHandler::FAILURE,
         NO_PIXELS,
@@ -102,7 +123,6 @@ public:
                       std::string const & doc, afw::table::Schema & schema);
 
 protected:
-
     void measure(
         afw::table::SourceRecord & measRecord,
         afw::image::Exposure<float> const & exposure
@@ -159,7 +179,6 @@ public:
     explicit HsmShapeRegaussAlgorithm(Control const & ctrl, std::string const & name, afw::table::Schema & schema) :
         HsmShapeAlgorithm(ctrl, name, "REGAUSS", ELLIPTICITY, "PSF-corrected shear using Hirata & Seljak (2003) 'regaussianization' method", schema) {}
 };
-
 }}}} // namespace lsst::meas::extensions::shapeHSM
 
 #endif // !LSST_MEAS_EXTENSIONS_SHAPEHSM_HsmShapeControl_h_INCLUDED

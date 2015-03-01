@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # LSST Data Management System
-# Copyright 2008, 2009, 2010 LSST Corporation.
+# Copyright 2008-2015 AURA/LSST
 #
 # This product includes software developed by the
 # LSST Project (http://www.lsst.org/).
@@ -192,7 +192,6 @@ class ShapeTestCase(unittest.TestCase):
                                          afwGeom.Point2D(1.0,1.0),
                                          1.0/(2.53*3600.0), 0.0, 0.0, 1.0/(2.53*3600.0)))
 
-
         # load the corresponding test psf
         psfFile = os.path.join(self.dataDir, "psf.%d.fits" % imageid)
         psfImg = afwImage.ImageD(psfFile)
@@ -262,7 +261,6 @@ class ShapeTestCase(unittest.TestCase):
                 ["shapeStatus", 0,                          flags,             0],
                 ]
 
-
             for test in tests:
                 label, know, hsm, limit = test
                 err = hsm - know
@@ -310,6 +308,7 @@ class ShapeTestCase(unittest.TestCase):
             # perform the shape measurement
             msConfig = base.SingleFrameMeasurementConfig()
             msConfig.algorithms.names = ["ext_shapeHSM_HsmPsfMoments"]
+            plugin, cat = makePluginAndCat(lsst.meas.extensions.shapeHSM.HsmPsfMomentsAlgorithm,
                 "ext_shapeHSM_HsmPsfMoments", centroid="centroid", control=lsst.meas.extensions.shapeHSM.HsmPsfMomentsControl())
             source = cat.addNew()
             source.set("centroid_x", 23)
