@@ -105,9 +105,6 @@ public:
     HsmSourceMomentsAlgorithm(Control const & ctrl, std::string const & name, afw::table::Schema & schema) :
         HsmMomentsAlgorithm(name, schema, "Source adaptive moments algorithm from HSM"), _ctrl(ctrl) {}
 
-private:
-    Control _ctrl;
-    // These methods are defined private to prevent shadowing of the parent classes
     void measure(
         afw::table::SourceRecord & measRecord,
         afw::image::Exposure<float> const & exposure
@@ -117,6 +114,9 @@ private:
         afw::table::SourceRecord & measRecord,
         meas::base::MeasurementError * error=NULL
     ) const;
+
+private:
+    Control _ctrl;
 };
 
 /// Class to measure HSM adaptive moments of PSF
@@ -130,9 +130,6 @@ public:
     HsmPsfMomentsAlgorithm(Control const & ctrl, std::string const & name, afw::table::Schema & schema) :
         HsmMomentsAlgorithm(name, schema, "Psf adaptive moments algorithm from HSM"), _ctrl(ctrl) {}
 
-private:
-    Control _ctrl;
-    // These methods are defined private to prevent shadowing of the parent classes
     void measure(
         afw::table::SourceRecord & measRecord,
         afw::image::Exposure<float> const & exposure
@@ -142,6 +139,9 @@ private:
         afw::table::SourceRecord & measRecord,
         meas::base::MeasurementError * error=NULL
     ) const;
+
+private:
+    Control _ctrl;
 };
 }}}} // namespace lsst::meas::extensions::shapeHSM
 

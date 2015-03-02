@@ -122,7 +122,6 @@ public:
     HsmShapeAlgorithm(Control const & ctrl, std::string const & name, std::string const & shearType, MeasType measType,
                       std::string const & doc, afw::table::Schema & schema);
 
-protected:
     void measure(
         afw::table::SourceRecord & measRecord,
         afw::image::Exposure<float> const & exposure
