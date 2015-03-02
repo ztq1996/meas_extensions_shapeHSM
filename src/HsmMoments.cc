@@ -97,11 +97,13 @@ void HsmSourceMomentsAlgorithm::measure(
 
     double const psfSigma = exposure.getPsf()->computeShape(center).getTraceRadius();
 
-    HsmMomentsAlgorithm::calculate(source, exposure.getMaskedImage().getImage(), exposure.getMaskedImage().getMask(),
+    HsmMomentsAlgorithm::calculate(source, exposure.getMaskedImage().getImage(),
+                          exposure.getMaskedImage().getMask(),
                           bbox, center, badPixelMask, 2.5*psfSigma);
 }
 
-void HsmSourceMomentsAlgorithm::fail(afw::table::SourceRecord & measRecord, base::MeasurementError * error) const {
+void HsmSourceMomentsAlgorithm::fail(afw::table::SourceRecord & measRecord,
+                                     base::MeasurementError * error) const {
     _flagHandler.handleFailure(measRecord, error);
 }
 
@@ -121,11 +123,12 @@ void HsmPsfMomentsAlgorithm::measure(
     mask->setXY0(image->getXY0());
 
     double const psfSigma = exposure.getPsf()->computeShape(center).getTraceRadius();
-    HsmMomentsAlgorithm::calculate(source, image, mask, image->getBBox(afw::image::PARENT), afw::geom::Point2D(0, 0),
-                          0, psfSigma);
+    HsmMomentsAlgorithm::calculate(source, image, mask, image->getBBox(afw::image::PARENT),
+                                   afw::geom::Point2D(0, 0), 0, psfSigma);
 }
 
-void HsmPsfMomentsAlgorithm::fail(afw::table::SourceRecord & measRecord, base::MeasurementError * error) const {
+void HsmPsfMomentsAlgorithm::fail(afw::table::SourceRecord & measRecord,
+                                  base::MeasurementError * error) const {
     _flagHandler.handleFailure(measRecord, error);
 }
 }}}} // namespace lsst::meas::extensions::shapeHSM

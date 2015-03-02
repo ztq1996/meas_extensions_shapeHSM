@@ -76,22 +76,22 @@ private:
 
 class HsmShapeBjControl : public HsmShapeControl {
 public:
-    HsmShapeBjControl() : HsmShapeControl("extensions_shapeHSM_HsmShapeBj") {}
+    HsmShapeBjControl() : HsmShapeControl("ext_shapeHSM_HsmShapeBj") {}
 };
 
 class HsmShapeLinearControl : public HsmShapeControl {
 public:
-    HsmShapeLinearControl() : HsmShapeControl("extensions_shapeHSM_HsmShapeLinear") {}
+    HsmShapeLinearControl() : HsmShapeControl("ext_shapeHSM_HsmShapeLinear") {}
 };
 
 class HsmShapeKsbControl : public HsmShapeControl {
 public:
-    HsmShapeKsbControl() : HsmShapeControl("extensions_shapeHSM_HsmShapeKsb") {}
+    HsmShapeKsbControl() : HsmShapeControl("ext_shapeHSM_HsmShapeKsb") {}
 };
 
 class HsmShapeRegaussControl : public HsmShapeControl {
 public:
-    HsmShapeRegaussControl() : HsmShapeControl("extensions_shapeHSM_HsmShapeRegauss") {}
+    HsmShapeRegaussControl() : HsmShapeControl("ext_shapeHSM_HsmShapeRegauss") {}
 };
 
 /*

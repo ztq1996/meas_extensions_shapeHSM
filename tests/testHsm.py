@@ -309,7 +309,8 @@ class ShapeTestCase(unittest.TestCase):
             msConfig = base.SingleFrameMeasurementConfig()
             msConfig.algorithms.names = ["ext_shapeHSM_HsmPsfMoments"]
             plugin, cat = makePluginAndCat(lsst.meas.extensions.shapeHSM.HsmPsfMomentsAlgorithm,
-                "ext_shapeHSM_HsmPsfMoments", centroid="centroid", control=lsst.meas.extensions.shapeHSM.HsmPsfMomentsControl())
+                "ext_shapeHSM_HsmPsfMoments", centroid="centroid",
+                control=lsst.meas.extensions.shapeHSM.HsmPsfMomentsControl())
             source = cat.addNew()
             source.set("centroid_x", 23)
             source.set("centroid_y", 34)

@@ -24,16 +24,16 @@ from .hsmLib import *
 from .version import *
 
 import lsst.meas.base
-lsst.meas.base.wrapSimpleAlgorithm(HsmShapeBjAlgorithm, name="ext_shapeHSM_HsmShapeBj" 
-    ,Control=HsmShapeBjControl, executionOrder=3.0)
-lsst.meas.base.wrapSimpleAlgorithm(HsmShapeLinearAlgorithm, name="ext_shapeHSM_HsmShapeLinear" 
-    ,Control=HsmShapeLinearControl, executionOrder=3.0)
-lsst.meas.base.wrapSimpleAlgorithm(HsmShapeKsbAlgorithm, name="ext_shapeHSM_HsmShapeKsb" 
-    ,Control=HsmShapeKsbControl, executionOrder=3.0)
-lsst.meas.base.wrapSimpleAlgorithm(HsmShapeRegaussAlgorithm, name="ext_shapeHSM_HsmShapeRegauss" 
-    ,Control=HsmShapeRegaussControl, executionOrder=3.0)
-lsst.meas.base.wrapSimpleAlgorithm(HsmSourceMomentsAlgorithm, name="ext_shapeHSM_HsmMoments" 
-    ,Control=HsmSourceMomentsControl, executionOrder=3.0)
-lsst.meas.base.wrapSimpleAlgorithm(HsmMomentsAlgorithm, name="ext_shapeHSM_HsmPsfMoments" 
-    ,Control=HsmPsfMomentsControl, executionOrder=3.0)
+lsst.meas.base.wrapSimpleAlgorithm(HsmShapeBjAlgorithm, name="ext_shapeHSM_HsmShapeBj",
+    Control=HsmShapeBjControl, executionOrder=3.0)
+lsst.meas.base.wrapSimpleAlgorithm(HsmShapeLinearAlgorithm, name="ext_shapeHSM_HsmShapeLinear",
+    Control=HsmShapeLinearControl, executionOrder=3.0)
+lsst.meas.base.wrapSimpleAlgorithm(HsmShapeKsbAlgorithm, name="ext_shapeHSM_HsmShapeKsb",
+    Control=HsmShapeKsbControl, executionOrder=3.0)
+lsst.meas.base.wrapSimpleAlgorithm(HsmShapeRegaussAlgorithm, name="ext_shapeHSM_HsmShapeRegauss",
+    Control=HsmShapeRegaussControl, executionOrder=3.0)
+lsst.meas.base.wrapSimpleAlgorithm(HsmSourceMomentsAlgorithm, name="ext_shapeHSM_HsmMoments",
+    Control=HsmSourceMomentsControl, executionOrder=3.0)
+lsst.meas.base.wrapSimpleAlgorithm(HsmMomentsAlgorithm, name="ext_shapeHSM_HsmPsfMoments",
+    Control=HsmPsfMomentsControl, executionOrder=3.0)
 del lsst # cleanup namespace

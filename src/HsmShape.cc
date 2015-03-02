@@ -175,8 +175,8 @@ void HsmShapeAlgorithm::measure(
 
     afw::math::StatisticsControl sctrl;
     sctrl.setAndMask(badPixelMask);
-    afw::image::Exposure<float>::MaskedImageT::Variance const variance(*exposure.getMaskedImage().getVariance(), bbox,
-                                                              afw::image::PARENT);
+    afw::image::Exposure<float>::MaskedImageT::Variance const variance(*exposure.getMaskedImage().getVariance(),
+                                                                       bbox, afw::image::PARENT);
     afw::math::Statistics stat = afw::math::makeStatistics(variance, *afwMask, afw::math::MEDIAN, sctrl);
     double const skyvar = sqrt(stat.getValue(afw::math::MEDIAN));
 

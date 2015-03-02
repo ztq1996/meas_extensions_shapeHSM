@@ -37,7 +37,7 @@ namespace lsst { namespace meas { namespace extensions { namespace shapeHSM {
 class HsmMomentsControl {
 };
 
-class HsmSourceMomentsControl : public HsmMomentsControl {
+class HsmSourceMomentsControl {
 public:
     LSST_CONTROL_FIELD(badMaskPlanes, std::vector<std::string>, "Mask planes used to reject bad pixels.");
 
@@ -51,7 +51,7 @@ public:
     }
 };
 
-class HsmPsfMomentsControl : public HsmMomentsControl {
+class HsmPsfMomentsControl {
 public:
     HsmPsfMomentsControl() {}
 
@@ -62,13 +62,8 @@ public:
 ///
 /// Use this to consolidate common code for HsmSourceMoments and HsmPsfMoments
 class HsmMomentsAlgorithm : public base::SimpleAlgorithm {
-public:
-    /// A typedef to the Control object for this algorithm, defined above.
-    ///  The control object contains the configuration parameters for this algorithm.
-    typedef HsmMomentsControl Control;
-
-    /// @brief Initialize with standard field names and customized documentation.
-    HsmMomentsAlgorithm(Control const & ctrl, std::string const & name, afw::table::Schema & schema, char const* doc) :
+protected:
+    HsmMomentsAlgorithm(std::string const & name, afw::table::Schema & schema, char const* doc) :
     _doc(doc),
     _centroidResultKey(
         base::CentroidResultKey::addFields(schema, name, "HSM Centroid", base::NO_UNCERTAINTY)),
@@ -88,10 +83,9 @@ public:
         afw::geom::Point2D const& center, // Starting center for measuring moments
         afw::image::MaskPixel const badPixelMask, // Bitmask for bad pixels
         float const width            // PSF width estimate, for starting moments
-        ) const;
+    ) const;
 
 protected:
-    Control _ctrl;
     std::string _doc;
     base::CentroidResultKey _centroidResultKey;
     base::ShapeResultKey _momentsKey;
@@ -109,7 +103,7 @@ public:
 
     /// @brief Initialize with standard field names and customized documentation.
     HsmSourceMomentsAlgorithm(Control const & ctrl, std::string const & name, afw::table::Schema & schema) :
-        HsmMomentsAlgorithm(ctrl, name, schema, "Source adaptive moments algorithm from HSM"), _ctrl(ctrl) {}
+        HsmMomentsAlgorithm(name, schema, "Source adaptive moments algorithm from HSM"), _ctrl(ctrl) {}
 
 private:
     Control _ctrl;
@@ -134,7 +128,7 @@ public:
 
     /// @brief Initialize with standard field names and customized documentation.
     HsmPsfMomentsAlgorithm(Control const & ctrl, std::string const & name, afw::table::Schema & schema) :
-        HsmMomentsAlgorithm(ctrl, name, schema, "Psf adaptive moments algorithm from HSM"), _ctrl(ctrl) {}
+        HsmMomentsAlgorithm(name, schema, "Psf adaptive moments algorithm from HSM"), _ctrl(ctrl) {}
 
 private:
     Control _ctrl;
