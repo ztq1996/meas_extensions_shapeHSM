@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# 
 # LSST Data Management System
-# Copyright 2008, 2009, 2010 LSST Corporation.
-# 
+# Copyright 2008-2015 AURA/LSST
+#
 # This product includes software developed by the
 # LSST Project (http://www.lsst.org/).
 #
@@ -10,14 +9,14 @@
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
-# You should have received a copy of the LSST License Statement and 
-# the GNU General Public License along with this program.  If not, 
+#
+# You should have received a copy of the LSST License Statement and
+# the GNU General Public License along with this program.  If not,
 # see <http://www.lsstcorp.org/LegalNotices/>.
 #
 
@@ -31,6 +30,7 @@ import itertools
 import lsst.pex.exceptions as pexExceptions
 import lsst.afw.image as afwImage
 import lsst.afw.math as afwMath
+import lsst.meas.base as base
 import lsst.meas.algorithms as algorithms
 import lsst.utils.tests as utilsTests
 import lsst.afw.detection as afwDetection
@@ -130,6 +130,24 @@ centroid_expected = np.array([ # x, y
     [58.5008586442, 28.2850942049],
     ])
 
+def makePluginAndCat(alg, name, control=None, metadata=False, centroid=None):
+    print "Making plugin ", alg, name
+    if control == None:
+        control=alg.ConfigClass()
+    schema = afwTable.SourceTable.makeMinimalSchema()
+    if centroid:
+        schema.addField(centroid + "_x", type=float)
+        schema.addField(centroid + "_y", type=float)
+        schema.addField(centroid + "_flag", type='Flag')
+    if metadata:
+        plugin = alg(control, name, schema, dafBase.PropertySet())
+    else:
+        plugin = alg(control, name, schema)
+    cat = afwTable.SourceCatalog(schema)
+    if centroid:
+        cat.defineCentroid(centroid)
+    return plugin, cat
+
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 class ShapeTestCase(unittest.TestCase):
@@ -174,7 +192,6 @@ class ShapeTestCase(unittest.TestCase):
                                          afwGeom.Point2D(1.0,1.0),
                                          1.0/(2.53*3600.0), 0.0, 0.0, 1.0/(2.53*3600.0)))
 
-
         # load the corresponding test psf
         psfFile = os.path.join(self.dataDir, "psf.%d.fits" % imageid)
         psfImg = afwImage.ImageD(psfFile)
@@ -184,22 +201,21 @@ class ShapeTestCase(unittest.TestCase):
         kernelPsf = algorithms.KernelPsf(kernel)
         exposure.setPsf(kernelPsf)
 
-
         # perform the shape measurement
-        schema = afwTable.SourceTable.makeMinimalSchema()
-        msConfig = algorithms.SourceMeasurementConfig()
+        msConfig = base.SingleFrameMeasurementConfig()
+        alg = base.SingleFramePlugin.registry[algorithmName].PluginClass.AlgClass
+        control = base.SingleFramePlugin.registry[algorithmName].PluginClass.ConfigClass().makeControl()
         msConfig.algorithms.names = [algorithmName]
-        shapeFinder = msConfig.makeMeasureSources(schema)
-
         # Note: It is essential to remove the floating point part of the position for the
         # Algorithm._apply.  Otherwise, when the PSF is realised it will have been warped
         # to account for the sub-pixel offset and we won't get *exactly* this PSF.
+        plugin, table = makePluginAndCat(alg, algorithmName, control, centroid="centroid")
         center = afwGeom.Point2D(int(x), int(y)) + afwGeom.Extent2D(self.offset + afwGeom.Extent2I(self.xy0))
-        table = afwTable.SourceTable.make(schema)
         source = table.makeRecord()
+        source.set("centroid_x", center.getX())
+        source.set("centroid_y", center.getY())
         source.setFootprint(afwDetection.Footprint(exposure.getBBox(afwImage.PARENT)))
-
-        shapeFinder.apply(source, exposure, center)
+        plugin.measure(source, exposure)
 
         return source
 
@@ -211,41 +227,40 @@ class ShapeTestCase(unittest.TestCase):
 
         for (algNum, algName), (i, imageid) in itertools.product(enumerate(correction_methods),
                                                                  enumerate(file_indices)):
-            algorithmName = "shape.hsm." + algName.lower()
+            algorithmName = "ext_shapeHSM_HsmShape" + algName[0:1].upper() +algName[1:].lower()
+
             source = self.runMeasurement(algorithmName, imageid, x_centroid[i], y_centroid[i])
-            
+
             ##########################################
             # see how we did
-
             if algName in ("KSB"):
                 # Need to convert g1,g2 --> e1,e2 because GalSim has done that
                 # for the expected values ("for consistency")
-                g1 = source.get(algorithmName + ".g1")
-                g2 = source.get(algorithmName + ".g2")
+                g1 = source.get(algorithmName + "_g1")
+                g2 = source.get(algorithmName + "_g2")
                 scale = 2.0/(1.0 + g1**2 + g2**2)
                 e1 = g1*scale
                 e2 = g2*scale
-                sigma = source.get(algorithmName + ".sigma")
+                sigma = source.get(algorithmName + "_sigma")
             else:
-                e1 = source.get(algorithmName + ".e1")
-                e2 = source.get(algorithmName + ".e2")
-                sigma = 2*source.get(algorithmName + ".sigma")
-            resolution = source.get(algorithmName + ".resolution")
-            flags = source.get(algorithmName + ".flags")
-                
+                e1 = source.get(algorithmName + "_e1")
+                e2 = source.get(algorithmName + "_e2")
+                sigma = 2*source.get(algorithmName + "_sigma")
+            resolution = source.get(algorithmName + "_resolution")
+            flags = source.get(algorithmName + "_flag")
+
             tests = [
                 # label        known-value                            measured              tolerance
                 ["e1",         float(e1_expected[i][algNum]),         e1,             0.5*10**-SHAPE_DECIMALS],
                 ["e2",         float(e2_expected[i][algNum]),         e2,             0.5*10**-SHAPE_DECIMALS],
                 ["resolution", float(resolution_expected[i][algNum]), resolution,     0.5*10**-SIZE_DECIMALS],
-                
+
                 # sigma won't match exactly because
                 # we're using skyvar=mean(var) instead of measured value ... expected a difference
                 ["sigma",      float(sigma_e_expected[i][algNum]),    sigma,             0.07],
                 ["shapeStatus", 0,                          flags,             0],
                 ]
 
-            
             for test in tests:
                 label, know, hsm, limit = test
                 err = hsm - know
@@ -261,24 +276,27 @@ class ShapeTestCase(unittest.TestCase):
             self.assertAlmostEqual(sigma, galsim_err[i][algNum], delta=0.07)
 
         self.assertEqual(nFail, 0, "\n"+msg)
-        
+
     def testHsmMoments(self):
         for (i, imageid) in enumerate(file_indices):
-            source = self.runMeasurement("shape.hsm.moments", imageid, x_centroid[i], y_centroid[i])
-            moments = source.get("shape.hsm.moments")
-            centroid = source.get("shape.hsm.moments.centroid")
+            source = self.runMeasurement("ext_shapeHSM_HsmMoments", imageid, x_centroid[i], y_centroid[i])
+            x = source.get("ext_shapeHSM_HsmMoments_x")
+            y = source.get("ext_shapeHSM_HsmMoments_y")
+            xx = source.get("ext_shapeHSM_HsmMoments_xx")
+            yy= source.get("ext_shapeHSM_HsmMoments_yy")
+            xy = source.get("ext_shapeHSM_HsmMoments_xy")
 
             # Centroids from GalSim use the FITS lower-left corner of 1,1
             offset = self.xy0 + self.offset
-            self.assertAlmostEqual(centroid[0] - offset.getX(), centroid_expected[i][0] - 1, 3)
-            self.assertAlmostEqual(centroid[1] - offset.getY(), centroid_expected[i][1] - 1, 3)
+            self.assertAlmostEqual(x - offset.getX(), centroid_expected[i][0] - 1, 3)
+            self.assertAlmostEqual(y - offset.getY(), centroid_expected[i][1] - 1, 3)
 
             expected = afwEll.Quadrupole(afwEll.SeparableDistortionDeterminantRadius(
                 moments_expected[i][1], moments_expected[i][2], moments_expected[i][0]))
 
-            self.assertAlmostEqual(moments.getIxx(), expected.getIxx(), SHAPE_DECIMALS)
-            self.assertAlmostEqual(moments.getIxy(), expected.getIxy(), SHAPE_DECIMALS)
-            self.assertAlmostEqual(moments.getIyy(), expected.getIyy(), SHAPE_DECIMALS)
+            self.assertAlmostEqual(xx, expected.getIxx(), SHAPE_DECIMALS)
+            self.assertAlmostEqual(xy, expected.getIxy(), SHAPE_DECIMALS)
+            self.assertAlmostEqual(yy, expected.getIyy(), SHAPE_DECIMALS)
 
     def testHsmPsfMoments(self):
         for width in (2.0, 3.0, 4.0):
@@ -288,32 +306,31 @@ class ShapeTestCase(unittest.TestCase):
             exposure.setPsf(psf)
 
             # perform the shape measurement
-            schema = afwTable.SourceTable.makeMinimalSchema()
-            msConfig = algorithms.SourceMeasurementConfig()
-            msConfig.algorithms.names = ["shape.hsm.psfMoments"]
-            shapeFinder = msConfig.makeMeasureSources(schema)
+            msConfig = base.SingleFrameMeasurementConfig()
+            msConfig.algorithms.names = ["ext_shapeHSM_HsmPsfMoments"]
+            plugin, cat = makePluginAndCat(lsst.meas.extensions.shapeHSM.HsmPsfMomentsAlgorithm,
+                "ext_shapeHSM_HsmPsfMoments", centroid="centroid",
+                control=lsst.meas.extensions.shapeHSM.HsmPsfMomentsControl())
+            source = cat.addNew()
+            source.set("centroid_x", 23)
+            source.set("centroid_y", 34)
+            source.setFootprint(afwDetection.Footprint(afwGeom.Point2I(23, 34), width))
+            plugin.measure(source, exposure)
+            x = source.get("ext_shapeHSM_HsmPsfMoments_x")
+            y = source.get("ext_shapeHSM_HsmPsfMoments_y")
+            xx = source.get("ext_shapeHSM_HsmPsfMoments_xx")
+            yy= source.get("ext_shapeHSM_HsmPsfMoments_yy")
+            xy = source.get("ext_shapeHSM_HsmPsfMoments_xy")
 
-            center = afwGeom.Point2D(int(23), int(34))
-            table = afwTable.SourceTable.make(schema)
-            source = table.makeRecord()
-            source.setFootprint(afwDetection.Footprint(afwGeom.Point2I(center), width))
-            shapeFinder.apply(source, exposure, center)
-
-            moments = source.get("shape.hsm.psfMoments")
-            centroid = source.get("shape.hsm.psfMoments.centroid")
-
-            self.assertAlmostEqual(centroid[0], 0.0, 3)
-            self.assertAlmostEqual(centroid[1], 0.0, 3)
+            self.assertAlmostEqual(x, 0.0, 3)
+            self.assertAlmostEqual(y, 0.0, 3)
 
             expected = afwEll.Quadrupole(afwEll.Axes(width, width, 0.0))
 
-            self.assertAlmostEqual(moments.getIxx(), expected.getIxx(), SHAPE_DECIMALS)
-            self.assertAlmostEqual(moments.getIxy(), expected.getIxy(), SHAPE_DECIMALS)
-            self.assertAlmostEqual(moments.getIyy(), expected.getIyy(), SHAPE_DECIMALS)
+            self.assertAlmostEqual(xx, expected.getIxx(), SHAPE_DECIMALS)
+            self.assertAlmostEqual(xy, expected.getIxy(), SHAPE_DECIMALS)
+            self.assertAlmostEqual(yy, expected.getIyy(), SHAPE_DECIMALS)
 
-
-        
-        
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 def suite():
@@ -329,6 +346,6 @@ def suite():
 def run(exit = False):
     """Run the tests"""
     utilsTests.run(suite(), exit)
- 
+
 if __name__ == "__main__":
     run(True)

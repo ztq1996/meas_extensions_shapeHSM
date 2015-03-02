@@ -1,8 +1,6 @@
-// -*- lsst-c++ -*-
-
 /*
  * LSST Data Management System
- * Copyright 2008, 2009, 2010 LSST Corporation.
+ * Copyright 2008-2015 AURA/LSST
  *
  * This product includes software developed by the
  * LSST Project (http://www.lsst.org/).
@@ -44,16 +42,21 @@ Various swigged-up C++ classes for testing
 #include "lsst/afw/geom.h"
 #include "lsst/afw/geom/ellipses.h"
 #include "lsst/meas/algorithms.h"
+#include "lsst/meas/base.h"
+#include "lsst/meas/base/Algorithm.h"
 %}
 
 %include "lsst/p_lsstSwig.i"
+%include "lsst/pex/config.h"            // LSST_CONTROL_FIELD.
 
 %lsst_exceptions()
 
 %import "lsst/afw/detection/detectionLib.i"
 %import "lsst/afw/geom/geomLib.i"
 %import "lsst/afw/geom/ellipses/ellipsesLib.i"
-%import "lsst/meas/algorithms/algorithmsLib.i"
+
+%include "lsst/meas/base/exceptions.i"
+%include "lsst/meas/base/Algorithm.h"
 
 %{
 #include "lsst/meas/extensions/shapeHSM/HsmShapeControl.h"
@@ -67,6 +70,13 @@ Various swigged-up C++ classes for testing
 %shared_ptr(lsst::meas::extensions::shapeHSM::HsmShapeRegaussControl);
 %shared_ptr(lsst::meas::extensions::shapeHSM::HsmSourceMomentsControl);
 %shared_ptr(lsst::meas::extensions::shapeHSM::HsmPsfMomentsControl);
+
+%feature("notabstract") lsst::meas::extensions::shapeHSM::HsmShapeBjAlgorithm;
+%feature("notabstract") lsst::meas::extensions::shapeHSM::HsmShapeKsbAlgorithm;
+%feature("notabstract") lsst::meas::extensions::shapeHSM::HsmShapeRegaussAlgorithm;
+%feature("notabstract") lsst::meas::extensions::shapeHSM::HsmShapeLinearAlgorithm;
+%feature("notabstract") lsst::meas::extensions::shapeHSM::HsmSourceMomentsAlgorithm;
+%feature("notabstract") lsst::meas::extensions::shapeHSM::HsmPsfMomentsAlgorithm;
 
 %include "lsst/meas/extensions/shapeHSM/HsmShapeControl.h"
 %include "lsst/meas/extensions/shapeHSM/HsmMomentsControl.h"
