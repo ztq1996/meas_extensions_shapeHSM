@@ -26,8 +26,8 @@
 #include "lsst/afw/image.h"
 #include "lsst/afw/detection/Psf.h"
 #include "lsst/afw/math/Statistics.h"
+#include "lsst/afw/table/Source.h"
 #include "lsst/afw/geom/ellipses.h"
-#include "lsst/meas/algorithms/Measure.h"
 
 #include "galsim/Image.h"
 #include "galsim/hsm/PSFCorr.h"
