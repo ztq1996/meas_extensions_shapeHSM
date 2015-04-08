@@ -43,7 +43,6 @@ Various swigged-up C++ classes for testing
 #include "lsst/afw/geom/ellipses.h"
 #include "lsst/meas/algorithms.h"
 #include "lsst/meas/base.h"
-#include "lsst/meas/base/Algorithm.h"
 %}
 
 %include "lsst/p_lsstSwig.i"
@@ -56,8 +55,7 @@ Various swigged-up C++ classes for testing
 %import "lsst/afw/geom/geomLib.i"
 %import "lsst/afw/geom/ellipses/ellipsesLib.i"
 
-%include "lsst/meas/base/exceptions.i"
-%include "lsst/meas/base/Algorithm.h"
+%import "lsst/meas/base/baseLib.i"
 
 %{
 #include "lsst/meas/extensions/shapeHSM/HsmShapeControl.h"
