@@ -47,6 +47,7 @@ Various swigged-up C++ classes for testing
 %}
 
 %include "lsst/p_lsstSwig.i"
+%initializeNumPy(meas_extensions_shapeHSM)
 %include "lsst/pex/config.h"            // LSST_CONTROL_FIELD.
 
 %lsst_exceptions()
