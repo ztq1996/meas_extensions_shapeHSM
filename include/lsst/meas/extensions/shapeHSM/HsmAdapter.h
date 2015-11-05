@@ -78,11 +78,11 @@ PTR(afw::image::Image<int>) convertMask(
 {
     typedef afw::image::Image<int> ImageI;
     typedef afw::image::Mask<afw::image::MaskPixel> Mask;
-    PTR(ImageI) hsmMask = boost::make_shared<ImageI>(bbox.getDimensions());
-    for (int y = 0; y < bbox.getHeight(); ++y) {
-        Mask::const_x_iterator in = afwMask.x_at(bbox.getMinX() - afwMask.getX0(), y);
-        ImageI::x_iterator out = hsmMask->row_begin(y);
-        ImageI::const_x_iterator end = hsmMask->row_end(y);
+    PTR(ImageI) hsmMask = boost::make_shared<ImageI>(bbox);
+    for (int y = bbox.getMinY(); y <bbox.getMaxY(); ++y) {
+        Mask::const_x_iterator in = afwMask.x_at(bbox.getMinX() - afwMask.getX0(), y - afwMask.getY0());
+        ImageI::x_iterator out = hsmMask->row_begin(y - hsmMask->getY0());
+        ImageI::const_x_iterator end = hsmMask->row_end(y - hsmMask->getY0());
         for (; out != end; ++in, ++out) {
             *out = (*in & badPixelMask) ? 0 : 1;
         }

@@ -166,7 +166,7 @@ void HsmShapeAlgorithm::measure(
     typedef afw::image::Image<int> ImageI;
     PTR(afw::image::Exposure<float>::MaskedImageT::Mask) afwMask = exposure.getMaskedImage().getMask();
     PTR(ImageI) hsmMask = convertMask(*afwMask, bbox, badPixelMask);
-    ImageConverter<int> const mask(hsmMask);
+    ImageConverter<int> const mask(hsmMask, bbox);
 
     PTR(ImageI) dummyMask = boost::make_shared<ImageI>(psf->getDimensions());
     *dummyMask = 1;

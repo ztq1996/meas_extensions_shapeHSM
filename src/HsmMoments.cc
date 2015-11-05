@@ -49,7 +49,7 @@ void HsmMomentsAlgorithm::calculate(
 ) const {
     ImageConverter<PixelT> const image(afwImage, bbox);
     PTR(afw::image::Image<int>) hsmMask = convertMask(*afwMask, bbox, badPixelMask);
-    ImageConverter<int> const mask(hsmMask);
+    ImageConverter<int> const mask(hsmMask, bbox);
 
     galsim::hsm::CppShapeData shape;
     try {
