@@ -166,7 +166,7 @@ class ShapeTestCase(unittest.TestCase):
         del self.offset
         del self.xy0
 
-    def runMeasurement(self, algorithmName, imageid, x, y):
+    def runMeasurement(self, algorithmName, imageid, x, y, v):
         """Run the measurement algorithm on an image"""
         # load the test image
         imgFile = os.path.join(self.dataDir, "image.%d.fits" % imageid)
@@ -174,7 +174,7 @@ class ShapeTestCase(unittest.TestCase):
         img -= self.bkgd
         nx, ny = img.getWidth(), img.getHeight()
         msk = afwImage.MaskU(afwGeom.Extent2I(nx, ny), 0x0)
-        var = afwImage.ImageF(imgFile)
+        var = afwImage.ImageF(afwGeom.Extent2I(nx, ny), v)
         mimg = afwImage.MaskedImageF(img, msk, var)
         msk.getArray()[:] = np.where(np.fabs(img.getArray()) < 1.0e-8, msk.getPlaneBitMask("BAD"), 0)
 
@@ -182,7 +182,7 @@ class ShapeTestCase(unittest.TestCase):
         big = afwImage.MaskedImageF(self.offset + mimg.getDimensions())
         big.getImage().set(0)
         big.getMask().set(0)
-        big.getVariance().set(self.bkgd)
+        big.getVariance().set(v)
         subBig = afwImage.MaskedImageF(big, afwGeom.Box2I(big.getXY0() + self.offset, mimg.getDimensions()))
         subBig <<= mimg
         mimg = big
@@ -230,7 +230,7 @@ class ShapeTestCase(unittest.TestCase):
                                                                  enumerate(file_indices)):
             algorithmName = "ext_shapeHSM_HsmShape" + algName[0:1].upper() +algName[1:].lower()
 
-            source = self.runMeasurement(algorithmName, imageid, x_centroid[i], y_centroid[i])
+            source = self.runMeasurement(algorithmName, imageid, x_centroid[i], y_centroid[i], sky_var[i])
 
             ##########################################
             # see how we did
@@ -280,7 +280,8 @@ class ShapeTestCase(unittest.TestCase):
 
     def testHsmMoments(self):
         for (i, imageid) in enumerate(file_indices):
-            source = self.runMeasurement("ext_shapeHSM_HsmMoments", imageid, x_centroid[i], y_centroid[i])
+            source = self.runMeasurement("ext_shapeHSM_HsmMoments", imageid, x_centroid[i], y_centroid[i],
+                                        sky_var[i])
             x = source.get("ext_shapeHSM_HsmMoments_x")
             y = source.get("ext_shapeHSM_HsmMoments_y")
             xx = source.get("ext_shapeHSM_HsmMoments_xx")
