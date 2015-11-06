@@ -196,7 +196,7 @@ void HsmShapeAlgorithm::measure(
     case 'e':
         source.set(_e1Key, shape.corrected_e1);
         source.set(_e2Key, shape.corrected_e2);
-        source.set(_sigmaKey, 0.5*shape.corrected_shape_err);
+        source.set(_sigmaKey, 2.0*shape.corrected_shape_err);
         break;
     case 'g':
         source.set(_e1Key, shape.corrected_g1);
