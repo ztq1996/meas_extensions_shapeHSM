@@ -166,7 +166,7 @@ void HsmShapeAlgorithm::measure(
     typedef afw::image::Image<int> ImageI;
     PTR(afw::image::Exposure<float>::MaskedImageT::Mask) afwMask = exposure.getMaskedImage().getMask();
     PTR(ImageI) hsmMask = convertMask(*afwMask, bbox, badPixelMask);
-    ImageConverter<int> const mask(hsmMask);
+    ImageConverter<int> const mask(hsmMask, bbox);
 
     PTR(ImageI) dummyMask = boost::make_shared<ImageI>(psf->getDimensions());
     *dummyMask = 1;
@@ -176,9 +176,9 @@ void HsmShapeAlgorithm::measure(
     sctrl.setAndMask(badPixelMask);
     afw::image::Exposure<float>::MaskedImageT::Variance const variance(*exposure.getMaskedImage().getVariance(),
                                                                        bbox, afw::image::PARENT);
-    afw::math::Statistics stat = afw::math::makeStatistics(variance, *afwMask, afw::math::MEDIAN, sctrl);
-    double const skyvar = sqrt(stat.getValue(afw::math::MEDIAN));
-
+    afw::image::Exposure<float>::MaskedImageT::Mask const subMask(*afwMask, bbox, afw::image::PARENT);
+    afw::math::Statistics stat = afw::math::makeStatistics(variance, subMask, afw::math::MEDIAN, sctrl);
+    double const skyvar = stat.getValue(afw::math::MEDIAN);
     double const psfSigma = exposure.getPsf()->computeShape(center).getTraceRadius();
 
     galsim::hsm::CppShapeData shape, psfShape;
@@ -196,7 +196,7 @@ void HsmShapeAlgorithm::measure(
     case 'e':
         source.set(_e1Key, shape.corrected_e1);
         source.set(_e2Key, shape.corrected_e2);
-        source.set(_sigmaKey, 0.5*shape.corrected_shape_err);
+        source.set(_sigmaKey, 2.0*shape.corrected_shape_err);
         break;
     case 'g':
         source.set(_e1Key, shape.corrected_g1);
