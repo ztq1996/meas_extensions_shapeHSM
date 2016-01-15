@@ -278,15 +278,15 @@ class ShapeTestCase(unittest.TestCase):
 
         self.assertEqual(nFail, 0, "\n"+msg)
 
-    def testHsmMoments(self):
+    def testHsmSourceMoments(self):
         for (i, imageid) in enumerate(file_indices):
-            source = self.runMeasurement("ext_shapeHSM_HsmMoments", imageid, x_centroid[i], y_centroid[i],
+            source = self.runMeasurement("ext_shapeHSM_HsmSourceMoments", imageid, x_centroid[i], y_centroid[i],
                                         sky_var[i])
-            x = source.get("ext_shapeHSM_HsmMoments_x")
-            y = source.get("ext_shapeHSM_HsmMoments_y")
-            xx = source.get("ext_shapeHSM_HsmMoments_xx")
-            yy= source.get("ext_shapeHSM_HsmMoments_yy")
-            xy = source.get("ext_shapeHSM_HsmMoments_xy")
+            x = source.get("ext_shapeHSM_HsmSourceMoments_x")
+            y = source.get("ext_shapeHSM_HsmSourceMoments_y")
+            xx = source.get("ext_shapeHSM_HsmSourceMoments_xx")
+            yy= source.get("ext_shapeHSM_HsmSourceMoments_yy")
+            xy = source.get("ext_shapeHSM_HsmSourceMoments_xy")
 
             # Centroids from GalSim use the FITS lower-left corner of 1,1
             offset = self.xy0 + self.offset

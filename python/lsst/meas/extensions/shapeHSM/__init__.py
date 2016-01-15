@@ -32,8 +32,8 @@ lsst.meas.base.wrapSimpleAlgorithm(HsmShapeKsbAlgorithm, name="ext_shapeHSM_HsmS
     Control=HsmShapeKsbControl, executionOrder=3.0)
 lsst.meas.base.wrapSimpleAlgorithm(HsmShapeRegaussAlgorithm, name="ext_shapeHSM_HsmShapeRegauss",
     Control=HsmShapeRegaussControl, executionOrder=3.0)
-lsst.meas.base.wrapSimpleAlgorithm(HsmSourceMomentsAlgorithm, name="ext_shapeHSM_HsmMoments",
+lsst.meas.base.wrapSimpleAlgorithm(HsmSourceMomentsAlgorithm, name="ext_shapeHSM_HsmSourceMoments",
     Control=HsmSourceMomentsControl, executionOrder=3.0)
-lsst.meas.base.wrapSimpleAlgorithm(HsmMomentsAlgorithm, name="ext_shapeHSM_HsmPsfMoments",
+lsst.meas.base.wrapSimpleAlgorithm(HsmPsfMomentsAlgorithm, name="ext_shapeHSM_HsmPsfMoments",
     Control=HsmPsfMomentsControl, executionOrder=3.0)
 del lsst # cleanup namespace
