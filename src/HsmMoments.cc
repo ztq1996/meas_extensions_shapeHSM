@@ -57,7 +57,7 @@ void HsmMomentsAlgorithm::calculate(
         shape = galsim::hsm::FindAdaptiveMomView(image.getImageView(), mask.getImageView(),
                                                  width, 1.0e-6, center.getX(), center.getY());
     } catch (galsim::hsm::HSMError const& e) {
-        throw LSST_EXCEPT(pex::exceptions::RuntimeError, e.what());
+        throw LSST_EXCEPT(base::MeasurementError, e.what(), GALSIM);
     }
 
     afw::geom::ellipses::DeterminantRadius const radius(shape.moments_sigma);
@@ -94,11 +94,18 @@ void HsmSourceMomentsAlgorithm::measure(
 
     afw::geom::Box2I bbox = source.getFootprint()->getBBox();
     if (bbox.getArea() == 0) {
-        throw LSST_EXCEPT(lsst::pex::exceptions::LengthError, "No pixels to measure.");
+        throw LSST_EXCEPT(
+            base::MeasurementError,
+            _flagHandler.getDefinition(NO_PIXELS).doc,
+            NO_PIXELS
+        );
     }
     if (!bbox.contains(afw::geom::Point2I(center))) {
-        throw LSST_EXCEPT(pex::exceptions::RuntimeError,
-                          "Center not contained in footprint bounding box");
+        throw LSST_EXCEPT(
+            base::MeasurementError,
+            _flagHandler.getDefinition(NOT_CONTAINED).doc,
+            NOT_CONTAINED
+        );
     }
 
     double const psfSigma = exposure.getPsf()->computeShape(center).getTraceRadius();
