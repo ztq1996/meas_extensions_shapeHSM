@@ -76,6 +76,12 @@ void HsmMomentsAlgorithm::calculate(
 
 }
 
+void HsmMomentsAlgorithm::fail(afw::table::SourceRecord & measRecord,
+                               base::MeasurementError * error) const {
+    _flagHandler.handleFailure(measRecord, error);
+}
+
+
 void HsmSourceMomentsAlgorithm::measure(
     afw::table::SourceRecord & source,
     afw::image::Exposure<float> const & exposure
@@ -102,11 +108,6 @@ void HsmSourceMomentsAlgorithm::measure(
                           bbox, center, badPixelMask, 2.5*psfSigma);
 }
 
-void HsmSourceMomentsAlgorithm::fail(afw::table::SourceRecord & measRecord,
-                                     base::MeasurementError * error) const {
-    _flagHandler.handleFailure(measRecord, error);
-}
-
 void HsmPsfMomentsAlgorithm::measure(
     afw::table::SourceRecord & source,
     afw::image::Exposure<float> const & exposure
@@ -127,8 +128,4 @@ void HsmPsfMomentsAlgorithm::measure(
                                    afw::geom::Point2D(0, 0), 0, psfSigma);
 }
 
-void HsmPsfMomentsAlgorithm::fail(afw::table::SourceRecord & measRecord,
-                                  base::MeasurementError * error) const {
-    _flagHandler.handleFailure(measRecord, error);
-}
 }}}} // namespace lsst::meas::extensions::shapeHSM

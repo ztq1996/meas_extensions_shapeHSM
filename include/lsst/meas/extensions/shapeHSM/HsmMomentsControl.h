@@ -96,6 +96,11 @@ protected:
         float const width            // PSF width estimate, for starting moments
     ) const;
 
+    void fail(
+        afw::table::SourceRecord & measRecord,
+        meas::base::MeasurementError * error=NULL
+    ) const;
+
 protected:
     std::string _doc;
     base::CentroidResultKey _centroidResultKey;
@@ -121,11 +126,6 @@ public:
         afw::image::Exposure<float> const & exposure
     ) const;
 
-    void fail(
-        afw::table::SourceRecord & measRecord,
-        meas::base::MeasurementError * error=NULL
-    ) const;
-
 private:
     Control _ctrl;
 };
@@ -144,11 +144,6 @@ public:
     void measure(
         afw::table::SourceRecord & measRecord,
         afw::image::Exposure<float> const & exposure
-    ) const;
-
-    void fail(
-        afw::table::SourceRecord & measRecord,
-        meas::base::MeasurementError * error=NULL
     ) const;
 
 private:
