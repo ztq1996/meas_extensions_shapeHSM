@@ -62,6 +62,12 @@ public:
 ///
 /// Use this to consolidate common code for HsmSourceMoments and HsmPsfMoments
 class HsmMomentsAlgorithm : public base::SimpleAlgorithm {
+public:
+    enum {
+        FAILURE = base::FlagHandler::FAILURE,
+        N_FLAGS
+    };
+
 protected:
     HsmMomentsAlgorithm(std::string const & name, afw::table::Schema & schema, char const* doc) :
     _doc(doc),
@@ -71,7 +77,12 @@ protected:
         base::ShapeResultKey::addFields(schema, name, "HSM moments", base::NO_UNCERTAINTY)
     ),
     _centroidExtractor(schema, name)
-    {}
+    {
+        static boost::array<base::FlagDefinition, N_FLAGS> const flagDefs = {{
+                {"flag", "general failure flag, set if anything went wrong"}
+            }};
+        _flagHandler = base::FlagHandler::addFields(schema, name, flagDefs.begin(), flagDefs.end());
+    }
 
     /// Calculate moments
     template<typename PixelT>
