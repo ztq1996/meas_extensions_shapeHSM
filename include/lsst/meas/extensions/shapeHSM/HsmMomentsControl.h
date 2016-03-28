@@ -62,6 +62,15 @@ public:
 ///
 /// Use this to consolidate common code for HsmSourceMoments and HsmPsfMoments
 class HsmMomentsAlgorithm : public base::SimpleAlgorithm {
+public:
+    enum {
+        FAILURE = base::FlagHandler::FAILURE,
+        NO_PIXELS,
+        NOT_CONTAINED,
+        GALSIM,
+        N_FLAGS
+    };
+
 protected:
     HsmMomentsAlgorithm(std::string const & name, afw::table::Schema & schema, char const* doc) :
     _doc(doc),
@@ -71,7 +80,15 @@ protected:
         base::ShapeResultKey::addFields(schema, name, "HSM moments", base::NO_UNCERTAINTY)
     ),
     _centroidExtractor(schema, name)
-    {}
+    {
+        static boost::array<base::FlagDefinition, N_FLAGS> const flagDefs = {{
+                {"flag", "general failure flag, set if anything went wrong"},
+                {"flag_no_pixels", "no pixels to measure"},
+                {"flag_not_contained", "center not contained in footprint bounding box"},
+                {"flag_galsim", "GalSim error"},
+            }};
+        _flagHandler = base::FlagHandler::addFields(schema, name, flagDefs.begin(), flagDefs.end());
+    }
 
     /// Calculate moments
     template<typename PixelT>
@@ -83,6 +100,11 @@ protected:
         afw::geom::Point2D const& center, // Starting center for measuring moments
         afw::image::MaskPixel const badPixelMask, // Bitmask for bad pixels
         float const width            // PSF width estimate, for starting moments
+    ) const;
+
+    void fail(
+        afw::table::SourceRecord & measRecord,
+        meas::base::MeasurementError * error=NULL
     ) const;
 
 protected:
@@ -110,11 +132,6 @@ public:
         afw::image::Exposure<float> const & exposure
     ) const;
 
-    void fail(
-        afw::table::SourceRecord & measRecord,
-        meas::base::MeasurementError * error=NULL
-    ) const;
-
 private:
     Control _ctrl;
 };
@@ -133,11 +150,6 @@ public:
     void measure(
         afw::table::SourceRecord & measRecord,
         afw::image::Exposure<float> const & exposure
-    ) const;
-
-    void fail(
-        afw::table::SourceRecord & measRecord,
-        meas::base::MeasurementError * error=NULL
     ) const;
 
 private:

@@ -119,8 +119,8 @@ HsmShapeAlgorithm::HsmShapeAlgorithm(
         {"flag", "general failure flag"},
         {"flag_no_pixels", "no pixels to measure"},
         {"flag_not_contained", "center not contained in footprint bounding box"},
-        {"flag_has_deblend", "object has been deblended"},
-        {"flag_ignore_parent_source", "ignoring parent source"},
+        {"flag_parent_source", "parent source, ignored"},
+        {"flag_galsim", "GalSim failure"},
     }};
     _flagHandler = base::FlagHandler::addFields(schema, name, flagDefs.begin(), flagDefs.end());
 
@@ -135,7 +135,7 @@ void HsmShapeAlgorithm::measure(
 ) const {
     afw::geom::Point2D center = _centroidExtractor(source, _flagHandler);
     if (_hasDeblendKey && source.get(_deblendKey) > 0) {
-        throw LSST_EXCEPT(pex::exceptions::RuntimeError, "Ignoring parent source");
+        throw LSST_EXCEPT(base::MeasurementError, "Ignoring parent source", PARENT_SOURCE);
     }
 
     std::vector<std::string> const & badMaskPlanes = _ctrl.badMaskPlanes;
@@ -188,7 +188,7 @@ void HsmShapeAlgorithm::measure(
                                                mask.getImageView(), skyvar, _shearType.c_str(), "FIT",
                                                2.5*psfSigma, psfSigma, 1.0e-6, center.getX(), center.getY());
     } catch (galsim::hsm::HSMError const& e) {
-        throw LSST_EXCEPT(pex::exceptions::RuntimeError, e.what());
+        throw LSST_EXCEPT(base::MeasurementError, e.what(), GALSIM);
     }
 
     assert(shape.meas_type[0] == measTypeSymbol(_measType));

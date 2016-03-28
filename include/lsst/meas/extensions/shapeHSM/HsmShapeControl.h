@@ -110,8 +110,8 @@ public:
         FAILURE=base::FlagHandler::FAILURE,
         NO_PIXELS,
         NOT_CONTAINED,
-        HAS_DEBLEND,
-        IGNORE_PARENT_SOURCE,
+        PARENT_SOURCE,
+        GALSIM,
         N_FLAGS
     };
 
