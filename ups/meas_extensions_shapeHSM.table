@@ -1,6 +1,6 @@
 setupRequired(meas_base)
 setupRequired(meas_algorithms)
-setupRequired(GalSim)
+setupRequired(galsim)
 
 envPrepend(LD_LIBRARY_PATH, ${PRODUCT_DIR}/lib)
 envPrepend(DYLD_LIBRARY_PATH, ${PRODUCT_DIR}/lib)
