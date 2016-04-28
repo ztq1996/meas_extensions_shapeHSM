@@ -103,6 +103,7 @@ HsmShapeAlgorithm::HsmShapeAlgorithm(
 ) : _ctrl(ctrl),
     _shearType(shearType),
     _measType(measType),
+    _doc(doc),
     _e1Key(addEllipticityField(name, '1', measType, schema, doc)),
     _e2Key(addEllipticityField(name, '2', measType, schema, doc)),
     _sigmaKey(
@@ -111,9 +112,8 @@ HsmShapeAlgorithm::HsmShapeAlgorithm(
     _resolutionKey(
         schema.addField<double>(name + "_resolution", "resolution factor (0=unresolved, 1=resolved)")
     ),
-    _doc(doc),
-    _hasDeblendKey(_ctrl.deblendNChild.size() > 0),
-    _centroidExtractor(schema, name)
+    _centroidExtractor(schema, name),
+    _hasDeblendKey(_ctrl.deblendNChild.size() > 0)
 {
     static boost::array<base::FlagDefinition,N_FLAGS> const flagDefs = {{
         {"flag", "general failure flag"},
