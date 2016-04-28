@@ -186,7 +186,8 @@ void HsmShapeAlgorithm::measure(
     try {
         shape = galsim::hsm::EstimateShearView(image.getImageView(), psfImage.getImageView(),
                                                mask.getImageView(), skyvar, _shearType.c_str(), "FIT",
-                                               2.5*psfSigma, psfSigma, 1.0e-6, center.getX(), center.getY());
+                                               2.5*psfSigma, psfSigma, 1.0e-6,
+                                               galsim::Position<double>(center.getX(), center.getY()));
     } catch (galsim::hsm::HSMError const& e) {
         throw LSST_EXCEPT(base::MeasurementError, e.what(), GALSIM);
     }
