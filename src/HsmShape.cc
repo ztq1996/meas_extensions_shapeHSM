@@ -115,7 +115,7 @@ HsmShapeAlgorithm::HsmShapeAlgorithm(
     _centroidExtractor(schema, name),
     _hasDeblendKey(_ctrl.deblendNChild.size() > 0)
 {
-    static boost::array<base::FlagDefinition,N_FLAGS> const flagDefs = {{
+    static std::array<base::FlagDefinition,N_FLAGS> const flagDefs = {{
         {"flag", "general failure flag"},
         {"flag_no_pixels", "no pixels to measure"},
         {"flag_not_contained", "center not contained in footprint bounding box"},
@@ -168,7 +168,7 @@ void HsmShapeAlgorithm::measure(
     PTR(ImageI) hsmMask = convertMask(*afwMask, bbox, badPixelMask);
     ImageConverter<int> const mask(hsmMask, bbox);
 
-    PTR(ImageI) dummyMask = boost::make_shared<ImageI>(psf->getDimensions());
+    PTR(ImageI) dummyMask = std::make_shared<ImageI>(psf->getDimensions());
     *dummyMask = 1;
     ImageConverter<int> const psfMask(dummyMask);
 

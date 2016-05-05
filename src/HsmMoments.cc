@@ -127,7 +127,7 @@ void HsmPsfMomentsAlgorithm::measure(
     PTR(afw::detection::Psf::Image) image = exposure.getPsf()->computeKernelImage(center);
 
     // Create a dummy mask
-    PTR(Mask) mask = boost::make_shared<Mask>(image->getDimensions());
+    PTR(Mask) mask = std::make_shared<Mask>(image->getDimensions());
     *mask = 0;
     mask->setXY0(image->getXY0());
 
