@@ -55,13 +55,14 @@ void HsmMomentsAlgorithm::calculate(
     try {
         // GalSim's HSM uses the FITS convention of 1,1 for the lower-left corner
         shape = galsim::hsm::FindAdaptiveMomView(image.getImageView(), mask.getImageView(),
-                                                 width, 1.0e-6, center.getX(), center.getY());
+                                                 width, 1.0e-6,
+                                                 galsim::Position<double>(center.getX(), center.getY()));
     } catch (galsim::hsm::HSMError const& e) {
         throw LSST_EXCEPT(base::MeasurementError, e.what(), GALSIM);
     }
 
     afw::geom::ellipses::DeterminantRadius const radius(shape.moments_sigma);
-    afw::geom::ellipses::Distortion const ellip(shape.observed_shape.getE1(), shape.observed_shape.getE2());
+    afw::geom::ellipses::Distortion const ellip(shape.observed_e1, shape.observed_e2);
     typedef afw::geom::ellipses::Separable<afw::geom::ellipses::Distortion,
                                            afw::geom::ellipses::DeterminantRadius> Ellipse;
 
@@ -126,7 +127,7 @@ void HsmPsfMomentsAlgorithm::measure(
     PTR(afw::detection::Psf::Image) image = exposure.getPsf()->computeKernelImage(center);
 
     // Create a dummy mask
-    PTR(Mask) mask = boost::make_shared<Mask>(image->getDimensions());
+    PTR(Mask) mask = std::make_shared<Mask>(image->getDimensions());
     *mask = 0;
     mask->setXY0(image->getXY0());
 

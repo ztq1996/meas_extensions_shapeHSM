@@ -1,6 +1,8 @@
 #ifndef LSST_MEAS_EXTENSIONS_SHAPEHSM_HSMADAPTER_H
 #define LSST_MEAS_EXTENSIONS_SHAPEHSM_HSMADAPTER_H
 
+#include "boost/shared_ptr.hpp"
+
 #include "lsst/afw/image/Image.h"
 #include "galsim/Image.h"
 
@@ -78,7 +80,7 @@ PTR(afw::image::Image<int>) convertMask(
 {
     typedef afw::image::Image<int> ImageI;
     typedef afw::image::Mask<afw::image::MaskPixel> Mask;
-    PTR(ImageI) hsmMask = boost::make_shared<ImageI>(bbox);
+    PTR(ImageI) hsmMask = std::make_shared<ImageI>(bbox);
     for (int y = bbox.getMinY(); y <bbox.getMaxY(); ++y) {
         Mask::const_x_iterator in = afwMask.x_at(bbox.getMinX() - afwMask.getX0(), y - afwMask.getY0());
         ImageI::x_iterator out = hsmMask->row_begin(y - hsmMask->getY0());

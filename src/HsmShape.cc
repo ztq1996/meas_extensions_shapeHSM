@@ -103,6 +103,7 @@ HsmShapeAlgorithm::HsmShapeAlgorithm(
 ) : _ctrl(ctrl),
     _shearType(shearType),
     _measType(measType),
+    _doc(doc),
     _e1Key(addEllipticityField(name, '1', measType, schema, doc)),
     _e2Key(addEllipticityField(name, '2', measType, schema, doc)),
     _sigmaKey(
@@ -111,11 +112,10 @@ HsmShapeAlgorithm::HsmShapeAlgorithm(
     _resolutionKey(
         schema.addField<double>(name + "_resolution", "resolution factor (0=unresolved, 1=resolved)")
     ),
-    _doc(doc),
-    _hasDeblendKey(_ctrl.deblendNChild.size() > 0),
-    _centroidExtractor(schema, name)
+    _centroidExtractor(schema, name),
+    _hasDeblendKey(_ctrl.deblendNChild.size() > 0)
 {
-    static boost::array<base::FlagDefinition,N_FLAGS> const flagDefs = {{
+    static std::array<base::FlagDefinition,N_FLAGS> const flagDefs = {{
         {"flag", "general failure flag"},
         {"flag_no_pixels", "no pixels to measure"},
         {"flag_not_contained", "center not contained in footprint bounding box"},
@@ -168,7 +168,7 @@ void HsmShapeAlgorithm::measure(
     PTR(ImageI) hsmMask = convertMask(*afwMask, bbox, badPixelMask);
     ImageConverter<int> const mask(hsmMask, bbox);
 
-    PTR(ImageI) dummyMask = boost::make_shared<ImageI>(psf->getDimensions());
+    PTR(ImageI) dummyMask = std::make_shared<ImageI>(psf->getDimensions());
     *dummyMask = 1;
     ImageConverter<int> const psfMask(dummyMask);
 
@@ -186,7 +186,8 @@ void HsmShapeAlgorithm::measure(
     try {
         shape = galsim::hsm::EstimateShearView(image.getImageView(), psfImage.getImageView(),
                                                mask.getImageView(), skyvar, _shearType.c_str(), "FIT",
-                                               2.5*psfSigma, psfSigma, 1.0e-6, center.getX(), center.getY());
+                                               2.5*psfSigma, psfSigma, 1.0e-6,
+                                               galsim::Position<double>(center.getX(), center.getY()));
     } catch (galsim::hsm::HSMError const& e) {
         throw LSST_EXCEPT(base::MeasurementError, e.what(), GALSIM);
     }

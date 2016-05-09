@@ -81,7 +81,7 @@ protected:
     ),
     _centroidExtractor(schema, name)
     {
-        static boost::array<base::FlagDefinition, N_FLAGS> const flagDefs = {{
+        static std::array<base::FlagDefinition, N_FLAGS> const flagDefs = {{
                 {"flag", "general failure flag, set if anything went wrong"},
                 {"flag_no_pixels", "no pixels to measure"},
                 {"flag_not_contained", "center not contained in footprint bounding box"},
