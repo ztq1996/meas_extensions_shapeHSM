@@ -1,6 +1,8 @@
 #!/usr/bin/env python
+#
 # LSST Data Management System
-# Copyright 2008-2015 AURA/LSST
+#
+# Copyright 2008-2016  AURA/LSST.
 #
 # This product includes software developed by the
 # LSST Project (http://www.lsst.org/).
@@ -17,10 +19,11 @@
 #
 # You should have received a copy of the LSST License Statement and
 # the GNU General Public License along with this program.  If not,
-# see <http://www.lsstcorp.org/LegalNotices/>.
+# see <https://www.lsstcorp.org/LegalNotices/>.
 #
-
-import re, os, sys
+import re
+import os
+import sys
 import glob
 import math
 import numpy as np
@@ -39,7 +42,7 @@ import lsst.afw.geom as afwGeom
 import lsst.afw.geom.ellipses as afwEll
 import lsst.afw.coord as afwCoord
 import lsst.afw.display.ds9 as ds9
-
+import lsst.utils.tests
 import lsst.meas.extensions.shapeHSM
 
 try:
@@ -48,10 +51,10 @@ except NameError:
     verbose = 0
     display = False
 
-SIZE_DECIMALS = 2 # Number of decimals for equality in sizes
-SHAPE_DECIMALS = 3 # Number of decimals for equality in shapes
+SIZE_DECIMALS = 2  # Number of decimals for equality in sizes
+SHAPE_DECIMALS = 3  # Number of decimals for equality in shapes
 
-### The following values are pulled directly from GalSim's test_hsm.py:
+# The following values are pulled directly from GalSim's test_hsm.py:
 file_indices = [0, 2, 4, 6, 8]
 x_centroid = [35.888, 19.44, 8.74, 20.193, 57.94]
 y_centroid = [19.845, 25.047, 11.92, 38.93, 27.73]
@@ -60,80 +63,81 @@ correction_methods = ["KSB", "BJ", "LINEAR", "REGAUSS"]
 # Note: expected results give shear for KSB and distortion for others, but the results below have
 # converted KSB expected results to distortion for the sake of consistency
 e1_expected = np.array([
-        [0.467603106752, 0.381211727, 0.398856937, 0.401755571],
-        [0.28618443944, 0.199222784, 0.233883543, 0.234257525],
-        [0.271533794146, 0.158049396, 0.183517068, 0.184893412],
-        [-0.293754156071, -0.457024541, 0.123946584, -0.609233462],
-        [0.557720893779, 0.374143023, 0.714147448, 0.435404409] ])
+    [0.467603106752, 0.381211727, 0.398856937, 0.401755571],
+    [0.28618443944, 0.199222784, 0.233883543, 0.234257525],
+    [0.271533794146, 0.158049396, 0.183517068, 0.184893412],
+    [-0.293754156071, -0.457024541, 0.123946584, -0.609233462],
+    [0.557720893779, 0.374143023, 0.714147448, 0.435404409]])
 e2_expected = np.array([
-        [-0.867225166489, -0.734855778, -0.777027588, -0.774684891],
-        [-0.469354341577, -0.395520479, -0.502540961, -0.464466257],
-        [-0.519775291311, -0.471589061, -0.574750641, -0.529664935],
-        [0.345688365839, -0.342047099, 0.120603755, -0.44609129428863525],
-        [0.525728304099, 0.370691830, 0.702724807, 0.433999442] ])
+    [-0.867225166489, -0.734855778, -0.777027588, -0.774684891],
+    [-0.469354341577, -0.395520479, -0.502540961, -0.464466257],
+    [-0.519775291311, -0.471589061, -0.574750641, -0.529664935],
+    [0.345688365839, -0.342047099, 0.120603755, -0.44609129428863525],
+    [0.525728304099, 0.370691830, 0.702724807, 0.433999442]])
 resolution_expected = np.array([
-        [0.796144249, 0.835624917, 0.835624917, 0.827796187],
-        [0.685023735, 0.699602704, 0.699602704, 0.659457638],
-        [0.634736458, 0.651040481, 0.651040481, 0.614663396],
-        [0.477027015, 0.477210752, 0.477210752, 0.423157447],
-        [0.595205998, 0.611824797, 0.611824797, 0.563582092] ])
+    [0.796144249, 0.835624917, 0.835624917, 0.827796187],
+    [0.685023735, 0.699602704, 0.699602704, 0.659457638],
+    [0.634736458, 0.651040481, 0.651040481, 0.614663396],
+    [0.477027015, 0.477210752, 0.477210752, 0.423157447],
+    [0.595205998, 0.611824797, 0.611824797, 0.563582092]])
 sigma_e_expected = np.array([
-        [0.016924826, 0.014637648, 0.014637648, 0.014465546],
-        [0.075769504, 0.073602324, 0.073602324, 0.064414520],
-        [0.110253112, 0.106222900, 0.106222900, 0.099357106],
-        [0.185276702, 0.184300955, 0.184300955, 0.173478300],
-        [0.073020065, 0.070270966, 0.070270966, 0.061856263] ])
-### End of GalSim's values
+    [0.016924826, 0.014637648, 0.014637648, 0.014465546],
+    [0.075769504, 0.073602324, 0.073602324, 0.064414520],
+    [0.110253112, 0.106222900, 0.106222900, 0.099357106],
+    [0.185276702, 0.184300955, 0.184300955, 0.173478300],
+    [0.073020065, 0.070270966, 0.070270966, 0.061856263]])
+# End of GalSim's values
 
 # These values calculated using GalSim's HSM as part of GalSim
 galsim_e1 = np.array([
-    [0.399292618036, 0.381213068962, 0.398856908083,  0.401749581099],
-    [0.155929282308, 0.199228107929, 0.233882278204,  0.234371587634],
-    [0.150018423796, 0.158052951097, 0.183515056968,  0.184561833739],
+    [0.399292618036, 0.381213068962, 0.398856908083, 0.401749581099],
+    [0.155929282308, 0.199228107929, 0.233882278204, 0.234371587634],
+    [0.150018423796, 0.158052951097, 0.183515056968, 0.184561833739],
     [-2.6984937191, -0.457033962011, 0.123932465911, -0.60886412859],
-    [0.33959621191,  0.374140143394, 0.713756918907,  0.43560180068],
-    ])
+    [0.33959621191, 0.374140143394, 0.713756918907, 0.43560180068],
+])
 galsim_e2 = np.array([
-    [-0.74053555727,  -0.734855830669, -0.777024209499, -0.774700462818],
-    [-0.25573053956,  -0.395517915487, -0.50251352787,  -0.464388132095],
+    [-0.74053555727, -0.734855830669, -0.777024209499, -0.774700462818],
+    [-0.25573053956, -0.395517915487, -0.50251352787, -0.464388132095],
     [-0.287168383598, -0.471584022045, -0.574719130993, -0.5296921134],
-    [3.1754450798,    -0.342054128647,  0.120592080057, -0.446093201637],
-    [0.320115834475,   0.370669454336,  0.702303349972,  0.433968126774],
-    ])
+    [3.1754450798, -0.342054128647, 0.120592080057, -0.446093201637],
+    [0.320115834475, 0.370669454336, 0.702303349972, 0.433968126774],
+])
 galsim_resolution = np.array([
-    [0.79614430666,  0.835625052452, 0.835625052452, 0.827822327614],
+    [0.79614430666, 0.835625052452, 0.835625052452, 0.827822327614],
     [0.685023903847, 0.699601829052, 0.699601829052, 0.659438848495],
     [0.634736537933, 0.651039719582, 0.651039719582, 0.614759743214],
-    [0.477026551962, 0.47721144557,  0.47721144557,  0.423227936029],
+    [0.477026551962, 0.47721144557, 0.47721144557, 0.423227936029],
     [0.595205545425, 0.611821532249, 0.611821532249, 0.563564240932],
-    ])
+])
 galsim_err = np.array([
     [0.0169247947633, 0.0146376201883, 0.0146376201883, 0.0144661813974],
     [0.0757696777582, 0.0736026018858, 0.0736026018858, 0.0644160583615],
-    [0.110252402723,  0.106222368777,  0.106222368777,  0.0993555411696],
-    [0.185278102756,  0.184301897883,  0.184301897883,  0.17346136272],
+    [0.110252402723, 0.106222368777, 0.106222368777, 0.0993555411696],
+    [0.185278102756, 0.184301897883, 0.184301897883, 0.17346136272],
     [0.0730196461082, 0.0702708885074, 0.0702708885074, 0.0618583671749],
-    ])
+])
 
-moments_expected = np.array([ # sigma, e1, e2
+moments_expected = np.array([  # sigma, e1, e2
     [2.24490427971, 0.336240686301, -0.627372910656],
     [1.9031778574, 0.150566105384, -0.245272792302],
     [1.77790760994, 0.112286123389, -0.286203939641],
     [1.45464873314, -0.155597168978, -0.102008266223],
     [1.63144648075, 0.22886961923, 0.228813588897],
-    ])
-centroid_expected = np.array([ # x, y
+])
+centroid_expected = np.array([  # x, y
     [36.218247328, 20.5678722157],
     [20.325744838, 25.4176650386],
     [9.54257706283, 12.6134786199],
     [20.6407850048, 39.5864802706],
     [58.5008586442, 28.2850942049],
-    ])
+])
+
 
 def makePluginAndCat(alg, name, control=None, metadata=False, centroid=None):
     print "Making plugin ", alg, name
     if control == None:
-        control=alg.ConfigClass()
+        control = alg.ConfigClass()
     schema = afwTable.SourceTable.makeMinimalSchema()
     if centroid:
         schema.addField(centroid + "_x", type=float)
@@ -151,6 +155,7 @@ def makePluginAndCat(alg, name, control=None, metadata=False, centroid=None):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+
 class ShapeTestCase(unittest.TestCase):
     """A test case for shape measurement"""
 
@@ -158,7 +163,7 @@ class ShapeTestCase(unittest.TestCase):
 
         # load the known values
         self.dataDir = os.path.join(os.getenv('MEAS_EXTENSIONS_SHAPEHSM_DIR'), "tests", "data")
-        self.bkgd = 1000.0 # standard for atlas image
+        self.bkgd = 1000.0  # standard for atlas image
         self.offset = afwGeom.Extent2I(1234, 1234)
         self.xy0 = afwGeom.Point2I(5678, 9876)
 
@@ -190,7 +195,7 @@ class ShapeTestCase(unittest.TestCase):
 
         exposure = afwImage.makeExposure(mimg)
         exposure.setWcs(afwImage.makeWcs(afwCoord.makeCoord(afwCoord.ICRS, 0. * afwGeom.degrees, 0. * afwGeom.degrees),
-                                         afwGeom.Point2D(1.0,1.0),
+                                         afwGeom.Point2D(1.0, 1.0),
                                          1.0/(2.53*3600.0), 0.0, 0.0, 1.0/(2.53*3600.0)))
 
         # load the corresponding test psf
@@ -228,7 +233,7 @@ class ShapeTestCase(unittest.TestCase):
 
         for (algNum, algName), (i, imageid) in itertools.product(enumerate(correction_methods),
                                                                  enumerate(file_indices)):
-            algorithmName = "ext_shapeHSM_HsmShape" + algName[0:1].upper() +algName[1:].lower()
+            algorithmName = "ext_shapeHSM_HsmShape" + algName[0:1].upper() + algName[1:].lower()
 
             source = self.runMeasurement(algorithmName, imageid, x_centroid[i], y_centroid[i], sky_var[i])
 
@@ -252,15 +257,15 @@ class ShapeTestCase(unittest.TestCase):
 
             tests = [
                 # label        known-value                            measured              tolerance
-                ["e1",         float(e1_expected[i][algNum]),         e1,             0.5*10**-SHAPE_DECIMALS],
-                ["e2",         float(e2_expected[i][algNum]),         e2,             0.5*10**-SHAPE_DECIMALS],
-                ["resolution", float(resolution_expected[i][algNum]), resolution,     0.5*10**-SIZE_DECIMALS],
+                ["e1", float(e1_expected[i][algNum]), e1, 0.5*10**-SHAPE_DECIMALS],
+                ["e2", float(e2_expected[i][algNum]), e2, 0.5*10**-SHAPE_DECIMALS],
+                ["resolution", float(resolution_expected[i][algNum]), resolution, 0.5*10**-SIZE_DECIMALS],
 
                 # sigma won't match exactly because
                 # we're using skyvar=mean(var) instead of measured value ... expected a difference
-                ["sigma",      float(sigma_e_expected[i][algNum]),    sigma,             0.07],
-                ["shapeStatus", 0,                          flags,             0],
-                ]
+                ["sigma", float(sigma_e_expected[i][algNum]), sigma, 0.07],
+                ["shapeStatus", 0, flags, 0],
+            ]
 
             for test in tests:
                 label, know, hsm, limit = test
@@ -281,11 +286,11 @@ class ShapeTestCase(unittest.TestCase):
     def testHsmSourceMoments(self):
         for (i, imageid) in enumerate(file_indices):
             source = self.runMeasurement("ext_shapeHSM_HsmSourceMoments", imageid, x_centroid[i], y_centroid[i],
-                                        sky_var[i])
+                                         sky_var[i])
             x = source.get("ext_shapeHSM_HsmSourceMoments_x")
             y = source.get("ext_shapeHSM_HsmSourceMoments_y")
             xx = source.get("ext_shapeHSM_HsmSourceMoments_xx")
-            yy= source.get("ext_shapeHSM_HsmSourceMoments_yy")
+            yy = source.get("ext_shapeHSM_HsmSourceMoments_yy")
             xy = source.get("ext_shapeHSM_HsmSourceMoments_xy")
 
             # Centroids from GalSim use the FITS lower-left corner of 1,1
@@ -311,8 +316,8 @@ class ShapeTestCase(unittest.TestCase):
             msConfig = base.SingleFrameMeasurementConfig()
             msConfig.algorithms.names = ["ext_shapeHSM_HsmPsfMoments"]
             plugin, cat = makePluginAndCat(lsst.meas.extensions.shapeHSM.HsmPsfMomentsAlgorithm,
-                "ext_shapeHSM_HsmPsfMoments", centroid="centroid",
-                control=lsst.meas.extensions.shapeHSM.HsmPsfMomentsControl())
+                                           "ext_shapeHSM_HsmPsfMoments", centroid="centroid",
+                                           control=lsst.meas.extensions.shapeHSM.HsmPsfMomentsControl())
             source = cat.addNew()
             source.set("centroid_x", 23)
             source.set("centroid_y", 34)
@@ -321,7 +326,7 @@ class ShapeTestCase(unittest.TestCase):
             x = source.get("ext_shapeHSM_HsmPsfMoments_x")
             y = source.get("ext_shapeHSM_HsmPsfMoments_y")
             xx = source.get("ext_shapeHSM_HsmPsfMoments_xx")
-            yy= source.get("ext_shapeHSM_HsmPsfMoments_yy")
+            yy = source.get("ext_shapeHSM_HsmPsfMoments_yy")
             xy = source.get("ext_shapeHSM_HsmPsfMoments_xy")
 
             self.assertAlmostEqual(x, 0.0, 3)
@@ -335,19 +340,13 @@ class ShapeTestCase(unittest.TestCase):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-def suite():
-    """Returns a suite containing all the test cases in this module."""
-    utilsTests.init()
+class TestMemory(lsst.utils.tests.MemoryTestCase):
+    pass
 
-    suites = []
-    suites += unittest.makeSuite(ShapeTestCase)
-    suites += unittest.makeSuite(utilsTests.MemoryTestCase)
 
-    return unittest.TestSuite(suites)
-
-def run(exit = False):
-    """Run the tests"""
-    utilsTests.run(suite(), exit)
+def setup_module(module):
+    lsst.utils.tests.init()
 
 if __name__ == "__main__":
-    run(True)
+    lsst.utils.tests.init()
+    unittest.main()
