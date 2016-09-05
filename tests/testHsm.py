@@ -340,6 +340,7 @@ class ShapeTestCase(unittest.TestCase):
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
+
 class TestMemory(lsst.utils.tests.MemoryTestCase):
     pass
 
