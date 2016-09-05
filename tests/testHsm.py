@@ -21,6 +21,7 @@
 # the GNU General Public License along with this program.  If not,
 # see <https://www.lsstcorp.org/LegalNotices/>.
 #
+from __future__ import print_function
 import re
 import os
 import sys
@@ -135,7 +136,7 @@ centroid_expected = np.array([  # x, y
 
 
 def makePluginAndCat(alg, name, control=None, metadata=False, centroid=None):
-    print "Making plugin ", alg, name
+    print("Making plugin ", alg, name)
     if control == None:
         control = alg.ConfigClass()
     schema = afwTable.SourceTable.makeMinimalSchema()
