@@ -22,7 +22,6 @@
  */
 
 #include "lsst/pex/exceptions.h"
-#include "lsst/pex/logging/Trace.h"
 #include "lsst/afw/image.h"
 #include "lsst/afw/detection/Psf.h"
 #include "lsst/afw/math/Statistics.h"

@@ -6,7 +6,6 @@ setupRequired(afw)
 setupRequired(daf_base)
 setupRequired(numpy)
 setupRequired(pex_exceptions)
-setupRequired(pex_logging)
 setupRequired(sconsUtils)
 setupRequired(utils)
 
