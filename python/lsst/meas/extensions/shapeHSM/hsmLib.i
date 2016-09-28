@@ -35,7 +35,6 @@ Various swigged-up C++ classes for testing
 %naturalvar;  // use const reference typemaps
 
 %{
-#include "lsst/pex/logging.h"
 #include "lsst/afw/image.h"
 #include "lsst/afw/cameraGeom.h"
 #include "lsst/afw/detection.h"
