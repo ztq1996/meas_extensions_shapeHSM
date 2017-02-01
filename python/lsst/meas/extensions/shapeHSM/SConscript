@@ -1,3 +1,4 @@
 # -*- python -*-
 from lsst.sconsUtils import scripts
-scripts.BasicSConscript.python(['hsmLib'])
+scripts.BasicSConscript.pybind11(['hsmMomentsControl',
+                                  'hsmShapeControl',])
