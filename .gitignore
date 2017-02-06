@@ -7,9 +7,6 @@
 .sconsign.dblite
 config.log
 examples/meas_shape
-python/lsst/meas/extensions/shapeHSM/hsmLib.py
-python/lsst/meas/extensions/shapeHSM/hsmLib_wrap.cc
-python/lsst/meas/extensions/shapeHSM/hsmLib_wrap.os
 tests/testshape
 tests/.tests
 ups/*.cfgc
