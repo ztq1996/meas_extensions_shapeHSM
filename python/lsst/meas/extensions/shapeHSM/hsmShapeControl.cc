@@ -37,7 +37,7 @@ PYBIND11_PLUGIN(_hsmShapeControl) {
     py::module mod("_hsmShapeControl", "Python wrapper for _hsmShapeControl library");
 
     /* Module level */
-    py::class_<HsmShapeAlgorithm, base::SimpleAlgorithm> clsHsmMomentsAlgorithm(mod, "HsmMomentsAlgorithm");
+    py::class_<HsmShapeAlgorithm, base::SimpleAlgorithm> clsHsmShapeAlgorithm(mod, "HsmShapeAlgorithm");
     py::class_<HsmShapeControl> clsHsmShapeControl(mod, "HsmShapeControl");
 
     py::class_<HsmShapeBjAlgorithm, HsmShapeAlgorithm> clsHsmShapeBjAlgorithm(mod, "HsmShapeBjAlgorithm");
@@ -83,6 +83,9 @@ PYBIND11_PLUGIN(_hsmShapeControl) {
     /* Members */
     LSST_DECLARE_CONTROL_FIELD(clsHsmShapeControl, HsmShapeControl, badMaskPlanes);
     LSST_DECLARE_CONTROL_FIELD(clsHsmShapeControl, HsmShapeControl, deblendNChild);
+
+    clsHsmShapeAlgorithm.def("measure", &HsmShapeAlgorithm::measure);
+    clsHsmShapeAlgorithm.def("fail", &HsmShapeAlgorithm::fail);
 
     return mod.ptr();
 }
