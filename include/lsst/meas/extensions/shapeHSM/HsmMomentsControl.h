@@ -102,6 +102,7 @@ protected:
         float const width            // PSF width estimate, for starting moments
     ) const;
 
+public:
     void fail(
         afw::table::SourceRecord & measRecord,
         meas::base::MeasurementError * error=NULL

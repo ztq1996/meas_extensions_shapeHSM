@@ -65,6 +65,8 @@ PYBIND11_PLUGIN(_hsmMomentsControl) {
     /* Members */
     LSST_DECLARE_CONTROL_FIELD(clsHsmSourceMomentsControl, HsmSourceMomentsControl, badMaskPlanes);
 
+    clsHsmMomentsAlgorithm.def("fail", &HsmMomentsAlgorithm::fail);
+
     return mod.ptr();
 }
 }
