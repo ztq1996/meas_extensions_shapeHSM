@@ -106,14 +106,14 @@ public:
  */
 class HsmShapeAlgorithm : public base::SimpleAlgorithm {
 public:
-    enum {
-        FAILURE=base::FlagHandler::FAILURE,
-        NO_PIXELS,
-        NOT_CONTAINED,
-        PARENT_SOURCE,
-        GALSIM,
-        N_FLAGS
-    };
+
+    // Structures and routines to manage flaghandler
+    static base::FlagDefinitionList const & getFlagDefinitions();
+    static base::FlagDefinition const FAILURE;
+    static base::FlagDefinition const NO_PIXELS;
+    static base::FlagDefinition const NOT_CONTAINED;
+    static base::FlagDefinition const PARENT_SOURCE;
+    static base::FlagDefinition const GALSIM;
 
     /// A typedef to the Control object for this algorithm, defined above.
     /// The control object contains the configuration parameters for this algorithm.
