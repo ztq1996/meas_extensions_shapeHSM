@@ -40,20 +40,6 @@
 namespace lsst { namespace meas { namespace extensions { namespace shapeHSM {
 
 namespace {
-lsst::meas::base::FlagDefinitionList flagDefinitions;
-} // end anonymous
-
-base::FlagDefinition const HsmShapeAlgorithm::FAILURE = flagDefinitions.addFailureFlag();
-base::FlagDefinition const HsmShapeAlgorithm::NO_PIXELS = flagDefinitions.add("flag_no_pixels", "no pixels to measure");
-base::FlagDefinition const HsmShapeAlgorithm::NOT_CONTAINED = flagDefinitions.add("flag_not_contained", "center not contained in footprint bounding box");
-base::FlagDefinition const HsmShapeAlgorithm::PARENT_SOURCE = flagDefinitions.add("flag_parent_source", "parent source, ignored");
-base::FlagDefinition const HsmShapeAlgorithm::GALSIM = flagDefinitions.add("flag_galsim", "GalSim failure");
-
-base::FlagDefinitionList const & HsmShapeAlgorithm::getFlagDefinitions() {
-    return flagDefinitions;
-}
-
-namespace {
 
 /// Return appropriate symbol for a measurement type
 char measTypeSymbol(MeasType measType)
@@ -128,7 +114,14 @@ HsmShapeAlgorithm::HsmShapeAlgorithm(
     _centroidExtractor(schema, name),
     _hasDeblendKey(_ctrl.deblendNChild.size() > 0)
 {
-    _flagHandler = base::FlagHandler::addFields(schema, name, getFlagDefinitions());
+    static std::array<base::FlagDefinition,N_FLAGS> const flagDefs = {{
+        {"flag", "general failure flag"},
+        {"flag_no_pixels", "no pixels to measure"},
+        {"flag_not_contained", "center not contained in footprint bounding box"},
+        {"flag_parent_source", "parent source, ignored"},
+        {"flag_galsim", "GalSim failure"},
+    }};
+    _flagHandler = base::FlagHandler::addFields(schema, name, flagDefs.begin(), flagDefs.end());
 
     if (_hasDeblendKey) {
         _deblendKey = schema[ctrl.deblendNChild];
@@ -141,7 +134,7 @@ void HsmShapeAlgorithm::measure(
 ) const {
     afw::geom::Point2D center = _centroidExtractor(source, _flagHandler);
     if (_hasDeblendKey && source.get(_deblendKey) > 0) {
-        throw LSST_EXCEPT(base::MeasurementError, "Ignoring parent source", PARENT_SOURCE.number);
+        throw LSST_EXCEPT(base::MeasurementError, "Ignoring parent source", PARENT_SOURCE);
     }
 
     std::vector<std::string> const & badMaskPlanes = _ctrl.badMaskPlanes;
@@ -152,15 +145,15 @@ void HsmShapeAlgorithm::measure(
     if (bbox.getArea() == 0) {
         throw LSST_EXCEPT(
             base::MeasurementError,
-            NO_PIXELS.doc,
-            NO_PIXELS.number
+            _flagHandler.getDefinition(NO_PIXELS).doc,
+            NO_PIXELS
         );
     }
     if (!bbox.contains(afw::geom::Point2I(center))) {
         throw LSST_EXCEPT(
             base::MeasurementError,
-            NOT_CONTAINED.doc,
-            NOT_CONTAINED.number
+            _flagHandler.getDefinition(NOT_CONTAINED).doc,
+            NOT_CONTAINED
         );
     }
 
@@ -195,7 +188,7 @@ void HsmShapeAlgorithm::measure(
                                                2.5*psfSigma, psfSigma, 1.0e-6,
                                                galsim::Position<double>(center.getX(), center.getY()));
     } catch (galsim::hsm::HSMError const& e) {
-        throw LSST_EXCEPT(base::MeasurementError, e.what(), GALSIM.number);
+        throw LSST_EXCEPT(base::MeasurementError, e.what(), GALSIM);
     }
 
     assert(shape.meas_type[0] == measTypeSymbol(_measType));
@@ -214,7 +207,7 @@ void HsmShapeAlgorithm::measure(
         assert(false);
     }
     source.set(_resolutionKey, shape.resolution_factor);
-    _flagHandler.setValue(source, FAILURE.number, shape.correction_status != 0);
+    _flagHandler.setValue(source, FAILURE, shape.correction_status != 0);
 }
 
 void HsmShapeAlgorithm::fail(afw::table::SourceRecord & measRecord, base::MeasurementError * error) const {

@@ -34,21 +34,7 @@
 #include "lsst/meas/extensions/shapeHSM/HsmAdapter.h"
 #include "lsst/meas/extensions/shapeHSM/HsmMomentsControl.h"
 
-namespace {
-lsst::meas::base::FlagDefinitionList flagDefinitions;
-} // end anonymous
-
 namespace lsst { namespace meas { namespace extensions { namespace shapeHSM {
-
-base::FlagDefinition const HsmMomentsAlgorithm::FAILURE = flagDefinitions.addFailureFlag();
-base::FlagDefinition const HsmMomentsAlgorithm::NO_PIXELS = flagDefinitions.add("flag_no_pixels", "no pixels to measure");
-base::FlagDefinition const HsmMomentsAlgorithm::NOT_CONTAINED = flagDefinitions.add("flag_not_contained", "center not contained in footprint bounding box");
-base::FlagDefinition const HsmMomentsAlgorithm::PARENT_SOURCE = flagDefinitions.add("flag_parent_source", "parent source, ignored");
-base::FlagDefinition const HsmMomentsAlgorithm::GALSIM("flag_galsim", "GalSim failure");
-
-base::FlagDefinitionList const & HsmMomentsAlgorithm::getFlagDefinitions() {
-    return flagDefinitions;
-}
 
 template<typename PixelT>
 void HsmMomentsAlgorithm::calculate(
@@ -71,7 +57,7 @@ void HsmMomentsAlgorithm::calculate(
                                                  width, 1.0e-6,
                                                  galsim::Position<double>(center.getX(), center.getY()));
     } catch (galsim::hsm::HSMError const& e) {
-        throw LSST_EXCEPT(base::MeasurementError, e.what(), GALSIM.number);
+        throw LSST_EXCEPT(base::MeasurementError, e.what(), GALSIM);
     }
 
     afw::geom::ellipses::DeterminantRadius const radius(shape.moments_sigma);
@@ -110,15 +96,15 @@ void HsmSourceMomentsAlgorithm::measure(
     if (bbox.getArea() == 0) {
         throw LSST_EXCEPT(
             base::MeasurementError,
-            NO_PIXELS.doc,
-            NO_PIXELS.number
+            _flagHandler.getDefinition(NO_PIXELS).doc,
+            NO_PIXELS
         );
     }
     if (!bbox.contains(afw::geom::Point2I(center))) {
         throw LSST_EXCEPT(
             base::MeasurementError,
-            NOT_CONTAINED.doc,
-            NOT_CONTAINED.number
+            _flagHandler.getDefinition(NOT_CONTAINED).doc,
+            NOT_CONTAINED
         );
     }
 
