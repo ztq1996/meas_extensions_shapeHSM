@@ -37,20 +37,20 @@ PYBIND11_PLUGIN(_hsmShapeControl) {
     py::module mod("_hsmShapeControl", "Python wrapper for _hsmShapeControl library");
 
     /* Module level */
-    py::class_<HsmShapeAlgorithm, base::SimpleAlgorithm> clsHsmShapeAlgorithm(mod, "HsmShapeAlgorithm");
+    py::class_<HsmShapeAlgorithm, std::shared_ptr<HsmShapeAlgorithm>, base::SimpleAlgorithm> clsHsmShapeAlgorithm(mod, "HsmShapeAlgorithm");
     py::class_<HsmShapeControl> clsHsmShapeControl(mod, "HsmShapeControl");
 
-    py::class_<HsmShapeBjAlgorithm, HsmShapeAlgorithm> clsHsmShapeBjAlgorithm(mod, "HsmShapeBjAlgorithm");
+    py::class_<HsmShapeBjAlgorithm, std::shared_ptr<HsmShapeBjAlgorithm>, HsmShapeAlgorithm> clsHsmShapeBjAlgorithm(mod, "HsmShapeBjAlgorithm");
     py::class_<HsmShapeBjControl, HsmShapeControl> clsHsmShapeBjControl(mod, "HsmShapeBjControl");
 
-    py::class_<HsmShapeLinearAlgorithm, HsmShapeAlgorithm> clsHsmShapeLinearAlgorithm(
+    py::class_<HsmShapeLinearAlgorithm, std::shared_ptr<HsmShapeLinearAlgorithm>, HsmShapeAlgorithm> clsHsmShapeLinearAlgorithm(
         mod, "HsmShapeLinearAlgorithm");
     py::class_<HsmShapeLinearControl, HsmShapeControl> clsHsmShapeLinearControl(mod, "HsmShapeLinearControl");
 
-    py::class_<HsmShapeKsbAlgorithm, HsmShapeAlgorithm> clsHsmShapeKsbAlgorithm(mod, "HsmShapeKsbAlgorithm");
+    py::class_<HsmShapeKsbAlgorithm, std::shared_ptr<HsmShapeKsbAlgorithm>, HsmShapeAlgorithm> clsHsmShapeKsbAlgorithm(mod, "HsmShapeKsbAlgorithm");
     py::class_<HsmShapeKsbControl, HsmShapeControl> clsHsmShapeKsbControl(mod, "HsmShapeKsbControl");
 
-    py::class_<HsmShapeRegaussAlgorithm, HsmShapeAlgorithm> clsHsmShapeRegaussAlgorithm(
+    py::class_<HsmShapeRegaussAlgorithm, std::shared_ptr<HsmShapeRegaussAlgorithm>, HsmShapeAlgorithm> clsHsmShapeRegaussAlgorithm(
         mod, "HsmShapeRegaussAlgorithm");
     py::class_<HsmShapeRegaussControl, HsmShapeControl> clsHsmShapeRegaussControl(mod,
                                                                                   "HsmShapeRegaussControl");
