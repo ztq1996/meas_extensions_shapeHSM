@@ -221,7 +221,7 @@ class ShapeTestCase(unittest.TestCase):
         source = table.makeRecord()
         source.set("centroid_x", center.getX())
         source.set("centroid_y", center.getY())
-        source.setFootprint(afwDetection.Footprint(exposure.getBBox(afwImage.PARENT)))
+        source.setFootprint(afwDetection.Footprint(afwGeom.SpanSet(exposure.getBBox(afwImage.PARENT))))
         plugin.measure(source, exposure)
 
         return source
@@ -322,7 +322,9 @@ class ShapeTestCase(unittest.TestCase):
             source = cat.addNew()
             source.set("centroid_x", 23)
             source.set("centroid_y", 34)
-            source.setFootprint(afwDetection.Footprint(afwGeom.Point2I(23, 34), width))
+            offset = afwGeom.Point2I(23, 34)
+            tmpSpans = afwGeom.SpanSet.fromShape(int(width), offset=offset)
+            source.setFootprint(afwDetection.Footprint(tmpSpans))
             plugin.measure(source, exposure)
             x = source.get("ext_shapeHSM_HsmPsfMoments_x")
             y = source.get("ext_shapeHSM_HsmPsfMoments_y")
