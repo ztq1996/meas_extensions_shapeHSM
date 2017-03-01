@@ -37,13 +37,13 @@ PYBIND11_PLUGIN(_hsmMomentsControl) {
     py::module mod("_hsmMomentsControl", "Python wrapper for _hsmMomentsControl library");
 
     /* Module level */
-    py::class_<HsmMomentsAlgorithm, base::SimpleAlgorithm> clsHsmMomentsAlgorithm(mod, "HsmMomentsAlgorithm");
+    py::class_<HsmMomentsAlgorithm, std::shared_ptr<HsmMomentsAlgorithm>, base::SimpleAlgorithm> clsHsmMomentsAlgorithm(mod, "HsmMomentsAlgorithm");
 
-    py::class_<HsmSourceMomentsAlgorithm, HsmMomentsAlgorithm> clsHsmSourceMomentsAlgorithm(
+    py::class_<HsmSourceMomentsAlgorithm, std::shared_ptr<HsmSourceMomentsAlgorithm>, HsmMomentsAlgorithm> clsHsmSourceMomentsAlgorithm(
         mod, "HsmSourceMomentsAlgorithm");
     py::class_<HsmSourceMomentsControl> clsHsmSourceMomentsControl(mod, "HsmSourceMomentsControl");
 
-    py::class_<HsmPsfMomentsAlgorithm, HsmMomentsAlgorithm> clsHsmPsfMomentsAlgorithm(
+    py::class_<HsmPsfMomentsAlgorithm, std::shared_ptr<HsmPsfMomentsAlgorithm>, HsmMomentsAlgorithm> clsHsmPsfMomentsAlgorithm(
         mod, "HsmPsfMomentsAlgorithm");
     py::class_<HsmPsfMomentsControl> clsHsmPsfMomentsControl(mod, "HsmPsfMomentsControl");
 
