@@ -23,7 +23,7 @@
 //#include <pybind11/stl.h>
 
 #include "lsst/meas/extensions/shapeHSM/HsmShapeControl.h"
-#include "lsst/pex/config/pybind11.h"
+#include "lsst/pex/config/python.h"
 
 namespace py = pybind11;
 using namespace pybind11::literals;
