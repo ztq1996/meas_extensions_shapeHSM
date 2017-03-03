@@ -63,13 +63,16 @@ public:
 /// Use this to consolidate common code for HsmSourceMoments and HsmPsfMoments
 class HsmMomentsAlgorithm : public base::SimpleAlgorithm {
 public:
-    enum {
-        FAILURE = base::FlagHandler::FAILURE,
-        NO_PIXELS,
-        NOT_CONTAINED,
-        GALSIM,
-        N_FLAGS
-    };
+
+    // Structures and routines to manage flaghandler
+    static base::FlagDefinitionList const & getFlagDefinitions();
+    static base::FlagDefinition const FAILURE;
+    static base::FlagDefinition const NO_PIXELS;
+    static base::FlagDefinition const NOT_CONTAINED;
+    static base::FlagDefinition const PARENT_SOURCE;
+    static base::FlagDefinition const GALSIM;
+
+    typedef HsmMomentsControl Control;
 
 protected:
     HsmMomentsAlgorithm(std::string const & name, afw::table::Schema & schema, char const* doc) :
@@ -81,13 +84,7 @@ protected:
     ),
     _centroidExtractor(schema, name)
     {
-        static std::array<base::FlagDefinition, N_FLAGS> const flagDefs = {{
-                {"flag", "general failure flag, set if anything went wrong"},
-                {"flag_no_pixels", "no pixels to measure"},
-                {"flag_not_contained", "center not contained in footprint bounding box"},
-                {"flag_galsim", "GalSim error"},
-            }};
-        _flagHandler = base::FlagHandler::addFields(schema, name, flagDefs.begin(), flagDefs.end());
+        _flagHandler = base::FlagHandler::addFields(schema, name, getFlagDefinitions());
     }
 
     /// Calculate moments
