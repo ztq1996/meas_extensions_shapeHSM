@@ -22,11 +22,13 @@
 
 """lsst.meas.extensions.shapeHSM
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, division, print_function
 
 from lsst.meas.base import BasePlugin, wrapSimpleAlgorithm
 
-from .hsmLib import *
+from .hsmMomentsControl import *
+from .hsmShapeControl import *
+
 from .version import *
 
 wrapSimpleAlgorithm(HsmShapeBjAlgorithm, name="ext_shapeHSM_HsmShapeBj",

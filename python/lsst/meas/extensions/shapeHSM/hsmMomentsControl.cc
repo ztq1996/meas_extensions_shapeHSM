@@ -19,8 +19,7 @@
  * the GNU General Public License along with this program.  If not,
  * see <https://www.lsstcorp.org/LegalNotices/>.
  */
-#include <pybind11/pybind11.h>
-//#include <pybind11/stl.h>
+#include "pybind11/pybind11.h"
 
 #include "lsst/meas/extensions/shapeHSM/HsmMomentsControl.h"
 #include "lsst/pex/config/python.h"
@@ -33,8 +32,11 @@ namespace meas {
 namespace extensions {
 namespace shapeHSM {
 
-PYBIND11_PLUGIN(_hsmMomentsControl) {
-    py::module mod("_hsmMomentsControl", "Python wrapper for _hsmMomentsControl library");
+PYBIND11_PLUGIN(hsmMomentsControl) {
+    py::module::import("lsst.afw.table");
+    py::module::import("lsst.meas.base");
+
+    py::module mod("hsmMomentsControl");
 
     /* Module level */
     py::class_<HsmMomentsAlgorithm, std::shared_ptr<HsmMomentsAlgorithm>, base::SimpleAlgorithm>
@@ -48,8 +50,6 @@ PYBIND11_PLUGIN(_hsmMomentsControl) {
             clsHsmPsfMomentsAlgorithm(mod, "HsmPsfMomentsAlgorithm");
     py::class_<HsmPsfMomentsControl> clsHsmPsfMomentsControl(mod, "HsmPsfMomentsControl");
 
-    /* Member types and enums */
-
     /* Constructors */
     clsHsmSourceMomentsAlgorithm.def(
             py::init<HsmSourceMomentsAlgorithm::Control const &, std::string const &, afw::table::Schema &>(),
@@ -61,8 +61,6 @@ PYBIND11_PLUGIN(_hsmMomentsControl) {
             "ctrl"_a, "name"_a, "schema"_a);
     clsHsmPsfMomentsControl.def(py::init<>());
 
-    /* Operators */
-
     /* Members */
     LSST_DECLARE_CONTROL_FIELD(clsHsmSourceMomentsControl, HsmSourceMomentsControl, badMaskPlanes);
 
@@ -70,7 +68,8 @@ PYBIND11_PLUGIN(_hsmMomentsControl) {
 
     return mod.ptr();
 }
-}
-}
-}
-}  // lsst::meas::extensions::shapeHSM
+
+}  // shapeHSM
+}  // extensions
+}  // meas
+}  // lsst

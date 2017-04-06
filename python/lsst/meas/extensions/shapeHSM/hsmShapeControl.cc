@@ -19,8 +19,7 @@
  * the GNU General Public License along with this program.  If not,
  * see <https://www.lsstcorp.org/LegalNotices/>.
  */
-#include <pybind11/pybind11.h>
-//#include <pybind11/stl.h>
+#include "pybind11/pybind11.h"
 
 #include "lsst/meas/extensions/shapeHSM/HsmShapeControl.h"
 #include "lsst/pex/config/python.h"
@@ -33,8 +32,11 @@ namespace meas {
 namespace extensions {
 namespace shapeHSM {
 
-PYBIND11_PLUGIN(_hsmShapeControl) {
-    py::module mod("_hsmShapeControl", "Python wrapper for _hsmShapeControl library");
+PYBIND11_PLUGIN(hsmShapeControl) {
+    py::module::import("lsst.afw.table");
+    py::module::import("lsst.meas.base");
+
+    py::module mod("hsmShapeControl");
 
     /* Module level */
     py::class_<HsmShapeAlgorithm, std::shared_ptr<HsmShapeAlgorithm>, base::SimpleAlgorithm>
@@ -57,9 +59,6 @@ PYBIND11_PLUGIN(_hsmShapeControl) {
             clsHsmShapeRegaussAlgorithm(mod, "HsmShapeRegaussAlgorithm");
     py::class_<HsmShapeRegaussControl, HsmShapeControl> clsHsmShapeRegaussControl(mod,
                                                                                   "HsmShapeRegaussControl");
-
-    /* Member types and enums */
-
     /* Constructors */
     clsHsmShapeBjAlgorithm.def(
             py::init<HsmShapeBjAlgorithm::Control const &, std::string const &, afw::table::Schema &>(),
@@ -81,8 +80,6 @@ PYBIND11_PLUGIN(_hsmShapeControl) {
             "ctrl"_a, "name"_a, "schema"_a);
     clsHsmShapeRegaussControl.def(py::init<>());
 
-    /* Operators */
-
     /* Members */
     LSST_DECLARE_CONTROL_FIELD(clsHsmShapeControl, HsmShapeControl, badMaskPlanes);
     LSST_DECLARE_CONTROL_FIELD(clsHsmShapeControl, HsmShapeControl, deblendNChild);
@@ -92,7 +89,8 @@ PYBIND11_PLUGIN(_hsmShapeControl) {
 
     return mod.ptr();
 }
-}
-}
-}
-}  // lsst::meas::extensions::shapeHSM
+
+}  // shapeHSM
+}  // extensions
+}  // meas
+}  // lsst
