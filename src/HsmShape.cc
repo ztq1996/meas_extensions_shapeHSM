@@ -28,8 +28,6 @@
 
 #include "lsst/afw/table/Source.h"
 #include "lsst/afw/detection/Psf.h"
-#include "lsst/afw/detection/FootprintArray.h"
-#include "lsst/afw/detection/FootprintArray.cc"
 
 #include "galsim/Image.h"
 #include "galsim/hsm/PSFCorr.h"
