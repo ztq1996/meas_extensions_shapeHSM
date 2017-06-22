@@ -179,7 +179,7 @@ class ShapeTestCase(unittest.TestCase):
         img = afwImage.ImageF(imgFile)
         img -= self.bkgd
         nx, ny = img.getWidth(), img.getHeight()
-        msk = afwImage.MaskU(afwGeom.Extent2I(nx, ny), 0x0)
+        msk = afwImage.Mask(afwGeom.Extent2I(nx, ny), 0x0)
         var = afwImage.ImageF(afwGeom.Extent2I(nx, ny), v)
         mimg = afwImage.MaskedImageF(img, msk, var)
         msk.getArray()[:] = np.where(np.fabs(img.getArray()) < 1.0e-8, msk.getPlaneBitMask("BAD"), 0)
