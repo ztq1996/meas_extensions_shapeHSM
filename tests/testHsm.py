@@ -195,9 +195,12 @@ class ShapeTestCase(unittest.TestCase):
         mimg.setXY0(self.xy0)
 
         exposure = afwImage.makeExposure(mimg)
-        exposure.setWcs(afwImage.makeWcs(afwCoord.IcrsCoord(0. * afwGeom.degrees, 0. * afwGeom.degrees),
-                                         afwGeom.Point2D(1.0, 1.0),
-                                         1.0/(2.53*3600.0), 0.0, 0.0, 1.0/(2.53*3600.0)))
+        cdMatrix = np.array([1.0/(2.53*3600.0), 0.0, 0.0, 1.0/(2.53*3600.0)])
+        cdMatrix.shape = (2, 2)
+        exposure.setWcs(afwGeom.makeSkyWcs(crpix=afwGeom.Point2D(1.0, 1.0),
+                                           crval=afwCoord.IcrsCoord(0*afwGeom.degrees,
+                                                                    0*afwGeom.degrees),
+                                           cdMatrix=cdMatrix))
 
         # load the corresponding test psf
         psfFile = os.path.join(self.dataDir, "psf.%d.fits" % imageid)
