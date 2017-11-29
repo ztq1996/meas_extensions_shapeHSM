@@ -134,6 +134,14 @@ centroid_expected = np.array([  # x, y
     [58.5008586442, 28.2850942049],
 ])
 
+round_moments_expected = np.array([  # sigma, e1, e2, flux, x, y
+    [2.40270376205, 0.197810277343, -0.372329413891, 3740.22436523, 36.4032272633, 20.4847916447],
+    [1.89714717865, 0.046496052295, -0.0987404286861, 776.709594727, 20.2893584046, 25.4230368047],
+    [1.77995181084, 0.0416346564889, -0.143147706985, 534.59197998, 9.51994111869, 12.6250775205],
+    [1.46549296379, -0.0831127092242, -0.0628845766187, 348.294403076, 20.6242279632, 39.5941625731],
+    [1.64031589031, 0.0867517963052, 0.0940798297524, 793.374450684, 58.4728765002, 28.2686937854],
+])
+
 
 def makePluginAndCat(alg, name, control=None, metadata=False, centroid=None):
     print("Making plugin ", alg, name)
@@ -286,8 +294,8 @@ class ShapeTestCase(unittest.TestCase):
 
     def testHsmSourceMoments(self):
         for (i, imageid) in enumerate(file_indices):
-            source = self.runMeasurement("ext_shapeHSM_HsmSourceMoments", imageid, x_centroid[i], y_centroid[i],
-                                         sky_var[i])
+            source = self.runMeasurement("ext_shapeHSM_HsmSourceMoments", imageid, x_centroid[i],
+                                         y_centroid[i], sky_var[i])
             x = source.get("ext_shapeHSM_HsmSourceMoments_x")
             y = source.get("ext_shapeHSM_HsmSourceMoments_y")
             xx = source.get("ext_shapeHSM_HsmSourceMoments_xx")
@@ -305,6 +313,31 @@ class ShapeTestCase(unittest.TestCase):
             self.assertAlmostEqual(xx, expected.getIxx(), SHAPE_DECIMALS)
             self.assertAlmostEqual(xy, expected.getIxy(), SHAPE_DECIMALS)
             self.assertAlmostEqual(yy, expected.getIyy(), SHAPE_DECIMALS)
+
+    def testHsmSourceMomentsRound(self):
+        for (i, imageid) in enumerate(file_indices):
+            source = self.runMeasurement("ext_shapeHSM_HsmSourceMomentsRound", imageid, x_centroid[i], y_centroid[i],
+                                         sky_var[i])
+            x = source.get("ext_shapeHSM_HsmSourceMomentsRound_x")
+            y = source.get("ext_shapeHSM_HsmSourceMomentsRound_y")
+            xx = source.get("ext_shapeHSM_HsmSourceMomentsRound_xx")
+            yy = source.get("ext_shapeHSM_HsmSourceMomentsRound_yy")
+            xy = source.get("ext_shapeHSM_HsmSourceMomentsRound_xy")
+            flux = source.get("ext_shapeHSM_HsmSourceMomentsRound_Flux")
+
+            # Centroids from GalSim use the FITS lower-left corner of 1,1
+            offset = self.xy0 + self.offset
+            self.assertAlmostEqual(x - offset.getX(), round_moments_expected[i][4] - 1, 3)
+            self.assertAlmostEqual(y - offset.getY(), round_moments_expected[i][5] - 1, 3)
+
+            expected = afwEll.Quadrupole(afwEll.SeparableDistortionDeterminantRadius(
+                round_moments_expected[i][1], round_moments_expected[i][2], round_moments_expected[i][0]))
+            self.assertAlmostEqual(xx, expected.getIxx(), SHAPE_DECIMALS)
+            self.assertAlmostEqual(xy, expected.getIxy(), SHAPE_DECIMALS)
+            self.assertAlmostEqual(yy, expected.getIyy(), SHAPE_DECIMALS)
+
+            self.assertAlmostEqual(flux, round_moments_expected[i][3], SHAPE_DECIMALS)
+
 
     def testHsmPsfMoments(self):
         for width in (2.0, 3.0, 4.0):
