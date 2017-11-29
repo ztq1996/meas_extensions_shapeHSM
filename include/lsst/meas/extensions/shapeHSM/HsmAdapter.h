@@ -37,7 +37,7 @@ public:
         // in the box and stride.
         PixelT* ptr = reinterpret_cast<PixelT*>(array.getData() + (_box.getMinY() - _image->getY0())*stride +
                                                 _box.getMinX() - _image->getX0());
-        return galsim::ImageView<PixelT>(ptr, _owner, stride, bounds);
+        return galsim::ImageView<PixelT>(ptr, _owner, 1, stride, bounds);
     }
 
 #if 0
