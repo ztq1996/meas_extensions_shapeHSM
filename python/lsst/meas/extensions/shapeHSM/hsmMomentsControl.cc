@@ -45,6 +45,8 @@ PYBIND11_PLUGIN(hsmMomentsControl) {
     py::class_<HsmSourceMomentsAlgorithm, std::shared_ptr<HsmSourceMomentsAlgorithm>, HsmMomentsAlgorithm>
             clsHsmSourceMomentsAlgorithm(mod, "HsmSourceMomentsAlgorithm");
     py::class_<HsmSourceMomentsControl> clsHsmSourceMomentsControl(mod, "HsmSourceMomentsControl");
+    py::class_<HsmSourceMomentsRoundControl, HsmSourceMomentsControl>
+            clsHsmSourceMomentsRoundControl(mod, "HsmSourceMomentsRoundControl");
 
     py::class_<HsmPsfMomentsAlgorithm, std::shared_ptr<HsmPsfMomentsAlgorithm>, HsmMomentsAlgorithm>
             clsHsmPsfMomentsAlgorithm(mod, "HsmPsfMomentsAlgorithm");
@@ -55,6 +57,7 @@ PYBIND11_PLUGIN(hsmMomentsControl) {
             py::init<HsmSourceMomentsAlgorithm::Control const &, std::string const &, afw::table::Schema &>(),
             "ctrl"_a, "name"_a, "schema"_a);
     clsHsmSourceMomentsControl.def(py::init<>());
+    clsHsmSourceMomentsRoundControl.def(py::init<>());
 
     clsHsmPsfMomentsAlgorithm.def(
             py::init<HsmPsfMomentsAlgorithm::Control const &, std::string const &, afw::table::Schema &>(),
@@ -63,6 +66,8 @@ PYBIND11_PLUGIN(hsmMomentsControl) {
 
     /* Members */
     LSST_DECLARE_CONTROL_FIELD(clsHsmSourceMomentsControl, HsmSourceMomentsControl, badMaskPlanes);
+    LSST_DECLARE_CONTROL_FIELD(clsHsmSourceMomentsControl, HsmSourceMomentsControl, roundMoments);
+    LSST_DECLARE_CONTROL_FIELD(clsHsmSourceMomentsControl, HsmSourceMomentsControl, addFlux);
 
     clsHsmMomentsAlgorithm.def("fail", &HsmMomentsAlgorithm::fail);
 

@@ -40,16 +40,33 @@ class HsmMomentsControl {
 class HsmSourceMomentsControl {
 public:
     LSST_CONTROL_FIELD(badMaskPlanes, std::vector<std::string>, "Mask planes used to reject bad pixels.");
+    LSST_CONTROL_FIELD(roundMoments, bool, "Use round weight function?");
+    LSST_CONTROL_FIELD(addFlux, bool, "Store measured flux?");
 
     HsmSourceMomentsControl(HsmSourceMomentsControl const & other) :
-        badMaskPlanes(other.badMaskPlanes) {}
+        badMaskPlanes(other.badMaskPlanes), roundMoments(other.roundMoments), addFlux(other.addFlux) {}
 
-    HsmSourceMomentsControl() {
+    HsmSourceMomentsControl() :
+        roundMoments(false),
+        addFlux(false)
+    {
         badMaskPlanes.push_back("BAD");
         badMaskPlanes.push_back("SAT");
         badMaskPlanes.push_back("INTRP");
     }
 };
+
+
+class HsmSourceMomentsRoundControl : public HsmSourceMomentsControl {
+public:
+    HsmSourceMomentsRoundControl(HsmSourceMomentsRoundControl const & other) : HsmSourceMomentsControl(other) {}
+
+    HsmSourceMomentsRoundControl() : HsmSourceMomentsControl() {
+        roundMoments = true;
+        addFlux = true;
+    }
+};
+
 
 class HsmPsfMomentsControl {
 public:
@@ -96,7 +113,9 @@ protected:
         afw::geom::Box2I const& bbox,     // Bounding box
         afw::geom::Point2D const& center, // Starting center for measuring moments
         afw::image::MaskPixel const badPixelMask, // Bitmask for bad pixels
-        float const width            // PSF width estimate, for starting moments
+        float const width,            // PSF width estimate, for starting moments
+        bool roundMoments=false, // Use round weight function
+        bool addFlux=false // add Flux to output
     ) const;
 
 public:
@@ -111,6 +130,7 @@ protected:
     base::ShapeResultKey _momentsKey;
     base::FlagHandler _flagHandler;
     base::SafeCentroidExtractor _centroidExtractor;
+    afw::table::Key<float> _fluxKey;
 };
 
 
@@ -123,7 +143,12 @@ public:
 
     /// @brief Initialize with standard field names and customized documentation.
     HsmSourceMomentsAlgorithm(Control const & ctrl, std::string const & name, afw::table::Schema & schema) :
-        HsmMomentsAlgorithm(name, schema, "Source adaptive moments algorithm from HSM"), _ctrl(ctrl) {}
+        HsmMomentsAlgorithm(name, schema, "Source adaptive moments algorithm from HSM"), _ctrl(ctrl)
+    {
+        if (ctrl.addFlux) {
+            _fluxKey = schema.addField<float>(name + "_Flux", "HSM flux");
+        }
+    }
 
     void measure(
         afw::table::SourceRecord & measRecord,

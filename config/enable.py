@@ -6,7 +6,7 @@
 
 import lsst.meas.extensions.shapeHSM
 config.plugins.names |= ["ext_shapeHSM_HsmShapeRegauss", "ext_shapeHSM_HsmSourceMoments",
-                         "ext_shapeHSM_HsmPsfMoments"]
+                         "ext_shapeHSM_HsmPsfMoments", "ext_shapeHSM_HsmSourceMomentsRound",]
 config.slots.shape = "ext_shapeHSM_HsmSourceMoments"
 config.slots.psfShape = "ext_shapeHSM_HsmPsfMoments"
 

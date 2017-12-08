@@ -58,7 +58,9 @@ void HsmMomentsAlgorithm::calculate(
     afw::geom::Box2I const& bbox,
     afw::geom::Point2D const& center,
     afw::image::MaskPixel const badPixelMask,
-    float const width
+    float const width,
+    bool roundMoments,
+    bool addFlux
 ) const {
     ImageConverter<PixelT> const image(afwImage, bbox);
     PTR(afw::image::Image<int>) hsmMask = convertMask(*afwMask, bbox, badPixelMask);
@@ -69,7 +71,7 @@ void HsmMomentsAlgorithm::calculate(
         // GalSim's HSM uses the FITS convention of 1,1 for the lower-left corner
         shape = galsim::hsm::FindAdaptiveMomView(image.getImageView(), mask.getImageView(),
                                                  width, 1.0e-6,
-                                                 galsim::Position<double>(center.getX(), center.getY()));
+                                                 galsim::Position<double>(center.getX(), center.getY()), roundMoments);
     } catch (galsim::hsm::HSMError const& e) {
         throw LSST_EXCEPT(base::MeasurementError, e.what(), GALSIM.number);
     }
@@ -86,6 +88,10 @@ void HsmMomentsAlgorithm::calculate(
     base::ShapeResult shapeResult;
     shapeResult.setShape(Ellipse(ellip, radius));
     source.set(_momentsKey, shapeResult);
+    if (addFlux) {
+        assert(_fluxKey.isValid());
+        source.set(_fluxKey, shape.moments_amp);
+    }
     // XXX calculate errors in shape, centroid?
 
 }
@@ -125,8 +131,9 @@ void HsmSourceMomentsAlgorithm::measure(
     double const psfSigma = exposure.getPsf()->computeShape(center).getTraceRadius();
 
     HsmMomentsAlgorithm::calculate(source, exposure.getMaskedImage().getImage(),
-                          exposure.getMaskedImage().getMask(),
-                          bbox, center, badPixelMask, 2.5*psfSigma);
+                                   exposure.getMaskedImage().getMask(),
+                                   bbox, center, badPixelMask, 2.5*psfSigma, _ctrl.roundMoments,
+                                   _ctrl.addFlux);
 }
 
 void HsmPsfMomentsAlgorithm::measure(
