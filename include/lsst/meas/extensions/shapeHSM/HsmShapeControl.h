@@ -61,13 +61,11 @@ public:
     HsmShapeControl() : _name("") {
         badMaskPlanes.push_back("BAD");
         badMaskPlanes.push_back("SAT");
-        badMaskPlanes.push_back("INTRP");
     }
 
     HsmShapeControl(std::string const & name) : _name(name) {
         badMaskPlanes.push_back("BAD");
         badMaskPlanes.push_back("SAT");
-        badMaskPlanes.push_back("INTRP");
     }
 
 private:
