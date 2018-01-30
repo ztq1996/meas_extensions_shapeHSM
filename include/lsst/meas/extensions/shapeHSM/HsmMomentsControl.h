@@ -52,7 +52,6 @@ public:
     {
         badMaskPlanes.push_back("BAD");
         badMaskPlanes.push_back("SAT");
-        badMaskPlanes.push_back("INTRP");
     }
 };
 
