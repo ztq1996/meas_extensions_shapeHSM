@@ -22,27 +22,21 @@
 # see <https://www.lsstcorp.org/LegalNotices/>.
 #
 from __future__ import absolute_import, division, print_function
-import re
 import os
-import sys
-import glob
-import math
 import numpy as np
 import unittest
 import itertools
 
-import lsst.pex.exceptions as pexExceptions
 import lsst.afw.image as afwImage
 import lsst.afw.math as afwMath
+from lsst.daf.base import PropertySet
 import lsst.meas.base as base
 import lsst.meas.algorithms as algorithms
-import lsst.utils.tests as utilsTests
 import lsst.afw.detection as afwDetection
 import lsst.afw.table as afwTable
 import lsst.afw.geom as afwGeom
 import lsst.afw.geom.ellipses as afwEll
 import lsst.afw.coord as afwCoord
-import lsst.afw.display.ds9 as ds9
 import lsst.utils.tests
 import lsst.meas.extensions.shapeHSM
 
@@ -145,7 +139,7 @@ round_moments_expected = np.array([  # sigma, e1, e2, flux, x, y
 
 def makePluginAndCat(alg, name, control=None, metadata=False, centroid=None):
     print("Making plugin ", alg, name)
-    if control == None:
+    if control is None:
         control = alg.ConfigClass()
     schema = afwTable.SourceTable.makeMinimalSchema()
     if centroid:
@@ -154,15 +148,13 @@ def makePluginAndCat(alg, name, control=None, metadata=False, centroid=None):
         schema.addField(centroid + "_flag", type='Flag')
         schema.getAliasMap().set("slot_Centroid", centroid)
     if metadata:
-        plugin = alg(control, name, schema, dafBase.PropertySet())
+        plugin = alg(control, name, schema, PropertySet())
     else:
         plugin = alg(control, name, schema)
     cat = afwTable.SourceCatalog(schema)
     if centroid:
         cat.defineCentroid(centroid)
     return plugin, cat
-
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 
 class ShapeTestCase(unittest.TestCase):
@@ -203,9 +195,12 @@ class ShapeTestCase(unittest.TestCase):
         mimg.setXY0(self.xy0)
 
         exposure = afwImage.makeExposure(mimg)
-        exposure.setWcs(afwImage.makeWcs(afwCoord.makeCoord(afwCoord.ICRS, 0. * afwGeom.degrees, 0. * afwGeom.degrees),
-                                         afwGeom.Point2D(1.0, 1.0),
-                                         1.0/(2.53*3600.0), 0.0, 0.0, 1.0/(2.53*3600.0)))
+        cdMatrix = np.array([1.0/(2.53*3600.0), 0.0, 0.0, 1.0/(2.53*3600.0)])
+        cdMatrix.shape = (2, 2)
+        exposure.setWcs(afwGeom.makeSkyWcs(crpix=afwGeom.Point2D(1.0, 1.0),
+                                           crval=afwCoord.IcrsCoord(0*afwGeom.degrees,
+                                                                    0*afwGeom.degrees),
+                                           cdMatrix=cdMatrix))
 
         # load the corresponding test psf
         psfFile = os.path.join(self.dataDir, "psf.%d.fits" % imageid)
@@ -294,8 +289,8 @@ class ShapeTestCase(unittest.TestCase):
 
     def testHsmSourceMoments(self):
         for (i, imageid) in enumerate(file_indices):
-            source = self.runMeasurement("ext_shapeHSM_HsmSourceMoments", imageid, x_centroid[i],
-                                         y_centroid[i], sky_var[i])
+            source = self.runMeasurement("ext_shapeHSM_HsmSourceMoments", imageid,
+                                         x_centroid[i], y_centroid[i], sky_var[i])
             x = source.get("ext_shapeHSM_HsmSourceMoments_x")
             y = source.get("ext_shapeHSM_HsmSourceMoments_y")
             xx = source.get("ext_shapeHSM_HsmSourceMoments_xx")
@@ -316,8 +311,8 @@ class ShapeTestCase(unittest.TestCase):
 
     def testHsmSourceMomentsRound(self):
         for (i, imageid) in enumerate(file_indices):
-            source = self.runMeasurement("ext_shapeHSM_HsmSourceMomentsRound", imageid, x_centroid[i], y_centroid[i],
-                                         sky_var[i])
+            source = self.runMeasurement("ext_shapeHSM_HsmSourceMomentsRound", imageid,
+                                         x_centroid[i], y_centroid[i], sky_var[i])
             x = source.get("ext_shapeHSM_HsmSourceMomentsRound_x")
             y = source.get("ext_shapeHSM_HsmSourceMomentsRound_y")
             xx = source.get("ext_shapeHSM_HsmSourceMomentsRound_xx")
@@ -337,7 +332,6 @@ class ShapeTestCase(unittest.TestCase):
             self.assertAlmostEqual(yy, expected.getIyy(), SHAPE_DECIMALS)
 
             self.assertAlmostEqual(flux, round_moments_expected[i][3], SHAPE_DECIMALS)
-
 
     def testHsmPsfMoments(self):
         for width in (2.0, 3.0, 4.0):
@@ -374,8 +368,6 @@ class ShapeTestCase(unittest.TestCase):
             self.assertAlmostEqual(xy, expected.getIxy(), SHAPE_DECIMALS)
             self.assertAlmostEqual(yy, expected.getIyy(), SHAPE_DECIMALS)
 
-#-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-
 
 class TestMemory(lsst.utils.tests.MemoryTestCase):
     pass
@@ -383,6 +375,7 @@ class TestMemory(lsst.utils.tests.MemoryTestCase):
 
 def setup_module(module):
     lsst.utils.tests.init()
+
 
 if __name__ == "__main__":
     lsst.utils.tests.init()
