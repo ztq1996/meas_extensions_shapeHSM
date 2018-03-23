@@ -36,7 +36,6 @@ import lsst.afw.detection as afwDetection
 import lsst.afw.table as afwTable
 import lsst.afw.geom as afwGeom
 import lsst.afw.geom.ellipses as afwEll
-import lsst.afw.coord as afwCoord
 import lsst.utils.tests
 import lsst.meas.extensions.shapeHSM
 
@@ -198,8 +197,7 @@ class ShapeTestCase(unittest.TestCase):
         cdMatrix = np.array([1.0/(2.53*3600.0), 0.0, 0.0, 1.0/(2.53*3600.0)])
         cdMatrix.shape = (2, 2)
         exposure.setWcs(afwGeom.makeSkyWcs(crpix=afwGeom.Point2D(1.0, 1.0),
-                                           crval=afwCoord.IcrsCoord(0*afwGeom.degrees,
-                                                                    0*afwGeom.degrees),
+                                           crval=afwGeom.SpherePoint(0, 0, afwGeom.degrees),
                                            cdMatrix=cdMatrix))
 
         # load the corresponding test psf
