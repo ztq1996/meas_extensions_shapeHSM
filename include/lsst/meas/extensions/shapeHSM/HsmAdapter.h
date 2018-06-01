@@ -3,6 +3,7 @@
 
 #include "boost/shared_ptr.hpp"
 
+#include "lsst/afw/geom/Box.h"
 #include "lsst/afw/image/Image.h"
 #include "galsim/Image.h"
 

@@ -5,6 +5,7 @@ _build.*
 *.pyc
 *.so
 .cache
+.pytest_cache
 pytest_session.txt
 .sconf_temp
 .sconsign.dblite
