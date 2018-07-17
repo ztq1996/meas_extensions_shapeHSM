@@ -32,9 +32,11 @@ namespace meas {
 namespace extensions {
 namespace shapeHSM {
 
-PYBIND11_MODULE(hsmShapeControl, mod) {
+PYBIND11_PLUGIN(hsmShapeControl) {
     py::module::import("lsst.afw.table");
     py::module::import("lsst.meas.base");
+
+    py::module mod("hsmShapeControl");
 
     /* Module level */
     py::class_<HsmShapeAlgorithm, std::shared_ptr<HsmShapeAlgorithm>, base::SimpleAlgorithm>
@@ -84,6 +86,8 @@ PYBIND11_MODULE(hsmShapeControl, mod) {
 
     clsHsmShapeAlgorithm.def("measure", &HsmShapeAlgorithm::measure);
     clsHsmShapeAlgorithm.def("fail", &HsmShapeAlgorithm::fail);
+
+    return mod.ptr();
 }
 
 }  // shapeHSM
