@@ -32,11 +32,9 @@ namespace meas {
 namespace extensions {
 namespace shapeHSM {
 
-PYBIND11_PLUGIN(hsmMomentsControl) {
+PYBIND11_MODULE(hsmMomentsControl, mod) {
     py::module::import("lsst.afw.table");
     py::module::import("lsst.meas.base");
-
-    py::module mod("hsmMomentsControl");
 
     /* Module level */
     py::class_<HsmMomentsAlgorithm, std::shared_ptr<HsmMomentsAlgorithm>, base::SimpleAlgorithm>
@@ -70,8 +68,6 @@ PYBIND11_PLUGIN(hsmMomentsControl) {
     LSST_DECLARE_CONTROL_FIELD(clsHsmSourceMomentsControl, HsmSourceMomentsControl, addFlux);
 
     clsHsmMomentsAlgorithm.def("fail", &HsmMomentsAlgorithm::fail);
-
-    return mod.ptr();
 }
 
 }  // shapeHSM
