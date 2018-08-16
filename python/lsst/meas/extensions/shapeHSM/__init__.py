@@ -22,8 +22,6 @@
 
 """lsst.meas.extensions.shapeHSM
 """
-from __future__ import absolute_import, division, print_function
-
 from lsst.meas.base import BasePlugin, wrapSimpleAlgorithm
 
 from .hsmMomentsControl import *
