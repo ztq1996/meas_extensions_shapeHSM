@@ -38,12 +38,6 @@ import lsst.afw.geom.ellipses as afwEll
 import lsst.utils.tests
 import lsst.meas.extensions.shapeHSM
 
-try:
-    type(verbose)
-except NameError:
-    verbose = 0
-    display = False
-
 SIZE_DECIMALS = 2  # Number of decimals for equality in sizes
 SHAPE_DECIMALS = 3  # Number of decimals for equality in shapes
 
