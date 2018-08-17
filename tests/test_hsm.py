@@ -21,7 +21,6 @@
 # the GNU General Public License along with this program.  If not,
 # see <https://www.lsstcorp.org/LegalNotices/>.
 #
-from __future__ import absolute_import, division, print_function
 import os
 import numpy as np
 import unittest
@@ -38,12 +37,6 @@ import lsst.afw.geom as afwGeom
 import lsst.afw.geom.ellipses as afwEll
 import lsst.utils.tests
 import lsst.meas.extensions.shapeHSM
-
-try:
-    type(verbose)
-except NameError:
-    verbose = 0
-    display = False
 
 SIZE_DECIMALS = 2  # Number of decimals for equality in sizes
 SHAPE_DECIMALS = 3  # Number of decimals for equality in shapes
