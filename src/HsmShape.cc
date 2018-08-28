@@ -186,13 +186,14 @@ void HsmShapeAlgorithm::measure(
     double const skyvar = stat.getValue(afw::math::MEDIAN);
     double const psfSigma = exposure.getPsf()->computeShape(center).getTraceRadius();
 
-    galsim::hsm::CppShapeData shape, psfShape;
+    galsim::hsm::ShapeData shape, psfShape;
 
     try {
-        shape = galsim::hsm::EstimateShearView(image.getImageView(), psfImage.getImageView(),
-                                               mask.getImageView(), skyvar, _shearType.c_str(), "FIT",
-                                               2.5*psfSigma, psfSigma, 1.0e-6,
-                                               galsim::Position<double>(center.getX(), center.getY()));
+        galsim::hsm::EstimateShearView(shape,
+                                       image.getImageView(), psfImage.getImageView(),
+                                       mask.getImageView(), skyvar, _shearType.c_str(), "FIT",
+                                       2.5*psfSigma, psfSigma, 1.0e-6,
+                                       galsim::Position<double>(center.getX(), center.getY()));
     } catch (galsim::hsm::HSMError const& e) {
         throw LSST_EXCEPT(base::MeasurementError, e.what(), GALSIM.number);
     }

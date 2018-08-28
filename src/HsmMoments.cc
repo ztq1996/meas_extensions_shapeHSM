@@ -66,12 +66,13 @@ void HsmMomentsAlgorithm::calculate(
     PTR(afw::image::Image<int>) hsmMask = convertMask(*afwMask, bbox, badPixelMask);
     ImageConverter<int> const mask(hsmMask, bbox);
 
-    galsim::hsm::CppShapeData shape;
+    galsim::hsm::ShapeData shape;
     try {
         // GalSim's HSM uses the FITS convention of 1,1 for the lower-left corner
-        shape = galsim::hsm::FindAdaptiveMomView(image.getImageView(), mask.getImageView(),
-                                                 width, 1.0e-6,
-                                                 galsim::Position<double>(center.getX(), center.getY()), roundMoments);
+        galsim::hsm::FindAdaptiveMomView(shape,
+                                         image.getImageView(), mask.getImageView(),
+                                         width, 1.0e-6,
+                                         galsim::Position<double>(center.getX(), center.getY()), roundMoments);
     } catch (galsim::hsm::HSMError const& e) {
         throw LSST_EXCEPT(base::MeasurementError, e.what(), GALSIM.number);
     }
