@@ -62,7 +62,7 @@ public:
 
 private:
     PTR(afw::image::Image<PixelT>) _image;
-    shared_ptr<PixelT> _owner;
+    std::shared_ptr<PixelT> _owner;
     afw::geom::Box2I _box;
 };
 
