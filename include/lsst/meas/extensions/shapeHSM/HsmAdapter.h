@@ -1,8 +1,6 @@
 #ifndef LSST_MEAS_EXTENSIONS_SHAPEHSM_HSMADAPTER_H
 #define LSST_MEAS_EXTENSIONS_SHAPEHSM_HSMADAPTER_H
 
-#include "boost/shared_ptr.hpp"
-
 #include "lsst/afw/geom/Box.h"
 #include "lsst/afw/image/Image.h"
 #include "galsim/Image.h"
