@@ -9,5 +9,4 @@ meas_extensions_shapeHSM documentation preview
 .. toctree::
    :maxdepth: 1
 
-   meas_extensions_shapeHSM/index
    lsst.meas.extensions.shapeHSM/index
