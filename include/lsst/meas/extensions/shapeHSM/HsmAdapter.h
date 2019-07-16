@@ -1,7 +1,7 @@
 #ifndef LSST_MEAS_EXTENSIONS_SHAPEHSM_HSMADAPTER_H
 #define LSST_MEAS_EXTENSIONS_SHAPEHSM_HSMADAPTER_H
 
-#include "lsst/afw/geom/Box.h"
+#include "lsst/geom/Box.h"
 #include "lsst/afw/image/Image.h"
 #include "galsim/Image.h"
 
@@ -19,7 +19,7 @@ public:
     /// doesn't allow us to access a shared_ptr to the pixels.  Instead, we use a
     /// dummy shared ptr to a single (new) pixel.  The ImageConverter is holding
     /// on to this too (RAII) so we shouldn't have any memory worries.
-    ImageConverter(PTR(afw::image::Image<PixelT>) image, afw::geom::Box2I box) :
+    ImageConverter(PTR(afw::image::Image<PixelT>) image, geom::Box2I box) :
         _image(image), _owner(new PixelT), _box(box) {}
     ImageConverter(PTR(afw::image::Image<PixelT>) image) :
         _image(image), _owner(new PixelT), _box(image->getBBox(afw::image::LOCAL)) {}
@@ -63,7 +63,7 @@ public:
 private:
     PTR(afw::image::Image<PixelT>) _image;
     std::shared_ptr<PixelT> _owner;
-    afw::geom::Box2I _box;
+    geom::Box2I _box;
 };
 
 
@@ -73,7 +73,7 @@ private:
 inline
 PTR(afw::image::Image<int>) convertMask(
     afw::image::Mask<afw::image::MaskPixel> const& afwMask, ///< Traditional afw Mask using mask planes
-    afw::geom::Box2I const& bbox,            ///< Bounding box of interest
+    geom::Box2I const& bbox,            ///< Bounding box of interest
     afw::image::MaskPixel const badPixelMask ///< Mask for selecting bad pixels
     )
 {

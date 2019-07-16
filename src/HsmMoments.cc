@@ -55,8 +55,8 @@ void HsmMomentsAlgorithm::calculate(
     afw::table::SourceRecord& source,
     PTR(afw::image::Image<PixelT>) const& afwImage,
     PTR(afw::image::Mask<afw::image::MaskPixel>) const& afwMask,
-    afw::geom::Box2I const& bbox,
-    afw::geom::Point2D const& center,
+    geom::Box2I const& bbox,
+    geom::Point2D const& center,
     afw::image::MaskPixel const badPixelMask,
     float const width,
     bool roundMoments,
@@ -108,12 +108,12 @@ void HsmSourceMomentsAlgorithm::measure(
     afw::image::Exposure<float> const & exposure
 ) const {
 
-    afw::geom::Point2D center = _centroidExtractor(source, _flagHandler);
+    geom::Point2D center = _centroidExtractor(source, _flagHandler);
 
     std::vector<std::string> const & badMaskPlanes = _ctrl.badMaskPlanes;
     afw::image::MaskPixel badPixelMask = exposure.getMaskedImage().getMask()->getPlaneBitMask(badMaskPlanes);
 
-    afw::geom::Box2I bbox = source.getFootprint()->getBBox();
+    geom::Box2I bbox = source.getFootprint()->getBBox();
     if (bbox.getArea() == 0) {
         throw LSST_EXCEPT(
             base::MeasurementError,
@@ -121,7 +121,7 @@ void HsmSourceMomentsAlgorithm::measure(
             NO_PIXELS.number
         );
     }
-    if (!bbox.contains(afw::geom::Point2I(center))) {
+    if (!bbox.contains(geom::Point2I(center))) {
         throw LSST_EXCEPT(
             base::MeasurementError,
             NOT_CONTAINED.doc,
@@ -142,7 +142,7 @@ void HsmPsfMomentsAlgorithm::measure(
     afw::image::Exposure<float> const & exposure
 ) const {
 
-    afw::geom::Point2D center = _centroidExtractor(source, _flagHandler);
+    geom::Point2D center = _centroidExtractor(source, _flagHandler);
 
     typedef afw::image::Mask<afw::image::MaskPixel> Mask;
     PTR(afw::detection::Psf::Image) image = exposure.getPsf()->computeKernelImage(center);
@@ -154,7 +154,7 @@ void HsmPsfMomentsAlgorithm::measure(
 
     double const psfSigma = exposure.getPsf()->computeShape(center).getTraceRadius();
     HsmMomentsAlgorithm::calculate(source, image, mask, image->getBBox(afw::image::PARENT),
-                                   afw::geom::Point2D(0, 0), 0, psfSigma);
+                                   geom::Point2D(0, 0), 0, psfSigma);
 }
 
 }}}} // namespace lsst::meas::extensions::shapeHSM
