@@ -22,7 +22,7 @@
  */
 
 #include "lsst/pex/exceptions.h"
-#include "lsst/afw/geom/Box.h"
+#include "lsst/geom/Box.h"
 #include "lsst/afw/image.h"
 #include "lsst/afw/detection/Psf.h"
 #include "lsst/afw/math/Statistics.h"
@@ -138,7 +138,7 @@ void HsmShapeAlgorithm::measure(
     afw::table::SourceRecord & source,
     afw::image::Exposure<float> const & exposure
 ) const {
-    afw::geom::Point2D center = _centroidExtractor(source, _flagHandler);
+    geom::Point2D center = _centroidExtractor(source, _flagHandler);
     if (_hasDeblendKey && source.get(_deblendKey) > 0) {
         throw LSST_EXCEPT(base::MeasurementError, "Ignoring parent source", PARENT_SOURCE.number);
     }
@@ -147,7 +147,7 @@ void HsmShapeAlgorithm::measure(
 
     afw::image::MaskPixel badPixelMask = exposure.getMaskedImage().getMask()->getPlaneBitMask(badMaskPlanes);
 
-    afw::geom::Box2I bbox = source.getFootprint()->getBBox();
+    geom::Box2I bbox = source.getFootprint()->getBBox();
     if (bbox.getArea() == 0) {
         throw LSST_EXCEPT(
             base::MeasurementError,
@@ -155,7 +155,7 @@ void HsmShapeAlgorithm::measure(
             NO_PIXELS.number
         );
     }
-    if (!bbox.contains(afw::geom::Point2I(center))) {
+    if (!bbox.contains(geom::Point2I(center))) {
         throw LSST_EXCEPT(
             base::MeasurementError,
             NOT_CONTAINED.doc,

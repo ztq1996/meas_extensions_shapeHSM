@@ -34,6 +34,7 @@ import lsst.meas.algorithms as algorithms
 import lsst.afw.detection as afwDetection
 import lsst.afw.table as afwTable
 import lsst.afw.geom as afwGeom
+import lsst.geom as geom
 import lsst.afw.geom.ellipses as afwEll
 import lsst.utils.tests
 import lsst.meas.extensions.shapeHSM
@@ -157,8 +158,8 @@ class ShapeTestCase(unittest.TestCase):
         # load the known values
         self.dataDir = os.path.join(os.getenv('MEAS_EXTENSIONS_SHAPEHSM_DIR'), "tests", "data")
         self.bkgd = 1000.0  # standard for atlas image
-        self.offset = afwGeom.Extent2I(1234, 1234)
-        self.xy0 = afwGeom.Point2I(5678, 9876)
+        self.offset = geom.Extent2I(1234, 1234)
+        self.xy0 = geom.Point2I(5678, 9876)
 
     def tearDown(self):
         del self.offset
@@ -171,8 +172,8 @@ class ShapeTestCase(unittest.TestCase):
         img = afwImage.ImageF(imgFile)
         img -= self.bkgd
         nx, ny = img.getWidth(), img.getHeight()
-        msk = afwImage.Mask(afwGeom.Extent2I(nx, ny), 0x0)
-        var = afwImage.ImageF(afwGeom.Extent2I(nx, ny), v)
+        msk = afwImage.Mask(geom.Extent2I(nx, ny), 0x0)
+        var = afwImage.ImageF(geom.Extent2I(nx, ny), v)
         mimg = afwImage.MaskedImageF(img, msk, var)
         msk.getArray()[:] = np.where(np.fabs(img.getArray()) < 1.0e-8, msk.getPlaneBitMask("BAD"), 0)
 
@@ -181,7 +182,7 @@ class ShapeTestCase(unittest.TestCase):
         big.getImage().set(0)
         big.getMask().set(0)
         big.getVariance().set(v)
-        subBig = afwImage.MaskedImageF(big, afwGeom.Box2I(big.getXY0() + self.offset, mimg.getDimensions()))
+        subBig = afwImage.MaskedImageF(big, geom.Box2I(big.getXY0() + self.offset, mimg.getDimensions()))
         subBig <<= mimg
         mimg = big
         mimg.setXY0(self.xy0)
@@ -189,8 +190,8 @@ class ShapeTestCase(unittest.TestCase):
         exposure = afwImage.makeExposure(mimg)
         cdMatrix = np.array([1.0/(2.53*3600.0), 0.0, 0.0, 1.0/(2.53*3600.0)])
         cdMatrix.shape = (2, 2)
-        exposure.setWcs(afwGeom.makeSkyWcs(crpix=afwGeom.Point2D(1.0, 1.0),
-                                           crval=afwGeom.SpherePoint(0, 0, afwGeom.degrees),
+        exposure.setWcs(afwGeom.makeSkyWcs(crpix=geom.Point2D(1.0, 1.0),
+                                           crval=geom.SpherePoint(0, 0, geom.degrees),
                                            cdMatrix=cdMatrix))
 
         # load the corresponding test psf
@@ -211,7 +212,7 @@ class ShapeTestCase(unittest.TestCase):
         # Algorithm._apply.  Otherwise, when the PSF is realised it will have been warped
         # to account for the sub-pixel offset and we won't get *exactly* this PSF.
         plugin, table = makePluginAndCat(alg, algorithmName, control, centroid="centroid")
-        center = afwGeom.Point2D(int(x), int(y)) + afwGeom.Extent2D(self.offset + afwGeom.Extent2I(self.xy0))
+        center = geom.Point2D(int(x), int(y)) + geom.Extent2D(self.offset + geom.Extent2I(self.xy0))
         source = table.makeRecord()
         source.set("centroid_x", center.getX())
         source.set("centroid_y", center.getY())
@@ -340,7 +341,7 @@ class ShapeTestCase(unittest.TestCase):
             source = cat.addNew()
             source.set("centroid_x", 23)
             source.set("centroid_y", 34)
-            offset = afwGeom.Point2I(23, 34)
+            offset = geom.Point2I(23, 34)
             tmpSpans = afwGeom.SpanSet.fromShape(int(width), offset=offset)
             source.setFootprint(afwDetection.Footprint(tmpSpans))
             plugin.measure(source, exposure)

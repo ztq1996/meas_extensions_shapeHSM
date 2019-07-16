@@ -109,8 +109,8 @@ protected:
         afw::table::SourceRecord& source, // Source for recording moments
         PTR(afw::image::Image<PixelT>) const& afwImage, // Image on which to measure moments
         PTR(afw::image::Mask<afw::image::MaskPixel>) const& afwMask, // Mask for image
-        afw::geom::Box2I const& bbox,     // Bounding box
-        afw::geom::Point2D const& center, // Starting center for measuring moments
+        geom::Box2I const& bbox,     // Bounding box
+        geom::Point2D const& center, // Starting center for measuring moments
         afw::image::MaskPixel const badPixelMask, // Bitmask for bad pixels
         float const width,            // PSF width estimate, for starting moments
         bool roundMoments=false, // Use round weight function
