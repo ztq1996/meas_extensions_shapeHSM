@@ -1,13 +1,10 @@
 setupRequired(meas_base)
 setupRequired(meas_algorithms)
-setupRequired(galsim)
 
 setupRequired(geom)
 setupRequired(afw)
 setupRequired(daf_base)
-setupRequired(numpy)
 setupRequired(pex_exceptions)
-setupRequired(pybind11)
 setupRequired(sconsUtils)
 setupRequired(utils)
 
