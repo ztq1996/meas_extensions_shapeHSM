@@ -183,7 +183,7 @@ class ShapeTestCase(unittest.TestCase):
         big.getMask().set(0)
         big.getVariance().set(v)
         subBig = afwImage.MaskedImageF(big, geom.Box2I(big.getXY0() + self.offset, mimg.getDimensions()))
-        subBig <<= mimg
+        subBig.assign(mimg)
         mimg = big
         mimg.setXY0(self.xy0)
 
