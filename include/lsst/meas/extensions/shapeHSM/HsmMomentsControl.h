@@ -107,8 +107,8 @@ protected:
     template<typename PixelT>
     void calculate(
         afw::table::SourceRecord& source, // Source for recording moments
-        PTR(afw::image::Image<PixelT>) const& afwImage, // Image on which to measure moments
-        PTR(afw::image::Mask<afw::image::MaskPixel>) const& afwMask, // Mask for image
+        std::shared_ptr<afw::image::Image<PixelT>> const& afwImage, // Image on which to measure moments
+        std::shared_ptr<afw::image::Mask<afw::image::MaskPixel>> const& afwMask, // Mask for image
         geom::Box2I const& bbox,     // Bounding box
         geom::Point2D const& center, // Starting center for measuring moments
         afw::image::MaskPixel const badPixelMask, // Bitmask for bad pixels

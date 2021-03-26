@@ -19,9 +19,9 @@ public:
     /// doesn't allow us to access a shared_ptr to the pixels.  Instead, we use a
     /// dummy shared ptr to a single (new) pixel.  The ImageConverter is holding
     /// on to this too (RAII) so we shouldn't have any memory worries.
-    ImageConverter(PTR(afw::image::Image<PixelT>) image, geom::Box2I box) :
+    ImageConverter(std::shared_ptr<afw::image::Image<PixelT>> image, geom::Box2I box) :
         _image(image), _owner(new PixelT), _box(box) {}
-    ImageConverter(PTR(afw::image::Image<PixelT>) image) :
+    ImageConverter(std::shared_ptr<afw::image::Image<PixelT>> image) :
         _image(image), _owner(new PixelT), _box(image->getBBox(afw::image::LOCAL)) {}
 
     /// Conversion
@@ -61,7 +61,7 @@ public:
 #endif
 
 private:
-    PTR(afw::image::Image<PixelT>) _image;
+    std::shared_ptr<afw::image::Image<PixelT>> _image;
     std::shared_ptr<PixelT> _owner;
     geom::Box2I _box;
 };
@@ -71,7 +71,7 @@ private:
 ///
 /// HSM uses a mask where 0 = bad, 1 = good.
 inline
-PTR(afw::image::Image<int>) convertMask(
+std::shared_ptr<afw::image::Image<int>> convertMask(
     afw::image::Mask<afw::image::MaskPixel> const& afwMask, ///< Traditional afw Mask using mask planes
     geom::Box2I const& bbox,            ///< Bounding box of interest
     afw::image::MaskPixel const badPixelMask ///< Mask for selecting bad pixels
@@ -79,7 +79,7 @@ PTR(afw::image::Image<int>) convertMask(
 {
     typedef afw::image::Image<int> ImageI;
     typedef afw::image::Mask<afw::image::MaskPixel> Mask;
-    PTR(ImageI) hsmMask = std::make_shared<ImageI>(bbox);
+    std::shared_ptr<ImageI> hsmMask = std::make_shared<ImageI>(bbox);
     for (int y = bbox.getMinY(); y <bbox.getMaxY(); ++y) {
         Mask::const_x_iterator in = afwMask.x_at(bbox.getMinX() - afwMask.getX0(), y - afwMask.getY0());
         ImageI::x_iterator out = hsmMask->row_begin(y - hsmMask->getY0());

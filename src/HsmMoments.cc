@@ -53,8 +53,8 @@ base::FlagDefinitionList const & HsmMomentsAlgorithm::getFlagDefinitions() {
 template<typename PixelT>
 void HsmMomentsAlgorithm::calculate(
     afw::table::SourceRecord& source,
-    PTR(afw::image::Image<PixelT>) const& afwImage,
-    PTR(afw::image::Mask<afw::image::MaskPixel>) const& afwMask,
+    std::shared_ptr<afw::image::Image<PixelT>> const& afwImage,
+    std::shared_ptr<afw::image::Mask<afw::image::MaskPixel>> const& afwMask,
     geom::Box2I const& bbox,
     geom::Point2D const& center,
     afw::image::MaskPixel const badPixelMask,
@@ -63,7 +63,7 @@ void HsmMomentsAlgorithm::calculate(
     bool addFlux
 ) const {
     ImageConverter<PixelT> const image(afwImage, bbox);
-    PTR(afw::image::Image<int>) hsmMask = convertMask(*afwMask, bbox, badPixelMask);
+    std::shared_ptr<afw::image::Image<int>> hsmMask = convertMask(*afwMask, bbox, badPixelMask);
     ImageConverter<int> const mask(hsmMask, bbox);
 
     galsim::hsm::ShapeData shape;
@@ -145,10 +145,10 @@ void HsmPsfMomentsAlgorithm::measure(
     geom::Point2D center = _centroidExtractor(source, _flagHandler);
 
     typedef afw::image::Mask<afw::image::MaskPixel> Mask;
-    PTR(afw::detection::Psf::Image) image = exposure.getPsf()->computeKernelImage(center);
+    std::shared_ptr<afw::detection::Psf::Image> image = exposure.getPsf()->computeKernelImage(center);
 
     // Create a dummy mask
-    PTR(Mask) mask = std::make_shared<Mask>(image->getDimensions());
+    std::shared_ptr<Mask> mask = std::make_shared<Mask>(image->getDimensions());
     *mask = 0;
     mask->setXY0(image->getXY0());
 
