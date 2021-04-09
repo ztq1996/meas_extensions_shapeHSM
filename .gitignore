@@ -16,3 +16,4 @@ tests/testshape
 tests/.tests
 ups/*.cfgc
 python/lsst/meas/extensions/shapeHSM/version.py
+.vscode
