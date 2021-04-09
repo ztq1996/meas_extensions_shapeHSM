@@ -43,3 +43,5 @@ wrapSimpleAlgorithm(HsmSourceMomentsAlgorithm, name="ext_shapeHSM_HsmSourceMomen
                     Control=HsmSourceMomentsRoundControl, executionOrder=BasePlugin.SHAPE_ORDER)
 wrapSimpleAlgorithm(HsmPsfMomentsAlgorithm, name="ext_shapeHSM_HsmPsfMoments",
                     Control=HsmPsfMomentsControl, executionOrder=BasePlugin.SHAPE_ORDER)
+wrapSimpleAlgorithm(HsmPsfMomentsDebiasedAlgorithm, name="ext_shapeHSM_HsmPsfMomentsDebiased",
+                    Control=HsmPsfMomentsDebiasedControl, executionOrder=BasePlugin.FLUX_ORDER+1)

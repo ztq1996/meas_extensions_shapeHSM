@@ -30,6 +30,7 @@
 #include "lsst/meas/base/CentroidUtilities.h"
 #include "lsst/meas/base/FlagHandler.h"
 #include "lsst/meas/base/InputUtilities.h"
+#include "lsst/afw/detection/Psf.h"
 
 namespace lsst { namespace meas { namespace extensions { namespace shapeHSM {
 
@@ -69,10 +70,50 @@ public:
 
 class HsmPsfMomentsControl {
 public:
-    HsmPsfMomentsControl() {}
+    LSST_CONTROL_FIELD(
+        useSourceCentroidOffset,
+        bool,
+        "Include subpixel source centroid offset when drawing PSF to be measured?"
+    );
 
-    HsmPsfMomentsControl(HsmPsfMomentsControl const & other) {}
+    HsmPsfMomentsControl() : useSourceCentroidOffset(false) {}
+
+    HsmPsfMomentsControl(HsmPsfMomentsControl const & other) :
+        useSourceCentroidOffset(other.useSourceCentroidOffset) {}
 };
+
+
+class HsmPsfMomentsDebiasedControl : public HsmPsfMomentsControl {
+public:
+    LSST_CONTROL_FIELD(
+        noiseSource,
+        std::string,
+        "Noise source.  How to choose variance of the zero-mean Gaussian noise added to image.\n"
+        "Allowed values:\n"
+        "  'meta': variance = the 'BGMEAN' metadata entry\n"
+        "  'variance': variance = the image's variance plane'\n"
+    );
+    LSST_CONTROL_FIELD(seedOffset, int, "Random seed offset");
+    LSST_CONTROL_FIELD(badMaskPlanes, std::vector<std::string>, "Mask planes used to reject bad pixels.");
+
+    HsmPsfMomentsDebiasedControl() :
+        HsmPsfMomentsControl(),
+        noiseSource("variance"),
+        seedOffset(0)
+    {
+        useSourceCentroidOffset=true;
+        badMaskPlanes.push_back("BAD");
+        badMaskPlanes.push_back("SAT");
+    }
+
+    HsmPsfMomentsDebiasedControl(HsmPsfMomentsDebiasedControl const & other) :
+        HsmPsfMomentsControl(other),
+        noiseSource(other.noiseSource),
+        seedOffset(other.seedOffset),
+        badMaskPlanes(other.badMaskPlanes)
+    {}
+};
+
 
 /// Base class to measure HSM adaptive moments
 ///
@@ -114,7 +155,8 @@ protected:
         afw::image::MaskPixel const badPixelMask, // Bitmask for bad pixels
         float const width,            // PSF width estimate, for starting moments
         bool roundMoments=false, // Use round weight function
-        bool addFlux=false // add Flux to output
+        bool addFlux=false, // add Flux to output
+        bool subtractCenter=false // subtract starting center from x/y outputs?
     ) const;
 
 public:
@@ -158,12 +200,13 @@ private:
     Control _ctrl;
 };
 
+
 /// Class to measure HSM adaptive moments of PSF
 class HsmPsfMomentsAlgorithm : public HsmMomentsAlgorithm {
 public:
     /// A typedef to the Control object for this algorithm, defined above.
     ///  The control object contains the configuration parameters for this algorithm.
-    typedef HsmPsfMomentsControl Control;
+    typedef std::shared_ptr<const HsmPsfMomentsControl> Control;
 
     /// @brief Initialize with standard field names and customized documentation.
     HsmPsfMomentsAlgorithm(Control const & ctrl, std::string const & name, afw::table::Schema & schema) :
@@ -174,8 +217,59 @@ public:
         afw::image::Exposure<float> const & exposure
     ) const;
 
-private:
+protected:
+    virtual std::shared_ptr<afw::detection::Psf::Image> getPsfImage(
+        geom::Point2D center,
+        afw::table::SourceRecord & source,
+        afw::image::Exposure<float> const & exposure
+    ) const;
+
+    virtual std::shared_ptr<afw::image::Mask<afw::image::MaskPixel>> getPsfMask(
+        geom::Point2D center,
+        afw::table::SourceRecord & source,
+        afw::image::Exposure<float> const & exposure
+    ) const;
+
+    virtual afw::image::MaskPixel const getBadPixelMask(
+        afw::image::Exposure<float> const & exposure
+    ) const { return 0; }
+
     Control _ctrl;
+};
+
+
+/// Measure PSF moments while making image signal-to-noise look similar to underlying star,
+/// thereby removing any signal-to-noise related biases.
+class HsmPsfMomentsDebiasedAlgorithm : public HsmPsfMomentsAlgorithm {
+public:
+    static base::FlagDefinition const EDGE;
+
+    typedef std::shared_ptr<const HsmPsfMomentsDebiasedControl> Control;
+
+    HsmPsfMomentsDebiasedAlgorithm(Control const & ctrl, std::string const & name, afw::table::Schema & schema) :
+        HsmPsfMomentsAlgorithm(ctrl, name, schema) {
+            auto thisCtrl = std::static_pointer_cast<Control::element_type>(_ctrl);
+            if ((thisCtrl->noiseSource != "meta") && (thisCtrl->noiseSource != "variance")) {
+                throw LSST_EXCEPT(base::MeasurementError, "invalid noiseSorce", FAILURE.number);
+            }
+        }
+
+private:
+    std::shared_ptr<afw::detection::Psf::Image> getPsfImage(
+        geom::Point2D center,
+        afw::table::SourceRecord & source,
+        afw::image::Exposure<float> const & exposure
+    ) const override;
+
+    std::shared_ptr<afw::image::Mask<afw::image::MaskPixel>> getPsfMask(
+        geom::Point2D center,
+        afw::table::SourceRecord & source,
+        afw::image::Exposure<float> const & exposure
+    ) const override;
+
+    afw::image::MaskPixel const getBadPixelMask(
+        afw::image::Exposure<float> const & exposure
+    ) const override;
 };
 }}}} // namespace lsst::meas::extensions::shapeHSM
 

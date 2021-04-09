@@ -20,6 +20,7 @@
  * see <https://www.lsstcorp.org/LegalNotices/>.
  */
 #include "pybind11/pybind11.h"
+#include "pybind11/stl.h"
 
 #include "lsst/meas/extensions/shapeHSM/HsmMomentsControl.h"
 #include "lsst/pex/config/python.h"
@@ -48,7 +49,14 @@ PYBIND11_MODULE(hsmMomentsControl, mod) {
 
     py::class_<HsmPsfMomentsAlgorithm, std::shared_ptr<HsmPsfMomentsAlgorithm>, HsmMomentsAlgorithm>
             clsHsmPsfMomentsAlgorithm(mod, "HsmPsfMomentsAlgorithm");
-    py::class_<HsmPsfMomentsControl> clsHsmPsfMomentsControl(mod, "HsmPsfMomentsControl");
+    py::class_<HsmPsfMomentsControl, std::shared_ptr<HsmPsfMomentsControl>>
+            clsHsmPsfMomentsControl(mod, "HsmPsfMomentsControl");
+
+    py::class_<HsmPsfMomentsDebiasedAlgorithm, std::shared_ptr<HsmPsfMomentsDebiasedAlgorithm>,
+               HsmPsfMomentsAlgorithm, HsmMomentsAlgorithm>
+            clsHsmPsfMomentsDebiasedAlgorithm(mod, "HsmPsfMomentsDebiasedAlgorithm");
+    py::class_<HsmPsfMomentsDebiasedControl, std::shared_ptr<HsmPsfMomentsDebiasedControl>>
+            clsHsmPsfMomentsDebiasedControl(mod, "HsmPsfMomentsDebiasedControl");
 
     /* Constructors */
     clsHsmSourceMomentsAlgorithm.def(
@@ -62,10 +70,25 @@ PYBIND11_MODULE(hsmMomentsControl, mod) {
             "ctrl"_a, "name"_a, "schema"_a);
     clsHsmPsfMomentsControl.def(py::init<>());
 
+    clsHsmPsfMomentsDebiasedAlgorithm.def(
+            py::init<HsmPsfMomentsDebiasedAlgorithm::Control const &,
+                     std::string const &,
+                     afw::table::Schema &>(),
+            "ctrl"_a, "name"_a, "schema"_a);
+    clsHsmPsfMomentsDebiasedControl.def(py::init<>());
+
     /* Members */
     LSST_DECLARE_CONTROL_FIELD(clsHsmSourceMomentsControl, HsmSourceMomentsControl, badMaskPlanes);
     LSST_DECLARE_CONTROL_FIELD(clsHsmSourceMomentsControl, HsmSourceMomentsControl, roundMoments);
     LSST_DECLARE_CONTROL_FIELD(clsHsmSourceMomentsControl, HsmSourceMomentsControl, addFlux);
+
+    LSST_DECLARE_CONTROL_FIELD(clsHsmPsfMomentsControl, HsmPsfMomentsControl, useSourceCentroidOffset);
+
+    LSST_DECLARE_CONTROL_FIELD(
+            clsHsmPsfMomentsDebiasedControl, HsmPsfMomentsDebiasedControl, useSourceCentroidOffset);
+    LSST_DECLARE_CONTROL_FIELD(clsHsmPsfMomentsDebiasedControl, HsmPsfMomentsDebiasedControl, noiseSource);
+    LSST_DECLARE_CONTROL_FIELD(clsHsmPsfMomentsDebiasedControl, HsmPsfMomentsDebiasedControl, seedOffset);
+    LSST_DECLARE_CONTROL_FIELD(clsHsmPsfMomentsDebiasedControl, HsmPsfMomentsDebiasedControl, badMaskPlanes);
 
     clsHsmMomentsAlgorithm.def("fail", &HsmMomentsAlgorithm::fail);
 }

@@ -93,7 +93,7 @@ public:
 };
 
 /*
- * @brief A measurement algorithm for measuring HSM shape 
+ * @brief A measurement algorithm for measuring HSM shape
  * HSM shape algorithm class - we use one class for all algorithms; all the specialized
  * work is done by the control class _makeAlgorithm implementations.
  *
