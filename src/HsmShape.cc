@@ -163,17 +163,17 @@ void HsmShapeAlgorithm::measure(
         );
     }
 
-    PTR(afw::detection::Psf::Image) psf = exposure.getPsf()->computeImage(center);
+    std::shared_ptr<afw::detection::Psf::Image> psf = exposure.getPsf()->computeImage(center);
     psf->setXY0(0, 0);
     ImageConverter<float> const image(exposure.getMaskedImage().getImage(), bbox);
     ImageConverter<afw::detection::Psf::Image::Pixel> const psfImage(psf);
 
     typedef afw::image::Image<int> ImageI;
-    PTR(afw::image::Exposure<float>::MaskedImageT::Mask) afwMask = exposure.getMaskedImage().getMask();
-    PTR(ImageI) hsmMask = convertMask(*afwMask, bbox, badPixelMask);
+    std::shared_ptr<afw::image::Exposure<float>::MaskedImageT::Mask> afwMask = exposure.getMaskedImage().getMask();
+    std::shared_ptr<ImageI> hsmMask = convertMask(*afwMask, bbox, badPixelMask);
     ImageConverter<int> const mask(hsmMask, bbox);
 
-    PTR(ImageI) dummyMask = std::make_shared<ImageI>(psf->getDimensions());
+    std::shared_ptr<ImageI> dummyMask = std::make_shared<ImageI>(psf->getDimensions());
     *dummyMask = 1;
     ImageConverter<int> const psfMask(dummyMask);
 
