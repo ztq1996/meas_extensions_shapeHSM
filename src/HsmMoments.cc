@@ -197,7 +197,7 @@ std::shared_ptr<afw::image::Mask<afw::image::MaskPixel>> HsmPsfMomentsAlgorithm:
     afw::image::Exposure<float> const & exposure
 ) const {
     auto psf = exposure.getPsf();
-    auto bbox = psf->computeBBox();
+    auto bbox = psf->computeBBox(center);
 
     // Add floor(center+0.5) to bbox to make it look like psf->computeImage()->getBBox()
     auto shift = geom::Extent2I(std::floor(center.getX()+0.5), std::floor(center.getY()+0.5));

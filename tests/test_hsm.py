@@ -334,13 +334,14 @@ class PyGaussianPsf(afwDetection.Psf):
     # via interpolation.  This is a subminimal implementation.  It works for the
     # tests here but isn't fully functional as a Psf class.
 
-    def __init__(self, width, height, sigma):
-        afwDetection.Psf.__init__(self, isFixed=True)
+    def __init__(self, width, height, sigma, varyBBox=False):
+        afwDetection.Psf.__init__(self, isFixed=not varyBBox)
         self.dimensions = geom.Extent2I(width, height)
         self.sigma = sigma
+        self.varyBBox = varyBBox  # To address DM-29863
 
     def _doComputeKernelImage(self, position=None, color=None):
-        bbox = self.computeBBox()
+        bbox = self.computeBBox(position, color)
         img = afwImage.Image(bbox, dtype=np.float64)
         x, y = np.ogrid[bbox.minY:bbox.maxY+1, bbox.minX:bbox.maxX+1]
         rsqr = x**2 + y**2
@@ -349,7 +350,7 @@ class PyGaussianPsf(afwDetection.Psf):
         return img
 
     def _doComputeImage(self, position=None, color=None):
-        bbox = self.computeBBox()
+        bbox = self.computeBBox(position, color)
         img = afwImage.Image(bbox, dtype=np.float64)
         y, x = np.ogrid[float(bbox.minY):bbox.maxY+1, bbox.minX:bbox.maxX+1]
         x -= (position.x - np.floor(position.x+0.5))
@@ -364,7 +365,12 @@ class PyGaussianPsf(afwDetection.Psf):
         return img
 
     def _doComputeBBox(self, position=None, color=None):
-        return geom.Box2I(geom.Point2I(-self.dimensions/2), self.dimensions)
+        # Variable size bbox for addressing DM-29863
+        dims = self.dimensions
+        if self.varyBBox:
+            if position.x > 20.0:
+                dims = dims + geom.Extent2I(2, 2)
+        return geom.Box2I(geom.Point2I(-dims/2), dims)
 
     def _doComputeShape(self, position=None, color=None):
         return afwGeom.ellipses.Quadrupole(self.sigma**2, self.sigma**2, 0.0)
@@ -384,8 +390,11 @@ class PsfMomentsTestCase(unittest.TestCase):
                     (22.81, 34.01),
                     (22.81, 33.99),
                     (1.2, 1.3),  # psfImage extends outside exposure; that's okay
+                    (-100.0, -100.0),
+                    (-100.5, -100.0),
+                    (-100.5, -100.5),
                 ]:
-                    psf = PyGaussianPsf(35, 35, width)
+                    psf = PyGaussianPsf(35, 35, width, varyBBox=True)
                     exposure = afwImage.ExposureF(45, 56)
                     exposure.getMaskedImage().set(1.0, 0, 1.0)
                     exposure.setPsf(psf)
