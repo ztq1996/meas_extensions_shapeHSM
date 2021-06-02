@@ -154,16 +154,24 @@ void HsmPsfMomentsAlgorithm::measure(
 ) const {
     geom::Point2D center = _centroidExtractor(source, _flagHandler);
 
+    auto psf = exposure.getPsf();
+    if (!psf) {
+        throw LSST_EXCEPT(base::MeasurementError, "Exposure lacks PSF", FAILURE.number);
+    }
+
+    // Goal below is to get an image+mask of the psf with a bbox like
+    // computeImageBBox(), even when useSourceCentroidOffset is False.
     auto psfImage = getPsfImage(center, source, exposure);
     auto psfMask = getPsfMask(center, source, exposure);
     auto badPixelMask = getBadPixelMask(exposure);
 
-    double const sigmaGuess = exposure.getPsf()->computeShape(center).getTraceRadius();
-    const geom::Point2D centroidGuess = (
-        _ctrl->useSourceCentroidOffset ?
-        center :
-        geom::Point2D(std::floor(center.getX()+0.5), std::floor(center.getY()+0.5))
-    );
+    double const sigmaGuess = psf->computeShape(center).getTraceRadius();
+
+    geom::Point2D centroidGuess = center;
+    if (!_ctrl->useSourceCentroidOffset) {
+        auto bbox = psf->computeImageBBox(center);
+        centroidGuess = geom::Point2D(bbox.getMin() + bbox.getDimensions()/2);
+    }
 
     bool roundMoments = false;
     bool addFlux = false;
@@ -179,14 +187,13 @@ std::shared_ptr<afw::detection::Psf::Image> HsmPsfMomentsAlgorithm::getPsfImage(
     afw::table::SourceRecord & source,
     afw::image::Exposure<float> const & exposure
 ) const {
+    auto psf = exposure.getPsf();
     if (_ctrl->useSourceCentroidOffset) {
-        return exposure.getPsf()->computeImage(center);
+        return psf->computeImage(center);
     } else {
-        auto psfImage = exposure.getPsf()->computeKernelImage(center);
-        psfImage->setXY0(
-            psfImage->getX0() + std::floor(center.getX() + 0.5),
-            psfImage->getY0() + std::floor(center.getY() + 0.5)
-        );
+        auto psfImage = psf->computeKernelImage(center);
+        auto bbox = psf->computeImageBBox(center);
+        psfImage->setXY0(bbox.getMin());
         return psfImage;
     }
 }
@@ -197,12 +204,7 @@ std::shared_ptr<afw::image::Mask<afw::image::MaskPixel>> HsmPsfMomentsAlgorithm:
     afw::image::Exposure<float> const & exposure
 ) const {
     auto psf = exposure.getPsf();
-    auto bbox = psf->computeBBox(center);
-
-    // Add floor(center+0.5) to bbox to make it look like psf->computeImage()->getBBox()
-    auto shift = geom::Extent2I(std::floor(center.getX()+0.5), std::floor(center.getY()+0.5));
-    bbox.shift(shift);
-
+    auto bbox = psf->computeImageBBox(center);
     auto mask = std::make_shared<afw::image::Mask<afw::image::MaskPixel>>(bbox);
     *mask = 0;
     return mask;
