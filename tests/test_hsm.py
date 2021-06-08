@@ -387,299 +387,336 @@ class PyGaussianPsf(afwDetection.Psf):
 class PsfMomentsTestCase(unittest.TestCase):
     """A test case for shape measurement"""
 
-    def testHsmPsfMoments(self):
-        for width in (2.0, 3.0, 4.0):
-            for useSourceCentroidOffset in [True, False]:
-                for varyBBox in [True, False]:
-                    for wrongBBox in [True, False]:
-                        for center in [
-                            (23.0, 34.0),  # various offsets that might cause trouble
-                            (23.5, 34.0),
-                            (23.5, 34.5),
-                            (23.15, 34.25),
-                            (22.81, 34.01),
-                            (22.81, 33.99),
-                            (1.2, 1.3),  # psfImage extends outside exposure; that's okay
-                            (-100.0, -100.0),
-                            (-100.5, -100.0),
-                            (-100.5, -100.5),
-                        ]:
-                            psf = PyGaussianPsf(
-                                35, 35, width,
-                                varyBBox=varyBBox,
-                                wrongBBox=wrongBBox
-                            )
-                            exposure = afwImage.ExposureF(45, 56)
-                            exposure.getMaskedImage().set(1.0, 0, 1.0)
-                            exposure.setPsf(psf)
+    @lsst.utils.tests.methodParameters(
+        # Make Cartesian product of settings to feed to methodParameters
+        **dict(list(zip(
+            (kwargs := dict(
+                width=(2.0, 3.0, 4.0),
+                useSourceCentroidOffset=(True, False),
+                varyBBox=(True, False),
+                wrongBBox=(True, False),
+                center=(
+                    (23.0, 34.0),  # various offsets that might cause trouble
+                    (23.5, 34.0),
+                    (23.5, 34.5),
+                    (23.15, 34.25),
+                    (22.81, 34.01),
+                    (22.81, 33.99),
+                    (1.2, 1.3),  # psfImage extends outside exposure; that's okay
+                    (-100.0, -100.0),
+                    (-100.5, -100.0),
+                    (-100.5, -100.5),
+                )
+            )).keys(),
+            zip(*itertools.product(*kwargs.values()))
+        )))
+    )
+    def testHsmPsfMoments(
+        self, width, useSourceCentroidOffset, varyBBox, wrongBBox, center
+    ):
+        psf = PyGaussianPsf(
+            35, 35, width,
+            varyBBox=varyBBox,
+            wrongBBox=wrongBBox
+        )
+        exposure = afwImage.ExposureF(45, 56)
+        exposure.getMaskedImage().set(1.0, 0, 1.0)
+        exposure.setPsf(psf)
 
-                            # perform the shape measurement
-                            msConfig = base.SingleFrameMeasurementConfig()
-                            msConfig.algorithms.names = ["ext_shapeHSM_HsmPsfMoments"]
-                            control = lsst.meas.extensions.shapeHSM.HsmPsfMomentsControl()
-                            self.assertFalse(control.useSourceCentroidOffset)
-                            control.useSourceCentroidOffset = useSourceCentroidOffset
-                            plugin, cat = makePluginAndCat(
-                                lsst.meas.extensions.shapeHSM.HsmPsfMomentsAlgorithm,
-                                "ext_shapeHSM_HsmPsfMoments", centroid="centroid",
-                                control=control)
-                            source = cat.addNew()
-                            source.set("centroid_x", center[0])
-                            source.set("centroid_y", center[1])
-                            offset = geom.Point2I(*center)
-                            tmpSpans = afwGeom.SpanSet.fromShape(int(width), offset=offset)
-                            source.setFootprint(afwDetection.Footprint(tmpSpans))
-                            plugin.measure(source, exposure)
-                            x = source.get("ext_shapeHSM_HsmPsfMoments_x")
-                            y = source.get("ext_shapeHSM_HsmPsfMoments_y")
-                            xx = source.get("ext_shapeHSM_HsmPsfMoments_xx")
-                            yy = source.get("ext_shapeHSM_HsmPsfMoments_yy")
-                            xy = source.get("ext_shapeHSM_HsmPsfMoments_xy")
-                            self.assertFalse(source.get("ext_shapeHSM_HsmPsfMoments_flag"))
-                            self.assertFalse(source.get("ext_shapeHSM_HsmPsfMoments_flag_no_pixels"))
-                            self.assertFalse(source.get("ext_shapeHSM_HsmPsfMoments_flag_not_contained"))
-                            self.assertFalse(source.get("ext_shapeHSM_HsmPsfMoments_flag_parent_source"))
+        # perform the shape measurement
+        msConfig = base.SingleFrameMeasurementConfig()
+        msConfig.algorithms.names = ["ext_shapeHSM_HsmPsfMoments"]
+        control = lsst.meas.extensions.shapeHSM.HsmPsfMomentsControl()
+        self.assertFalse(control.useSourceCentroidOffset)
+        control.useSourceCentroidOffset = useSourceCentroidOffset
+        plugin, cat = makePluginAndCat(
+            lsst.meas.extensions.shapeHSM.HsmPsfMomentsAlgorithm,
+            "ext_shapeHSM_HsmPsfMoments", centroid="centroid",
+            control=control)
+        source = cat.addNew()
+        source.set("centroid_x", center[0])
+        source.set("centroid_y", center[1])
+        offset = geom.Point2I(*center)
+        tmpSpans = afwGeom.SpanSet.fromShape(int(width), offset=offset)
+        source.setFootprint(afwDetection.Footprint(tmpSpans))
+        plugin.measure(source, exposure)
+        x = source.get("ext_shapeHSM_HsmPsfMoments_x")
+        y = source.get("ext_shapeHSM_HsmPsfMoments_y")
+        xx = source.get("ext_shapeHSM_HsmPsfMoments_xx")
+        yy = source.get("ext_shapeHSM_HsmPsfMoments_yy")
+        xy = source.get("ext_shapeHSM_HsmPsfMoments_xy")
+        self.assertFalse(source.get("ext_shapeHSM_HsmPsfMoments_flag"))
+        self.assertFalse(source.get("ext_shapeHSM_HsmPsfMoments_flag_no_pixels"))
+        self.assertFalse(source.get("ext_shapeHSM_HsmPsfMoments_flag_not_contained"))
+        self.assertFalse(source.get("ext_shapeHSM_HsmPsfMoments_flag_parent_source"))
 
-                            self.assertAlmostEqual(x, 0.0, 3)
-                            self.assertAlmostEqual(y, 0.0, 3)
+        self.assertAlmostEqual(x, 0.0, 3)
+        self.assertAlmostEqual(y, 0.0, 3)
 
-                            expected = afwEll.Quadrupole(afwEll.Axes(width, width, 0.0))
-                            self.assertAlmostEqual(xx, expected.getIxx(), SHAPE_DECIMALS)
-                            self.assertAlmostEqual(xy, expected.getIxy(), SHAPE_DECIMALS)
-                            self.assertAlmostEqual(yy, expected.getIyy(), SHAPE_DECIMALS)
+        expected = afwEll.Quadrupole(afwEll.Axes(width, width, 0.0))
+        self.assertAlmostEqual(xx, expected.getIxx(), SHAPE_DECIMALS)
+        self.assertAlmostEqual(xy, expected.getIxy(), SHAPE_DECIMALS)
+        self.assertAlmostEqual(yy, expected.getIyy(), SHAPE_DECIMALS)
 
-    def testHsmPsfMomentsDebiased(self):
+    @lsst.utils.tests.methodParameters(
+        # Make Cartesian product of settings to feed to methodParameters
+        **dict(list(zip(
+            (kwargs := dict(
+                width=(2.0, 3.0, 4.0),
+                useSourceCentroidOffset=(True, False),
+                varyBBox=(True, False),
+                wrongBBox=(True, False),
+                center=(
+                    (23.0, 34.0),  # various offsets that might cause trouble
+                    (23.5, 34.0),
+                    (23.5, 34.5),
+                    (23.15, 34.25),
+                    (22.81, 34.01),
+                    (22.81, 33.99),
+                )
+            )).keys(),
+            zip(*itertools.product(*kwargs.values()))
+        )))
+    )
+    def testHsmPsfMomentsDebiased(
+        self, width, useSourceCentroidOffset, varyBBox, wrongBBox, center
+    ):
         # As a note, it's really hard to actually unit test whether we've
         # succesfully "debiased" these measurements.  That would require a
         # many-object comparison of moments with and without noise.  So we just
         # test similar to the biased moments above.
         var = 1.2
-        for width in (2.0, 3.0, 4.0):
-            for useSourceCentroidOffset in [True, False]:
-                for varyBBox in [True, False]:
-                    for wrongBBox in [True, False]:
-                        for center in [
-                            (23.0, 34.0),  # various offsets that might cause trouble
-                            (23.5, 34.0),
-                            (23.5, 34.5),
-                            (23.15, 34.25),
-                            (22.81, 34.01),
-                            (22.81, 33.99)
-                        ]:
-                            # As we reduce the flux, our deviation from the expected value
-                            # increases, so decrease tolerance.
-                            for flux, decimals in [
-                                (1e6, 3),
-                                (1e4, 1),
-                                (1e3, 0),
-                            ]:
-                                psf = PyGaussianPsf(
-                                    35, 35, width,
-                                    varyBBox=varyBBox,
-                                    wrongBBox=wrongBBox
-                                )
-                                exposure = afwImage.ExposureF(45, 56)
-                                exposure.getMaskedImage().set(1.0, 0, var)
-                                exposure.setPsf(psf)
+        # As we reduce the flux, our deviation from the expected value
+        # increases, so decrease tolerance.
+        for flux, decimals in [
+            (1e6, 3),
+            (1e4, 1),
+            (1e3, 0),
+        ]:
+            psf = PyGaussianPsf(
+                35, 35, width,
+                varyBBox=varyBBox,
+                wrongBBox=wrongBBox
+            )
+            exposure = afwImage.ExposureF(45, 56)
+            exposure.getMaskedImage().set(1.0, 0, var)
+            exposure.setPsf(psf)
 
-                                # perform the shape measurement
-                                control = lsst.meas.extensions.shapeHSM.HsmPsfMomentsDebiasedControl()
-                                self.assertTrue(control.useSourceCentroidOffset)
-                                self.assertEqual(control.noiseSource, "variance")
-                                control.useSourceCentroidOffset = useSourceCentroidOffset
-                                plugin, cat = makePluginAndCat(
-                                    lsst.meas.extensions.shapeHSM.HsmPsfMomentsDebiasedAlgorithm,
-                                    "ext_shapeHSM_HsmPsfMomentsDebiased",
-                                    centroid="centroid",
-                                    psfflux="base_PsfFlux",
-                                    control=control
-                                )
-                                source = cat.addNew()
-                                source.set("centroid_x", center[0])
-                                source.set("centroid_y", center[1])
-                                offset = geom.Point2I(*center)
-                                source.set("base_PsfFlux_instFlux", flux)
-                                tmpSpans = afwGeom.SpanSet.fromShape(int(width), offset=offset)
-                                source.setFootprint(afwDetection.Footprint(tmpSpans))
+            # perform the shape measurement
+            control = lsst.meas.extensions.shapeHSM.HsmPsfMomentsDebiasedControl()
+            self.assertTrue(control.useSourceCentroidOffset)
+            self.assertEqual(control.noiseSource, "variance")
+            control.useSourceCentroidOffset = useSourceCentroidOffset
+            plugin, cat = makePluginAndCat(
+                lsst.meas.extensions.shapeHSM.HsmPsfMomentsDebiasedAlgorithm,
+                "ext_shapeHSM_HsmPsfMomentsDebiased",
+                centroid="centroid",
+                psfflux="base_PsfFlux",
+                control=control
+            )
+            source = cat.addNew()
+            source.set("centroid_x", center[0])
+            source.set("centroid_y", center[1])
+            offset = geom.Point2I(*center)
+            source.set("base_PsfFlux_instFlux", flux)
+            tmpSpans = afwGeom.SpanSet.fromShape(int(width), offset=offset)
+            source.setFootprint(afwDetection.Footprint(tmpSpans))
 
-                                plugin.measure(source, exposure)
-                                x = source.get("ext_shapeHSM_HsmPsfMomentsDebiased_x")
-                                y = source.get("ext_shapeHSM_HsmPsfMomentsDebiased_y")
-                                xx = source.get("ext_shapeHSM_HsmPsfMomentsDebiased_xx")
-                                yy = source.get("ext_shapeHSM_HsmPsfMomentsDebiased_yy")
-                                xy = source.get("ext_shapeHSM_HsmPsfMomentsDebiased_xy")
-                                for flag in [
-                                    "ext_shapeHSM_HsmPsfMomentsDebiased_flag",
-                                    "ext_shapeHSM_HsmPsfMomentsDebiased_flag_no_pixels",
-                                    "ext_shapeHSM_HsmPsfMomentsDebiased_flag_not_contained",
-                                    "ext_shapeHSM_HsmPsfMomentsDebiased_flag_parent_source",
-                                    "ext_shapeHSM_HsmPsfMomentsDebiased_flag_edge"
-                                ]:
-                                    self.assertFalse(source.get(flag))
+            plugin.measure(source, exposure)
+            x = source.get("ext_shapeHSM_HsmPsfMomentsDebiased_x")
+            y = source.get("ext_shapeHSM_HsmPsfMomentsDebiased_y")
+            xx = source.get("ext_shapeHSM_HsmPsfMomentsDebiased_xx")
+            yy = source.get("ext_shapeHSM_HsmPsfMomentsDebiased_yy")
+            xy = source.get("ext_shapeHSM_HsmPsfMomentsDebiased_xy")
+            for flag in [
+                "ext_shapeHSM_HsmPsfMomentsDebiased_flag",
+                "ext_shapeHSM_HsmPsfMomentsDebiased_flag_no_pixels",
+                "ext_shapeHSM_HsmPsfMomentsDebiased_flag_not_contained",
+                "ext_shapeHSM_HsmPsfMomentsDebiased_flag_parent_source",
+                "ext_shapeHSM_HsmPsfMomentsDebiased_flag_edge"
+            ]:
+                self.assertFalse(source.get(flag))
 
-                                expected = afwEll.Quadrupole(afwEll.Axes(width, width, 0.0))
+            expected = afwEll.Quadrupole(afwEll.Axes(width, width, 0.0))
 
-                                self.assertAlmostEqual(x, 0.0, decimals)
-                                self.assertAlmostEqual(y, 0.0, decimals)
+            self.assertAlmostEqual(x, 0.0, decimals)
+            self.assertAlmostEqual(y, 0.0, decimals)
 
-                                T = expected.getIxx() + expected.getIyy()
-                                self.assertAlmostEqual((xx-expected.getIxx())/T, 0.0, decimals)
-                                self.assertAlmostEqual((xy-expected.getIxy())/T, 0.0, decimals)
-                                self.assertAlmostEqual((yy-expected.getIyy())/T, 0.0, decimals)
+            T = expected.getIxx() + expected.getIyy()
+            self.assertAlmostEqual((xx-expected.getIxx())/T, 0.0, decimals)
+            self.assertAlmostEqual((xy-expected.getIxy())/T, 0.0, decimals)
+            self.assertAlmostEqual((yy-expected.getIyy())/T, 0.0, decimals)
 
-                                # Repeat using noiseSource='meta'.  Should get nearly the same
-                                # results if BGMEAN is set to `var` above.
-                                exposure2 = afwImage.ExposureF(45, 56)
-                                # set the variance plane to something else to ensure we're
-                                # ignoring it
-                                exposure2.getMaskedImage().set(1.0, 0, 2*var+1.1)
-                                exposure2.setPsf(psf)
-                                exposure2.getMetadata().set("BGMEAN", var)
+            # Repeat using noiseSource='meta'.  Should get nearly the same
+            # results if BGMEAN is set to `var` above.
+            exposure2 = afwImage.ExposureF(45, 56)
+            # set the variance plane to something else to ensure we're
+            # ignoring it
+            exposure2.getMaskedImage().set(1.0, 0, 2*var+1.1)
+            exposure2.setPsf(psf)
+            exposure2.getMetadata().set("BGMEAN", var)
 
-                                control2 = lsst.meas.extensions.shapeHSM.HsmPsfMomentsDebiasedControl()
-                                control2.noiseSource = "meta"
-                                control2.useSourceCentroidOffset = useSourceCentroidOffset
-                                plugin2, cat2 = makePluginAndCat(
-                                    lsst.meas.extensions.shapeHSM.HsmPsfMomentsDebiasedAlgorithm,
-                                    "ext_shapeHSM_HsmPsfMomentsDebiased",
-                                    centroid="centroid",
-                                    psfflux="base_PsfFlux",
-                                    control=control2
-                                )
-                                source2 = cat2.addNew()
-                                source2.set("centroid_x", center[0])
-                                source2.set("centroid_y", center[1])
-                                offset2 = geom.Point2I(*center)
-                                source2.set("base_PsfFlux_instFlux", flux)
-                                tmpSpans2 = afwGeom.SpanSet.fromShape(int(width), offset=offset2)
-                                source2.setFootprint(afwDetection.Footprint(tmpSpans2))
+            control2 = lsst.meas.extensions.shapeHSM.HsmPsfMomentsDebiasedControl()
+            control2.noiseSource = "meta"
+            control2.useSourceCentroidOffset = useSourceCentroidOffset
+            plugin2, cat2 = makePluginAndCat(
+                lsst.meas.extensions.shapeHSM.HsmPsfMomentsDebiasedAlgorithm,
+                "ext_shapeHSM_HsmPsfMomentsDebiased",
+                centroid="centroid",
+                psfflux="base_PsfFlux",
+                control=control2
+            )
+            source2 = cat2.addNew()
+            source2.set("centroid_x", center[0])
+            source2.set("centroid_y", center[1])
+            offset2 = geom.Point2I(*center)
+            source2.set("base_PsfFlux_instFlux", flux)
+            tmpSpans2 = afwGeom.SpanSet.fromShape(int(width), offset=offset2)
+            source2.setFootprint(afwDetection.Footprint(tmpSpans2))
 
-                                plugin2.measure(source2, exposure2)
-                                x2 = source2.get("ext_shapeHSM_HsmPsfMomentsDebiased_x")
-                                y2 = source2.get("ext_shapeHSM_HsmPsfMomentsDebiased_y")
-                                xx2 = source2.get("ext_shapeHSM_HsmPsfMomentsDebiased_xx")
-                                yy2 = source2.get("ext_shapeHSM_HsmPsfMomentsDebiased_yy")
-                                xy2 = source2.get("ext_shapeHSM_HsmPsfMomentsDebiased_xy")
-                                for flag in [
-                                    "ext_shapeHSM_HsmPsfMomentsDebiased_flag",
-                                    "ext_shapeHSM_HsmPsfMomentsDebiased_flag_no_pixels",
-                                    "ext_shapeHSM_HsmPsfMomentsDebiased_flag_not_contained",
-                                    "ext_shapeHSM_HsmPsfMomentsDebiased_flag_parent_source",
-                                    "ext_shapeHSM_HsmPsfMomentsDebiased_flag_edge"
-                                ]:
-                                    self.assertFalse(source.get(flag))
+            plugin2.measure(source2, exposure2)
+            x2 = source2.get("ext_shapeHSM_HsmPsfMomentsDebiased_x")
+            y2 = source2.get("ext_shapeHSM_HsmPsfMomentsDebiased_y")
+            xx2 = source2.get("ext_shapeHSM_HsmPsfMomentsDebiased_xx")
+            yy2 = source2.get("ext_shapeHSM_HsmPsfMomentsDebiased_yy")
+            xy2 = source2.get("ext_shapeHSM_HsmPsfMomentsDebiased_xy")
+            for flag in [
+                "ext_shapeHSM_HsmPsfMomentsDebiased_flag",
+                "ext_shapeHSM_HsmPsfMomentsDebiased_flag_no_pixels",
+                "ext_shapeHSM_HsmPsfMomentsDebiased_flag_not_contained",
+                "ext_shapeHSM_HsmPsfMomentsDebiased_flag_parent_source",
+                "ext_shapeHSM_HsmPsfMomentsDebiased_flag_edge"
+            ]:
+                self.assertFalse(source.get(flag))
 
-                                # Would be identically equal, but variance input via "BGMEAN" is
-                                # consumed in c++ as a double, where variance from the variance
-                                # plane is a c++ float.
-                                self.assertAlmostEqual(x, x2, 8)
-                                self.assertAlmostEqual(y, y2, 8)
-                                self.assertAlmostEqual(xx, xx2, 5)
-                                self.assertAlmostEqual(xy, xy2, 5)
-                                self.assertAlmostEqual(yy, yy2, 5)
+            # Would be identically equal, but variance input via "BGMEAN" is
+            # consumed in c++ as a double, where variance from the variance
+            # plane is a c++ float.
+            self.assertAlmostEqual(x, x2, 8)
+            self.assertAlmostEqual(y, y2, 8)
+            self.assertAlmostEqual(xx, xx2, 5)
+            self.assertAlmostEqual(xy, xy2, 5)
+            self.assertAlmostEqual(yy, yy2, 5)
 
-    def testHsmPsfMomentsDebiasedEdge(self):
-        var = 1.2
-        for width in (2.0, 3.0, 4.0):
-            for useSourceCentroidOffset in [True, False]:
-                for center in [
+    testHsmPsfMomentsDebiasedEdgeArgs = dict(
+        width=(2.0, 3.0, 4.0),
+        useSourceCentroidOffset=(True, False),
+        center=(
+            (1.2, 1.3),
+            (33.2, 50.1)
+        )
+    )
+
+    @lsst.utils.tests.methodParameters(
+        # Make Cartesian product of settings to feed to methodParameters
+        **dict(list(zip(
+            (kwargs := dict(
+                width=(2.0, 3.0, 4.0),
+                useSourceCentroidOffset=(True, False),
+                center=[
                     (1.2, 1.3),
                     (33.2, 50.1)
-                ]:
-                    # As we reduce the flux, our deviation from the expected value
-                    # increases, so decrease tolerance.
-                    for flux, decimals in [
-                        (1e6, 3),
-                        (1e4, 2),
-                        (1e3, 1),
-                    ]:
-                        psf = PyGaussianPsf(35, 35, width)
-                        exposure = afwImage.ExposureF(45, 56)
-                        exposure.getMaskedImage().set(1.0, 0, 2*var+1.1)
-                        exposure.setPsf(psf)
+                ]
+            )).keys(),
+            zip(*itertools.product(*kwargs.values()))
+        )))
+    )
+    def testHsmPsfMomentsDebiasedEdge(self, width, useSourceCentroidOffset, center):
+        # As we reduce the flux, our deviation from the expected value
+        # increases, so decrease tolerance.
+        var = 1.2
+        for flux, decimals in [
+            (1e6, 3),
+            (1e4, 2),
+            (1e3, 1),
+        ]:
+            psf = PyGaussianPsf(35, 35, width)
+            exposure = afwImage.ExposureF(45, 56)
+            exposure.getMaskedImage().set(1.0, 0, 2*var+1.1)
+            exposure.setPsf(psf)
 
-                        # perform the shape measurement
-                        control = lsst.meas.extensions.shapeHSM.HsmPsfMomentsDebiasedControl()
-                        control.useSourceCentroidOffset = useSourceCentroidOffset
-                        self.assertEqual(control.noiseSource, "variance")
-                        plugin, cat = makePluginAndCat(
-                            lsst.meas.extensions.shapeHSM.HsmPsfMomentsDebiasedAlgorithm,
-                            "ext_shapeHSM_HsmPsfMomentsDebiased",
-                            centroid="centroid",
-                            psfflux="base_PsfFlux",
-                            control=control
-                        )
-                        source = cat.addNew()
-                        source.set("centroid_x", center[0])
-                        source.set("centroid_y", center[1])
-                        offset = geom.Point2I(*center)
-                        source.set("base_PsfFlux_instFlux", flux)
-                        tmpSpans = afwGeom.SpanSet.fromShape(int(width), offset=offset)
-                        source.setFootprint(afwDetection.Footprint(tmpSpans))
+            # perform the shape measurement
+            control = lsst.meas.extensions.shapeHSM.HsmPsfMomentsDebiasedControl()
+            control.useSourceCentroidOffset = useSourceCentroidOffset
+            self.assertEqual(control.noiseSource, "variance")
+            plugin, cat = makePluginAndCat(
+                lsst.meas.extensions.shapeHSM.HsmPsfMomentsDebiasedAlgorithm,
+                "ext_shapeHSM_HsmPsfMomentsDebiased",
+                centroid="centroid",
+                psfflux="base_PsfFlux",
+                control=control
+            )
+            source = cat.addNew()
+            source.set("centroid_x", center[0])
+            source.set("centroid_y", center[1])
+            offset = geom.Point2I(*center)
+            source.set("base_PsfFlux_instFlux", flux)
+            tmpSpans = afwGeom.SpanSet.fromShape(int(width), offset=offset)
+            source.setFootprint(afwDetection.Footprint(tmpSpans))
 
-                        # Edge fails when setting noise from var plane
-                        with self.assertRaises(base.MeasurementError):
-                            plugin.measure(source, exposure)
+            # Edge fails when setting noise from var plane
+            with self.assertRaises(base.MeasurementError):
+                plugin.measure(source, exposure)
 
-                        # Succeeds when noise is from meta
-                        exposure.getMetadata().set("BGMEAN", var)
-                        control.noiseSource = "meta"
-                        plugin, cat = makePluginAndCat(
-                            lsst.meas.extensions.shapeHSM.HsmPsfMomentsDebiasedAlgorithm,
-                            "ext_shapeHSM_HsmPsfMomentsDebiased",
-                            centroid="centroid",
-                            psfflux="base_PsfFlux",
-                            control=control
-                        )
-                        source = cat.addNew()
-                        source.set("centroid_x", center[0])
-                        source.set("centroid_y", center[1])
-                        offset = geom.Point2I(*center)
-                        source.set("base_PsfFlux_instFlux", flux)
-                        tmpSpans = afwGeom.SpanSet.fromShape(int(width), offset=offset)
-                        source.setFootprint(afwDetection.Footprint(tmpSpans))
-                        plugin.measure(source, exposure)
+            # Succeeds when noise is from meta
+            exposure.getMetadata().set("BGMEAN", var)
+            control.noiseSource = "meta"
+            plugin, cat = makePluginAndCat(
+                lsst.meas.extensions.shapeHSM.HsmPsfMomentsDebiasedAlgorithm,
+                "ext_shapeHSM_HsmPsfMomentsDebiased",
+                centroid="centroid",
+                psfflux="base_PsfFlux",
+                control=control
+            )
+            source = cat.addNew()
+            source.set("centroid_x", center[0])
+            source.set("centroid_y", center[1])
+            offset = geom.Point2I(*center)
+            source.set("base_PsfFlux_instFlux", flux)
+            tmpSpans = afwGeom.SpanSet.fromShape(int(width), offset=offset)
+            source.setFootprint(afwDetection.Footprint(tmpSpans))
+            plugin.measure(source, exposure)
 
-                        x = source.get("ext_shapeHSM_HsmPsfMomentsDebiased_x")
-                        y = source.get("ext_shapeHSM_HsmPsfMomentsDebiased_y")
-                        xx = source.get("ext_shapeHSM_HsmPsfMomentsDebiased_xx")
-                        yy = source.get("ext_shapeHSM_HsmPsfMomentsDebiased_yy")
-                        xy = source.get("ext_shapeHSM_HsmPsfMomentsDebiased_xy")
-                        self.assertFalse(source.get("ext_shapeHSM_HsmPsfMomentsDebiased_flag"))
-                        self.assertFalse(source.get("ext_shapeHSM_HsmPsfMomentsDebiased_flag_no_pixels"))
-                        self.assertFalse(source.get("ext_shapeHSM_HsmPsfMomentsDebiased_flag_not_contained"))
-                        self.assertFalse(source.get("ext_shapeHSM_HsmPsfMomentsDebiased_flag_parent_source"))
-                        # but _does_ set EDGE flag in this case
-                        self.assertTrue(source.get("ext_shapeHSM_HsmPsfMomentsDebiased_flag_edge"))
+            x = source.get("ext_shapeHSM_HsmPsfMomentsDebiased_x")
+            y = source.get("ext_shapeHSM_HsmPsfMomentsDebiased_y")
+            xx = source.get("ext_shapeHSM_HsmPsfMomentsDebiased_xx")
+            yy = source.get("ext_shapeHSM_HsmPsfMomentsDebiased_yy")
+            xy = source.get("ext_shapeHSM_HsmPsfMomentsDebiased_xy")
+            self.assertFalse(source.get("ext_shapeHSM_HsmPsfMomentsDebiased_flag"))
+            self.assertFalse(source.get("ext_shapeHSM_HsmPsfMomentsDebiased_flag_no_pixels"))
+            self.assertFalse(source.get("ext_shapeHSM_HsmPsfMomentsDebiased_flag_not_contained"))
+            self.assertFalse(source.get("ext_shapeHSM_HsmPsfMomentsDebiased_flag_parent_source"))
+            # but _does_ set EDGE flag in this case
+            self.assertTrue(source.get("ext_shapeHSM_HsmPsfMomentsDebiased_flag_edge"))
 
-                        expected = afwEll.Quadrupole(afwEll.Axes(width, width, 0.0))
+            expected = afwEll.Quadrupole(afwEll.Axes(width, width, 0.0))
 
-                        self.assertAlmostEqual(x, 0.0, decimals)
-                        self.assertAlmostEqual(y, 0.0, decimals)
+            self.assertAlmostEqual(x, 0.0, decimals)
+            self.assertAlmostEqual(y, 0.0, decimals)
 
-                        T = expected.getIxx() + expected.getIyy()
-                        self.assertAlmostEqual((xx-expected.getIxx())/T, 0.0, decimals)
-                        self.assertAlmostEqual((xy-expected.getIxy())/T, 0.0, decimals)
-                        self.assertAlmostEqual((yy-expected.getIyy())/T, 0.0, decimals)
+            T = expected.getIxx() + expected.getIyy()
+            self.assertAlmostEqual((xx-expected.getIxx())/T, 0.0, decimals)
+            self.assertAlmostEqual((xy-expected.getIxy())/T, 0.0, decimals)
+            self.assertAlmostEqual((yy-expected.getIyy())/T, 0.0, decimals)
 
-                        # But fails hard if meta doesn't contain BGMEAN
-                        exposure.getMetadata().remove("BGMEAN")
-                        plugin, cat = makePluginAndCat(
-                            lsst.meas.extensions.shapeHSM.HsmPsfMomentsDebiasedAlgorithm,
-                            "ext_shapeHSM_HsmPsfMomentsDebiased",
-                            centroid="centroid",
-                            psfflux="base_PsfFlux",
-                            control=control
-                        )
-                        source = cat.addNew()
-                        source.set("centroid_x", center[0])
-                        source.set("centroid_y", center[1])
-                        offset = geom.Point2I(*center)
-                        source.set("base_PsfFlux_instFlux", flux)
-                        tmpSpans = afwGeom.SpanSet.fromShape(int(width), offset=offset)
-                        source.setFootprint(afwDetection.Footprint(tmpSpans))
-                        with self.assertRaises(base.FatalAlgorithmError):
-                            plugin.measure(source, exposure)
+            # But fails hard if meta doesn't contain BGMEAN
+            exposure.getMetadata().remove("BGMEAN")
+            plugin, cat = makePluginAndCat(
+                lsst.meas.extensions.shapeHSM.HsmPsfMomentsDebiasedAlgorithm,
+                "ext_shapeHSM_HsmPsfMomentsDebiased",
+                centroid="centroid",
+                psfflux="base_PsfFlux",
+                control=control
+            )
+            source = cat.addNew()
+            source.set("centroid_x", center[0])
+            source.set("centroid_y", center[1])
+            offset = geom.Point2I(*center)
+            source.set("base_PsfFlux_instFlux", flux)
+            tmpSpans = afwGeom.SpanSet.fromShape(int(width), offset=offset)
+            source.setFootprint(afwDetection.Footprint(tmpSpans))
+            with self.assertRaises(base.FatalAlgorithmError):
+                plugin.measure(source, exposure)
 
     def testHsmPsfMomentsDebiasedBadNoiseSource(self):
         control = lsst.meas.extensions.shapeHSM.HsmPsfMomentsDebiasedControl()
