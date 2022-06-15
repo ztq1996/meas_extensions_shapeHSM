@@ -458,6 +458,11 @@ class PsfMomentsTestCase(unittest.TestCase):
         self.assertAlmostEqual(xy, expected.getIxy(), SHAPE_DECIMALS)
         self.assertAlmostEqual(yy, expected.getIyy(), SHAPE_DECIMALS)
 
+        # Test schema documentation
+        for fieldName in cat.schema.extract("*HsmPsfMoments_[xy]*"):
+            self.assertEqual(cat.schema[fieldName].asField().getDoc(),
+                             "Adaptive moments of the PSF via the HSM shape algorithm")
+
     @lsst.utils.tests.methodParameters(
         # Make Cartesian product of settings to feed to methodParameters
         **dict(list(zip(
@@ -597,6 +602,11 @@ class PsfMomentsTestCase(unittest.TestCase):
             self.assertAlmostEqual(xx, xx2, 5)
             self.assertAlmostEqual(xy, xy2, 5)
             self.assertAlmostEqual(yy, yy2, 5)
+
+        # Test schema documentation
+        for fieldName in cat.schema.extract("*HsmPsfMomentsDebiased_[xy]*"):
+            self.assertEqual(cat.schema[fieldName].asField().getDoc(),
+                             "Debiased adaptive moments of the PSF via the HSM shape algorithm")
 
     testHsmPsfMomentsDebiasedEdgeArgs = dict(
         width=(2.0, 3.0, 4.0),
