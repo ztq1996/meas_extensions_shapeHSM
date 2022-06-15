@@ -135,9 +135,9 @@ protected:
     HsmMomentsAlgorithm(std::string const & name, afw::table::Schema & schema, char const* doc) :
     _doc(doc),
     _centroidResultKey(
-        base::CentroidResultKey::addFields(schema, name, "HSM Centroid", base::NO_UNCERTAINTY)),
+        base::CentroidResultKey::addFields(schema, name, doc, base::NO_UNCERTAINTY)),
     _momentsKey(
-        base::ShapeResultKey::addFields(schema, name, "HSM moments", base::NO_UNCERTAINTY)
+        base::ShapeResultKey::addFields(schema, name, doc, base::NO_UNCERTAINTY)
     ),
     _centroidExtractor(schema, name)
     {
