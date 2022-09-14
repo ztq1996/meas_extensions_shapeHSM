@@ -4,6 +4,7 @@
 #include "lsst/geom/Box.h"
 #include "lsst/afw/image/Image.h"
 #include "galsim/Image.h"
+#include "galsim/Version.h"
 
 namespace lsst { namespace meas { namespace extensions { namespace shapeHSM {
 
@@ -36,7 +37,14 @@ public:
         // in the box and stride.
         PixelT* ptr = reinterpret_cast<PixelT*>(array.getData() + (_box.getMinY() - _image->getY0())*stride +
                                                 _box.getMinX() - _image->getX0());
-        return galsim::ImageView<PixelT>(ptr, _owner, 1, stride, bounds);
+#if GALSIM_MAJOR <= 2 && GALSIM_MINOR <= 3
+    return galsim::ImageView<PixelT>(ptr, _owner, 1, stride, bounds);
+#else
+    return galsim::ImageView<PixelT>(
+        ptr, array.getData() + array.getNumElements(), array.getNumElements(),
+        _owner, 1, stride, bounds
+    );
+#endif
     }
 
 #if 0
