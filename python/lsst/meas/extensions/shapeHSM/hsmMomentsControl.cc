@@ -44,6 +44,9 @@ PYBIND11_MODULE(hsmMomentsControl, mod) {
     py::class_<HsmSourceMomentsAlgorithm, std::shared_ptr<HsmSourceMomentsAlgorithm>, HsmMomentsAlgorithm>
             clsHsmSourceMomentsAlgorithm(mod, "HsmSourceMomentsAlgorithm");
     py::class_<HsmSourceMomentsControl> clsHsmSourceMomentsControl(mod, "HsmSourceMomentsControl");
+
+    py::class_<HsmSourceMomentsRoundAlgorithm, std::shared_ptr<HsmSourceMomentsRoundAlgorithm>, HsmSourceMomentsAlgorithm, HsmMomentsAlgorithm>
+        clsHsmSourceMomentsRoundAlgorithm(mod, "HsmSourceMomentsRoundAlgorithm");
     py::class_<HsmSourceMomentsRoundControl, HsmSourceMomentsControl>
             clsHsmSourceMomentsRoundControl(mod, "HsmSourceMomentsRoundControl");
 
@@ -63,6 +66,9 @@ PYBIND11_MODULE(hsmMomentsControl, mod) {
             py::init<HsmSourceMomentsAlgorithm::Control const &, std::string const &, afw::table::Schema &>(),
             "ctrl"_a, "name"_a, "schema"_a);
     clsHsmSourceMomentsControl.def(py::init<>());
+    clsHsmSourceMomentsRoundAlgorithm.def(
+            py::init<HsmSourceMomentsRoundAlgorithm::Control const &, std::string const &, afw::table::Schema &>(),
+            "ctrl"_a, "name"_a, "schema"_a);
     clsHsmSourceMomentsRoundControl.def(py::init<>());
 
     clsHsmPsfMomentsAlgorithm.def(

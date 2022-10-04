@@ -135,9 +135,9 @@ protected:
     HsmMomentsAlgorithm(std::string const & name, afw::table::Schema & schema, char const* doc) :
     _doc(doc),
     _centroidResultKey(
-        base::CentroidResultKey::addFields(schema, name, "HSM Centroid", base::NO_UNCERTAINTY)),
+        base::CentroidResultKey::addFields(schema, name, doc, base::NO_UNCERTAINTY)),
     _momentsKey(
-        base::ShapeResultKey::addFields(schema, name, "HSM moments", base::NO_UNCERTAINTY)
+        base::ShapeResultKey::addFields(schema, name, doc, base::NO_UNCERTAINTY)
     ),
     _centroidExtractor(schema, name)
     {
@@ -183,8 +183,9 @@ public:
     typedef HsmSourceMomentsControl Control;
 
     /// @brief Initialize with standard field names and customized documentation.
-    HsmSourceMomentsAlgorithm(Control const & ctrl, std::string const & name, afw::table::Schema & schema) :
-        HsmMomentsAlgorithm(name, schema, "Source adaptive moments algorithm from HSM"), _ctrl(ctrl)
+    HsmSourceMomentsAlgorithm(Control const & ctrl, std::string const & name, afw::table::Schema & schema,
+                              char const* doc = "Adaptive moments of the source via the HSM shape algorithm") :  ///< Docstring is exposed for HsmSourceMomentsRoundAlgorithm
+        HsmMomentsAlgorithm(name, schema, doc), _ctrl(ctrl)
     {
         if (ctrl.addFlux) {
             _fluxKey = schema.addField<float>(name + "_Flux", "HSM flux");
@@ -201,6 +202,15 @@ private:
 };
 
 
+class HsmSourceMomentsRoundAlgorithm : public HsmSourceMomentsAlgorithm {
+public:
+    /// @brief Initialize with standard field names and customized documentation.
+    HsmSourceMomentsRoundAlgorithm(Control const & ctrl, std::string const & name, afw::table::Schema & schema,
+                                   char const* doc = "Adaptive moments of the source via the HSM shape algorithm, with circular weight function") :
+        HsmSourceMomentsAlgorithm(ctrl, name, schema, doc) {}
+};
+
+
 /// Class to measure HSM adaptive moments of PSF
 class HsmPsfMomentsAlgorithm : public HsmMomentsAlgorithm {
 public:
@@ -209,9 +219,10 @@ public:
     typedef std::shared_ptr<const HsmPsfMomentsControl> Control;
 
     /// @brief Initialize with standard field names and customized documentation.
-    HsmPsfMomentsAlgorithm(Control const & ctrl, std::string const & name, afw::table::Schema & schema) :
-        HsmMomentsAlgorithm(name, schema, "Psf adaptive moments algorithm from HSM"), _ctrl(ctrl) {}
-
+    HsmPsfMomentsAlgorithm(Control const & ctrl, std::string const & name, afw::table::Schema & schema,
+                           char const* doc = "Adaptive moments of the PSF via the HSM shape algorithm"  ///< Docstring is exposed for debiased PSF algorithm
+                           ) :
+        HsmMomentsAlgorithm(name, schema, doc), _ctrl(ctrl) {}
     void measure(
         afw::table::SourceRecord & measRecord,
         afw::image::Exposure<float> const & exposure
@@ -246,8 +257,9 @@ public:
 
     typedef std::shared_ptr<const HsmPsfMomentsDebiasedControl> Control;
 
-    HsmPsfMomentsDebiasedAlgorithm(Control const & ctrl, std::string const & name, afw::table::Schema & schema) :
-        HsmPsfMomentsAlgorithm(ctrl, name, schema) {
+    HsmPsfMomentsDebiasedAlgorithm(Control const & ctrl, std::string const & name, afw::table::Schema & schema,
+                                   char const* doc = "Debiased adaptive moments of the PSF via the HSM shape algorithm") :
+        HsmPsfMomentsAlgorithm(ctrl, name, schema, doc) {
             auto thisCtrl = std::static_pointer_cast<Control::element_type>(_ctrl);
             if ((thisCtrl->noiseSource != "meta") && (thisCtrl->noiseSource != "variance")) {
                 throw LSST_EXCEPT(base::MeasurementError, "invalid noiseSorce", FAILURE.number);

@@ -39,7 +39,7 @@ wrapSimpleAlgorithm(HsmShapeRegaussAlgorithm, name="ext_shapeHSM_HsmShapeRegauss
                     Control=HsmShapeRegaussControl, executionOrder=BasePlugin.SHAPE_ORDER)
 wrapSimpleAlgorithm(HsmSourceMomentsAlgorithm, name="ext_shapeHSM_HsmSourceMoments",
                     Control=HsmSourceMomentsControl, executionOrder=BasePlugin.SHAPE_ORDER)
-wrapSimpleAlgorithm(HsmSourceMomentsAlgorithm, name="ext_shapeHSM_HsmSourceMomentsRound",
+wrapSimpleAlgorithm(HsmSourceMomentsRoundAlgorithm, name="ext_shapeHSM_HsmSourceMomentsRound",
                     Control=HsmSourceMomentsRoundControl, executionOrder=BasePlugin.SHAPE_ORDER)
 wrapSimpleAlgorithm(HsmPsfMomentsAlgorithm, name="ext_shapeHSM_HsmPsfMoments",
                     Control=HsmPsfMomentsControl, executionOrder=BasePlugin.SHAPE_ORDER)
