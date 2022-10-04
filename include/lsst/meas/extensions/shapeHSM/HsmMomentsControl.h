@@ -184,7 +184,7 @@ public:
 
     /// @brief Initialize with standard field names and customized documentation.
     HsmSourceMomentsAlgorithm(Control const & ctrl, std::string const & name, afw::table::Schema & schema,
-                              char const* doc = "Source adaptive moments algorithm from HSM") :  ///< Docstring is exposed for HsmSourceMomentsRoundAlgorithm
+                              char const* doc = "Adaptive moments of the source via the HSM shape algorithm") :  ///< Docstring is exposed for HsmSourceMomentsRoundAlgorithm
         HsmMomentsAlgorithm(name, schema, doc), _ctrl(ctrl)
     {
         if (ctrl.addFlux) {
@@ -211,7 +211,7 @@ public:
 
     /// @brief Initialize with standard field names and customized documentation.
     HsmPsfMomentsAlgorithm(Control const & ctrl, std::string const & name, afw::table::Schema & schema,
-                           char const* doc = "Psf adaptive moments algorithm from HSM"  ///< Docstring is exposed for debiased PSF algorithm
+                           char const* doc = "Adaptive moments of the PSF via the HSM shape algorithm"  ///< Docstring is exposed for debiased PSF algorithm
                            ) :
         HsmMomentsAlgorithm(name, schema, doc), _ctrl(ctrl) {}
     void measure(
@@ -249,7 +249,7 @@ public:
     typedef std::shared_ptr<const HsmPsfMomentsDebiasedControl> Control;
 
     HsmPsfMomentsDebiasedAlgorithm(Control const & ctrl, std::string const & name, afw::table::Schema & schema,
-                                   char const* doc = "Debiased PSF adaptive moments algorithm from HSM") :
+                                   char const* doc = "Debiased adaptive moments of the PSF via the HSM shape algorithm") :
         HsmPsfMomentsAlgorithm(ctrl, name, schema, doc) {
             auto thisCtrl = std::static_pointer_cast<Control::element_type>(_ctrl);
             if ((thisCtrl->noiseSource != "meta") && (thisCtrl->noiseSource != "variance")) {
