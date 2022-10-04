@@ -202,6 +202,15 @@ private:
 };
 
 
+class HsmSourceMomentsRoundAlgorithm : public HsmSourceMomentsAlgorithm {
+public:
+    /// @brief Initialize with standard field names and customized documentation.
+    HsmSourceMomentsRoundAlgorithm(Control const & ctrl, std::string const & name, afw::table::Schema & schema,
+                                   char const* doc = "Adaptive moments of the source via the HSM shape algorithm, with circular weight function") :
+        HsmSourceMomentsAlgorithm(ctrl, name, schema, doc) {}
+};
+
+
 /// Class to measure HSM adaptive moments of PSF
 class HsmPsfMomentsAlgorithm : public HsmMomentsAlgorithm {
 public:
