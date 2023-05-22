@@ -24,8 +24,7 @@
 """
 from lsst.meas.base import BasePlugin, wrapSimpleAlgorithm
 
-from .hsmMomentsControl import *
-from .hsmShapeControl import *
+from ._shapeHSMLib import *
 
 from .version import *
 

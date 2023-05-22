@@ -21,6 +21,7 @@
  */
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
+#include "lsst/cpputils/python.h"
 
 #include "lsst/meas/extensions/shapeHSM/HsmMomentsControl.h"
 #include "lsst/pex/config/python.h"
@@ -33,70 +34,69 @@ namespace meas {
 namespace extensions {
 namespace shapeHSM {
 
-PYBIND11_MODULE(hsmMomentsControl, mod) {
-    py::module::import("lsst.afw.table");
-    py::module::import("lsst.meas.base");
+void wrapHsmMomentsControl(lsst::cpputils::python::WrapperCollection &wrappers) {
 
-    /* Module level */
-    py::class_<HsmMomentsAlgorithm, std::shared_ptr<HsmMomentsAlgorithm>, base::SimpleAlgorithm>
-            clsHsmMomentsAlgorithm(mod, "HsmMomentsAlgorithm");
+    using PyHsmMomentsAlgorithm = py::class_<HsmMomentsAlgorithm, std::shared_ptr<HsmMomentsAlgorithm>, lsst::meas::base::SimpleAlgorithm>;
+    wrappers.wrapType(PyHsmMomentsAlgorithm(wrappers.module, "HsmMomentsAlgorithm"), [](auto &mod, auto &cls) {
+        cls.def("fail", &HsmMomentsAlgorithm::fail);
+    });
 
-    py::class_<HsmSourceMomentsAlgorithm, std::shared_ptr<HsmSourceMomentsAlgorithm>, HsmMomentsAlgorithm>
-            clsHsmSourceMomentsAlgorithm(mod, "HsmSourceMomentsAlgorithm");
-    py::class_<HsmSourceMomentsControl> clsHsmSourceMomentsControl(mod, "HsmSourceMomentsControl");
+    using PyHsmSourceMomentsAlgorithm = py::class_<HsmSourceMomentsAlgorithm, std::shared_ptr<HsmSourceMomentsAlgorithm>, HsmMomentsAlgorithm>;
+    wrappers.wrapType(PyHsmSourceMomentsAlgorithm(wrappers.module, "HsmSourceMomentsAlgorithm"), [](auto &mod, auto &cls) {
+        cls.def(py::init<HsmSourceMomentsAlgorithm::Control const &, std::string const &, afw::table::Schema &>(),
+                "ctrl"_a, "name"_a, "schema"_a);
+    });
 
-    py::class_<HsmSourceMomentsRoundAlgorithm, std::shared_ptr<HsmSourceMomentsRoundAlgorithm>, HsmSourceMomentsAlgorithm, HsmMomentsAlgorithm>
-        clsHsmSourceMomentsRoundAlgorithm(mod, "HsmSourceMomentsRoundAlgorithm");
-    py::class_<HsmSourceMomentsRoundControl, HsmSourceMomentsControl>
-            clsHsmSourceMomentsRoundControl(mod, "HsmSourceMomentsRoundControl");
+    using PyHsmSourceMomentsControl = py::class_<HsmSourceMomentsControl>;
+    wrappers.wrapType(PyHsmSourceMomentsControl(wrappers.module, "HsmSourceMomentsControl"), [](auto &mod, auto &cls) {
+        cls.def(py::init<>());
+        LSST_DECLARE_CONTROL_FIELD(cls, HsmSourceMomentsControl, badMaskPlanes);
+        LSST_DECLARE_CONTROL_FIELD(cls, HsmSourceMomentsControl, roundMoments);
+        LSST_DECLARE_CONTROL_FIELD(cls, HsmSourceMomentsControl, addFlux);
+    });
 
-    py::class_<HsmPsfMomentsAlgorithm, std::shared_ptr<HsmPsfMomentsAlgorithm>, HsmMomentsAlgorithm>
-            clsHsmPsfMomentsAlgorithm(mod, "HsmPsfMomentsAlgorithm");
-    py::class_<HsmPsfMomentsControl, std::shared_ptr<HsmPsfMomentsControl>>
-            clsHsmPsfMomentsControl(mod, "HsmPsfMomentsControl");
+    using PyHsmSourceMomentsRoundAlgorithm = py::class_<HsmSourceMomentsRoundAlgorithm, std::shared_ptr<HsmSourceMomentsRoundAlgorithm>, HsmSourceMomentsAlgorithm, HsmMomentsAlgorithm>;
+    wrappers.wrapType(PyHsmSourceMomentsRoundAlgorithm(wrappers.module, "HsmSourceMomentsRoundAlgorithm"), [](auto &mod, auto &cls) {
+        cls.def(py::init<HsmSourceMomentsRoundAlgorithm::Control const &, std::string const &, afw::table::Schema &>(),
+                "ctrl"_a, "name"_a, "schema"_a);
+    });
 
-    py::class_<HsmPsfMomentsDebiasedAlgorithm, std::shared_ptr<HsmPsfMomentsDebiasedAlgorithm>,
-               HsmPsfMomentsAlgorithm, HsmMomentsAlgorithm>
-            clsHsmPsfMomentsDebiasedAlgorithm(mod, "HsmPsfMomentsDebiasedAlgorithm");
-    py::class_<HsmPsfMomentsDebiasedControl, std::shared_ptr<HsmPsfMomentsDebiasedControl>>
-            clsHsmPsfMomentsDebiasedControl(mod, "HsmPsfMomentsDebiasedControl");
+    using PyHsmSourceMomentsRoundControl = py::class_<HsmSourceMomentsRoundControl, HsmSourceMomentsControl>;
+    wrappers.wrapType(PyHsmSourceMomentsRoundControl(wrappers.module, "HsmSourceMomentsRoundControl"), [](auto &mod, auto &cls) {
+        cls.def(py::init<>());
+    });
 
-    /* Constructors */
-    clsHsmSourceMomentsAlgorithm.def(
-            py::init<HsmSourceMomentsAlgorithm::Control const &, std::string const &, afw::table::Schema &>(),
-            "ctrl"_a, "name"_a, "schema"_a);
-    clsHsmSourceMomentsControl.def(py::init<>());
-    clsHsmSourceMomentsRoundAlgorithm.def(
-            py::init<HsmSourceMomentsRoundAlgorithm::Control const &, std::string const &, afw::table::Schema &>(),
-            "ctrl"_a, "name"_a, "schema"_a);
-    clsHsmSourceMomentsRoundControl.def(py::init<>());
+    using PyHsmPsfMomentsAlgorithm = py::class_<HsmPsfMomentsAlgorithm, std::shared_ptr<HsmPsfMomentsAlgorithm>, HsmMomentsAlgorithm>;
+    wrappers.wrapType(PyHsmPsfMomentsAlgorithm(wrappers.module, "HsmPsfMomentsAlgorithm"), [](auto &mod, auto &cls) {
+        cls.def(py::init<HsmPsfMomentsAlgorithm::Control const &, std::string const &, afw::table::Schema &>(),
+                "ctrl"_a, "name"_a, "schema"_a);
+    });
 
-    clsHsmPsfMomentsAlgorithm.def(
-            py::init<HsmPsfMomentsAlgorithm::Control const &, std::string const &, afw::table::Schema &>(),
-            "ctrl"_a, "name"_a, "schema"_a);
-    clsHsmPsfMomentsControl.def(py::init<>());
+    using PyHsmPsfMomentsControl = py::class_<HsmPsfMomentsControl, std::shared_ptr<HsmPsfMomentsControl>>;
+    wrappers.wrapType(PyHsmPsfMomentsControl(wrappers.module, "HsmPsfMomentsControl"), [](auto &mod, auto &cls) {
+        cls.def(py::init<>());
+        LSST_DECLARE_CONTROL_FIELD(cls, HsmPsfMomentsControl, useSourceCentroidOffset);
+    });
 
-    clsHsmPsfMomentsDebiasedAlgorithm.def(
-            py::init<HsmPsfMomentsDebiasedAlgorithm::Control const &,
-                     std::string const &,
-                     afw::table::Schema &>(),
-            "ctrl"_a, "name"_a, "schema"_a);
-    clsHsmPsfMomentsDebiasedControl.def(py::init<>());
+    using PyHsmPsfMomentsDebiasedAlgorithm = py::class_<HsmPsfMomentsDebiasedAlgorithm, std::shared_ptr<HsmPsfMomentsDebiasedAlgorithm>,
+            HsmPsfMomentsAlgorithm, HsmMomentsAlgorithm>;
+    wrappers.wrapType(PyHsmPsfMomentsDebiasedAlgorithm(wrappers.module, "HsmPsfMomentsDebiasedAlgorithm"), [](auto &mod, auto &cls) {
+        cls.def(py::init<HsmPsfMomentsDebiasedAlgorithm::Control const &,
+                        std::string const &,
+                        afw::table::Schema &>(),
+                "ctrl"_a, "name"_a, "schema"_a);
+    });
 
-    /* Members */
-    LSST_DECLARE_CONTROL_FIELD(clsHsmSourceMomentsControl, HsmSourceMomentsControl, badMaskPlanes);
-    LSST_DECLARE_CONTROL_FIELD(clsHsmSourceMomentsControl, HsmSourceMomentsControl, roundMoments);
-    LSST_DECLARE_CONTROL_FIELD(clsHsmSourceMomentsControl, HsmSourceMomentsControl, addFlux);
+    using PyHsmPsfMomentsDebiasedControl =  py::class_<HsmPsfMomentsDebiasedControl, std::shared_ptr<HsmPsfMomentsDebiasedControl>>;
+    wrappers.wrapType(PyHsmPsfMomentsDebiasedControl(wrappers.module, "HsmPsfMomentsDebiasedControl"), [](auto &mod, auto &cls) {
+        cls.def(py::init<>());
+        LSST_DECLARE_CONTROL_FIELD(
+                cls, HsmPsfMomentsDebiasedControl, useSourceCentroidOffset);
+        LSST_DECLARE_CONTROL_FIELD(cls, HsmPsfMomentsDebiasedControl, noiseSource);
+        LSST_DECLARE_CONTROL_FIELD(cls, HsmPsfMomentsDebiasedControl, seedOffset);
+        LSST_DECLARE_CONTROL_FIELD(cls, HsmPsfMomentsDebiasedControl, badMaskPlanes);
+    });
 
-    LSST_DECLARE_CONTROL_FIELD(clsHsmPsfMomentsControl, HsmPsfMomentsControl, useSourceCentroidOffset);
-
-    LSST_DECLARE_CONTROL_FIELD(
-            clsHsmPsfMomentsDebiasedControl, HsmPsfMomentsDebiasedControl, useSourceCentroidOffset);
-    LSST_DECLARE_CONTROL_FIELD(clsHsmPsfMomentsDebiasedControl, HsmPsfMomentsDebiasedControl, noiseSource);
-    LSST_DECLARE_CONTROL_FIELD(clsHsmPsfMomentsDebiasedControl, HsmPsfMomentsDebiasedControl, seedOffset);
-    LSST_DECLARE_CONTROL_FIELD(clsHsmPsfMomentsDebiasedControl, HsmPsfMomentsDebiasedControl, badMaskPlanes);
-
-    clsHsmMomentsAlgorithm.def("fail", &HsmMomentsAlgorithm::fail);
 }
 
 }  // shapeHSM

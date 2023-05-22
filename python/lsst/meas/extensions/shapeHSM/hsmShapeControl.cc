@@ -20,6 +20,7 @@
  * see <https://www.lsstcorp.org/LegalNotices/>.
  */
 #include "pybind11/pybind11.h"
+#include "lsst/cpputils/python.h"
 
 #include "lsst/meas/extensions/shapeHSM/HsmShapeControl.h"
 #include "lsst/pex/config/python.h"
@@ -31,59 +32,70 @@ namespace lsst {
 namespace meas {
 namespace extensions {
 namespace shapeHSM {
-
-PYBIND11_MODULE(hsmShapeControl, mod) {
-    py::module::import("lsst.afw.table");
-    py::module::import("lsst.meas.base");
+void wrapHsmShapeControl(lsst::cpputils::python::WrapperCollection &wrappers) {
+    wrappers.addInheritanceDependency("lsst.meas.base");
+    wrappers.addSignatureDependency("lsst.afw.table");
 
     /* Module level */
-    py::class_<HsmShapeAlgorithm, std::shared_ptr<HsmShapeAlgorithm>, base::SimpleAlgorithm>
-            clsHsmShapeAlgorithm(mod, "HsmShapeAlgorithm");
-    py::class_<HsmShapeControl> clsHsmShapeControl(mod, "HsmShapeControl");
+    using PyHsmShapeAlgorithm =  py::class_<HsmShapeAlgorithm, std::shared_ptr<HsmShapeAlgorithm>, base::SimpleAlgorithm>;
+    wrappers.wrapType(PyHsmShapeAlgorithm(wrappers.module, "HsmShapeAlgorithm"), [](auto &mod, auto &cls) {
+        cls.def("measure", &HsmShapeAlgorithm::measure);
+        cls.def("fail", &HsmShapeAlgorithm::fail);
+    });
 
-    py::class_<HsmShapeBjAlgorithm, std::shared_ptr<HsmShapeBjAlgorithm>, HsmShapeAlgorithm>
-            clsHsmShapeBjAlgorithm(mod, "HsmShapeBjAlgorithm");
-    py::class_<HsmShapeBjControl, HsmShapeControl> clsHsmShapeBjControl(mod, "HsmShapeBjControl");
+    using PyHsmShapeControl =  py::class_<HsmShapeControl>;
+    wrappers.wrapType(PyHsmShapeControl(wrappers.module, "HsmShapeControl"), [](auto &mod, auto &cls) {
+        LSST_DECLARE_CONTROL_FIELD(cls, HsmShapeControl, badMaskPlanes);
+        LSST_DECLARE_CONTROL_FIELD(cls, HsmShapeControl, deblendNChild);
+    });
 
-    py::class_<HsmShapeLinearAlgorithm, std::shared_ptr<HsmShapeLinearAlgorithm>, HsmShapeAlgorithm>
-            clsHsmShapeLinearAlgorithm(mod, "HsmShapeLinearAlgorithm");
-    py::class_<HsmShapeLinearControl, HsmShapeControl> clsHsmShapeLinearControl(mod, "HsmShapeLinearControl");
+    using PyHsmShapeBjAlgorithm = py::class_<HsmShapeBjAlgorithm, std::shared_ptr<HsmShapeBjAlgorithm>, HsmShapeAlgorithm>;
+    wrappers.wrapType(PyHsmShapeBjAlgorithm(wrappers.module, "HsmShapeBjAlgorithm"), [](auto &mod, auto &cls) {
+        cls.def(py::init<HsmShapeBjAlgorithm::Control const &, std::string const &, afw::table::Schema &>(),
+                "ctrl"_a, "name"_a, "schema"_a);
+    });
 
-    py::class_<HsmShapeKsbAlgorithm, std::shared_ptr<HsmShapeKsbAlgorithm>, HsmShapeAlgorithm>
-            clsHsmShapeKsbAlgorithm(mod, "HsmShapeKsbAlgorithm");
-    py::class_<HsmShapeKsbControl, HsmShapeControl> clsHsmShapeKsbControl(mod, "HsmShapeKsbControl");
+    using PyHsmShapeBjControl = py::class_<HsmShapeBjControl, HsmShapeControl>;
+    wrappers.wrapType(PyHsmShapeBjControl(wrappers.module, "HsmShapeBjControl"), [](auto &mod, auto &cls) {
+        cls.def(py::init<>());
+    });
 
-    py::class_<HsmShapeRegaussAlgorithm, std::shared_ptr<HsmShapeRegaussAlgorithm>, HsmShapeAlgorithm>
-            clsHsmShapeRegaussAlgorithm(mod, "HsmShapeRegaussAlgorithm");
-    py::class_<HsmShapeRegaussControl, HsmShapeControl> clsHsmShapeRegaussControl(mod,
-                                                                                  "HsmShapeRegaussControl");
-    /* Constructors */
-    clsHsmShapeBjAlgorithm.def(
-            py::init<HsmShapeBjAlgorithm::Control const &, std::string const &, afw::table::Schema &>(),
-            "ctrl"_a, "name"_a, "schema"_a);
-    clsHsmShapeBjControl.def(py::init<>());
+    using PyHsmShapeLinearAlgorithm =  py::class_<HsmShapeLinearAlgorithm, std::shared_ptr<HsmShapeLinearAlgorithm>, HsmShapeAlgorithm>;
+    wrappers.wrapType(PyHsmShapeLinearAlgorithm(wrappers.module, "HsmShapeLinearAlgorithm"), [](auto &mod, auto &cls) {
+        cls.def(py::init<HsmShapeLinearAlgorithm::Control const &, std::string const &, afw::table::Schema &>(),
+                "ctrl"_a, "name"_a, "schema"_a);
+    });
 
-    clsHsmShapeLinearAlgorithm.def(
-            py::init<HsmShapeLinearAlgorithm::Control const &, std::string const &, afw::table::Schema &>(),
-            "ctrl"_a, "name"_a, "schema"_a);
-    clsHsmShapeLinearControl.def(py::init<>());
+    using PyHsmShapeLinearControl = py::class_<HsmShapeLinearControl, HsmShapeControl>;
+    wrappers.wrapType(PyHsmShapeLinearControl(wrappers.module, "HsmShapeLinearControl"), [](auto &mod, auto &cls) {
+        cls.def(py::init<>());
+    });
 
-    clsHsmShapeKsbAlgorithm.def(
-            py::init<HsmShapeKsbAlgorithm::Control const &, std::string const &, afw::table::Schema &>(),
-            "ctrl"_a, "name"_a, "schema"_a);
-    clsHsmShapeKsbControl.def(py::init<>());
+    using PyHsmShapeKsbAlgorithm =
+            py::class_<HsmShapeKsbAlgorithm, std::shared_ptr<HsmShapeKsbAlgorithm>, HsmShapeAlgorithm>;
+    wrappers.wrapType(PyHsmShapeKsbAlgorithm(wrappers.module, "HsmShapeKsbAlgorithm"), [](auto &mod, auto &cls) {
+        cls.def(
+                py::init<HsmShapeKsbAlgorithm::Control const &, std::string const &, afw::table::Schema &>(),
+                "ctrl"_a, "name"_a, "schema"_a);
+    });
 
-    clsHsmShapeRegaussAlgorithm.def(
-            py::init<HsmShapeRegaussAlgorithm::Control const &, std::string const &, afw::table::Schema &>(),
-            "ctrl"_a, "name"_a, "schema"_a);
-    clsHsmShapeRegaussControl.def(py::init<>());
+    using PyHsmShapeKsbControl = py::class_<HsmShapeKsbControl, HsmShapeControl>;
+    wrappers.wrapType(PyHsmShapeKsbControl(wrappers.module, "HsmShapeKsbControl"), [](auto &mod, auto &cls) {
+        cls.def(py::init<>());
+    });
 
-    /* Members */
-    LSST_DECLARE_CONTROL_FIELD(clsHsmShapeControl, HsmShapeControl, badMaskPlanes);
-    LSST_DECLARE_CONTROL_FIELD(clsHsmShapeControl, HsmShapeControl, deblendNChild);
+    using PyHsmShapeRegaussAlgorithm = py::class_<HsmShapeRegaussAlgorithm, std::shared_ptr<HsmShapeRegaussAlgorithm>, HsmShapeAlgorithm>;
+    wrappers.wrapType(PyHsmShapeRegaussAlgorithm(wrappers.module, "HsmShapeRegaussAlgorithm"), [](auto &mod, auto &cls) {
+        cls.def(
+                py::init<HsmShapeRegaussAlgorithm::Control const &, std::string const &, afw::table::Schema &>(),
+                "ctrl"_a, "name"_a, "schema"_a);
+    });
 
-    clsHsmShapeAlgorithm.def("measure", &HsmShapeAlgorithm::measure);
-    clsHsmShapeAlgorithm.def("fail", &HsmShapeAlgorithm::fail);
+    using PyHsmShapeRegaussControl = py::class_<HsmShapeRegaussControl, HsmShapeControl>;
+    wrappers.wrapType(PyHsmShapeRegaussControl(wrappers.module, "HsmShapeRegaussControl"), [](auto &mod, auto &cls) {
+        cls.def(py::init<>());
+    });
+
 }
 
 }  // shapeHSM
