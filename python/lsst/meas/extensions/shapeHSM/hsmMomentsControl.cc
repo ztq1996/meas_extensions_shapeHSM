@@ -38,27 +38,27 @@ PYBIND11_MODULE(hsmMomentsControl, mod) {
     py::module::import("lsst.meas.base");
 
     /* Module level */
-    py::class_<HsmMomentsAlgorithm, std::shared_ptr<HsmMomentsAlgorithm>, base::SimpleAlgorithm>
+    py::class_<HsmMomentsAlgorithm, base::SimpleAlgorithm>
             clsHsmMomentsAlgorithm(mod, "HsmMomentsAlgorithm");
 
-    py::class_<HsmSourceMomentsAlgorithm, std::shared_ptr<HsmSourceMomentsAlgorithm>, HsmMomentsAlgorithm>
+    py::class_<HsmSourceMomentsAlgorithm, HsmMomentsAlgorithm>
             clsHsmSourceMomentsAlgorithm(mod, "HsmSourceMomentsAlgorithm");
     py::class_<HsmSourceMomentsControl> clsHsmSourceMomentsControl(mod, "HsmSourceMomentsControl");
 
-    py::class_<HsmSourceMomentsRoundAlgorithm, std::shared_ptr<HsmSourceMomentsRoundAlgorithm>, HsmSourceMomentsAlgorithm, HsmMomentsAlgorithm>
+    py::class_<HsmSourceMomentsRoundAlgorithm, HsmSourceMomentsAlgorithm, HsmMomentsAlgorithm>
         clsHsmSourceMomentsRoundAlgorithm(mod, "HsmSourceMomentsRoundAlgorithm");
     py::class_<HsmSourceMomentsRoundControl, HsmSourceMomentsControl>
             clsHsmSourceMomentsRoundControl(mod, "HsmSourceMomentsRoundControl");
 
-    py::class_<HsmPsfMomentsAlgorithm, std::shared_ptr<HsmPsfMomentsAlgorithm>, HsmMomentsAlgorithm>
+    py::class_<HsmPsfMomentsAlgorithm, HsmMomentsAlgorithm>
             clsHsmPsfMomentsAlgorithm(mod, "HsmPsfMomentsAlgorithm");
-    py::class_<HsmPsfMomentsControl, std::shared_ptr<HsmPsfMomentsControl>>
+    py::class_<HsmPsfMomentsControl>
             clsHsmPsfMomentsControl(mod, "HsmPsfMomentsControl");
 
-    py::class_<HsmPsfMomentsDebiasedAlgorithm, std::shared_ptr<HsmPsfMomentsDebiasedAlgorithm>,
+    py::class_<HsmPsfMomentsDebiasedAlgorithm,
                HsmPsfMomentsAlgorithm, HsmMomentsAlgorithm>
             clsHsmPsfMomentsDebiasedAlgorithm(mod, "HsmPsfMomentsDebiasedAlgorithm");
-    py::class_<HsmPsfMomentsDebiasedControl, std::shared_ptr<HsmPsfMomentsDebiasedControl>>
+    py::class_<HsmPsfMomentsDebiasedControl>
             clsHsmPsfMomentsDebiasedControl(mod, "HsmPsfMomentsDebiasedControl");
 
     /* Constructors */

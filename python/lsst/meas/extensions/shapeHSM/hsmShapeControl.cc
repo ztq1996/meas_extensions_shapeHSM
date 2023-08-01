@@ -37,23 +37,23 @@ PYBIND11_MODULE(hsmShapeControl, mod) {
     py::module::import("lsst.meas.base");
 
     /* Module level */
-    py::class_<HsmShapeAlgorithm, std::shared_ptr<HsmShapeAlgorithm>, base::SimpleAlgorithm>
+    py::class_<HsmShapeAlgorithm, base::SimpleAlgorithm>
             clsHsmShapeAlgorithm(mod, "HsmShapeAlgorithm");
     py::class_<HsmShapeControl> clsHsmShapeControl(mod, "HsmShapeControl");
 
-    py::class_<HsmShapeBjAlgorithm, std::shared_ptr<HsmShapeBjAlgorithm>, HsmShapeAlgorithm>
+    py::class_<HsmShapeBjAlgorithm, HsmShapeAlgorithm>
             clsHsmShapeBjAlgorithm(mod, "HsmShapeBjAlgorithm");
     py::class_<HsmShapeBjControl, HsmShapeControl> clsHsmShapeBjControl(mod, "HsmShapeBjControl");
 
-    py::class_<HsmShapeLinearAlgorithm, std::shared_ptr<HsmShapeLinearAlgorithm>, HsmShapeAlgorithm>
+    py::class_<HsmShapeLinearAlgorithm, HsmShapeAlgorithm>
             clsHsmShapeLinearAlgorithm(mod, "HsmShapeLinearAlgorithm");
     py::class_<HsmShapeLinearControl, HsmShapeControl> clsHsmShapeLinearControl(mod, "HsmShapeLinearControl");
 
-    py::class_<HsmShapeKsbAlgorithm, std::shared_ptr<HsmShapeKsbAlgorithm>, HsmShapeAlgorithm>
+    py::class_<HsmShapeKsbAlgorithm, HsmShapeAlgorithm>
             clsHsmShapeKsbAlgorithm(mod, "HsmShapeKsbAlgorithm");
     py::class_<HsmShapeKsbControl, HsmShapeControl> clsHsmShapeKsbControl(mod, "HsmShapeKsbControl");
 
-    py::class_<HsmShapeRegaussAlgorithm, std::shared_ptr<HsmShapeRegaussAlgorithm>, HsmShapeAlgorithm>
+    py::class_<HsmShapeRegaussAlgorithm, HsmShapeAlgorithm>
             clsHsmShapeRegaussAlgorithm(mod, "HsmShapeRegaussAlgorithm");
     py::class_<HsmShapeRegaussControl, HsmShapeControl> clsHsmShapeRegaussControl(mod,
                                                                                   "HsmShapeRegaussControl");
