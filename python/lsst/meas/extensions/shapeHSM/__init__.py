@@ -23,10 +23,8 @@
 """lsst.meas.extensions.shapeHSM
 """
 from lsst.meas.base import BasePlugin, wrapSimpleAlgorithm
-
-from .hsmMomentsControl import *
 from .hsmShapeControl import *
-
+from ._hsm_moments import *
 from .version import *
 
 wrapSimpleAlgorithm(HsmShapeBjAlgorithm, name="ext_shapeHSM_HsmShapeBj",
@@ -37,11 +35,3 @@ wrapSimpleAlgorithm(HsmShapeKsbAlgorithm, name="ext_shapeHSM_HsmShapeKsb",
                     Control=HsmShapeKsbControl, executionOrder=BasePlugin.SHAPE_ORDER)
 wrapSimpleAlgorithm(HsmShapeRegaussAlgorithm, name="ext_shapeHSM_HsmShapeRegauss",
                     Control=HsmShapeRegaussControl, executionOrder=BasePlugin.SHAPE_ORDER)
-wrapSimpleAlgorithm(HsmSourceMomentsAlgorithm, name="ext_shapeHSM_HsmSourceMoments",
-                    Control=HsmSourceMomentsControl, executionOrder=BasePlugin.SHAPE_ORDER)
-wrapSimpleAlgorithm(HsmSourceMomentsRoundAlgorithm, name="ext_shapeHSM_HsmSourceMomentsRound",
-                    Control=HsmSourceMomentsRoundControl, executionOrder=BasePlugin.SHAPE_ORDER)
-wrapSimpleAlgorithm(HsmPsfMomentsAlgorithm, name="ext_shapeHSM_HsmPsfMoments",
-                    Control=HsmPsfMomentsControl, executionOrder=BasePlugin.SHAPE_ORDER)
-wrapSimpleAlgorithm(HsmPsfMomentsDebiasedAlgorithm, name="ext_shapeHSM_HsmPsfMomentsDebiased",
-                    Control=HsmPsfMomentsDebiasedControl, executionOrder=BasePlugin.FLUX_ORDER+1)
