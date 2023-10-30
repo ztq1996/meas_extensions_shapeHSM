@@ -44,12 +44,20 @@ class HsmMomentsConfig(SingleFramePluginConfig):
 class HsmMomentsPlugin(SingleFramePlugin):
     ConfigClass = HsmMomentsConfig
 
-    def __init__(self, config, name, schema, logName=None):
+    # def __init__(self, config, name, schema, metadata, logName=None) -> None:
+    def __init__(self, config, name, schema, metadata, logName=None):
         super().__init__(config, name, schema, logName)
+
+        self.centroidResultKey = afwTable.Point2DKey.addFields(
+            schema, name, "The centroid measured by HSM", "pixel"
+        )
+        self.shapeKey = afwTable.QuadrupoleKey.addFields(schema, name, doc="HSM source moments.")
+        if config.addFlux:
+            self.fluxKey = measBase.FluxResultKey.addFields(schema, name + "_Flux", "HSM flux", "dn")
 
         # Flag definitions.
         flagDefs = FlagDefinitionList()
-        self.FAILURE = flagDefs.add("flag", "General failure flag, set if anything went wrong")
+        self.FAILURE = flagDefs.addFailureFlag("General failure flag, set if anything went wrong")
         self.NO_PIXELS = flagDefs.add("flag_no_pixels", "No pixels to measure")
         self.NOT_CONTAINED = flagDefs.add(
             "flag_not_contained", "Center not contained in footprint bounding box"
@@ -93,16 +101,14 @@ class HsmSourceMomentsConfig(HsmMomentsConfig):
 class HsmSourceMomentsPlugin(HsmMomentsPlugin):
     ConfigClass = HsmSourceMomentsConfig
 
-    def __init__(self, config, name, schema, metadata, logName=None) -> None:
-        super().__init__(config, name, schema, logName)
-        # some flag thingy
-        # work in conjunction with fail()
-        self.centroidResultKey = afwTable.Point2DKey.addFields(
-            schema, name, "The centroid measured by HSM", "pixel"
-        )
-        self.shapeKey = afwTable.QuadrupoleKey.addFields(schema, name, doc="HSM source moments.")
-        if config.addFlux:  # search the correct attribute name in the codebase
-            self.fluxKey = measBase.FluxResultKey.addFields(schema, "flux", "The flux measured by HSM", "dn")
+    # def __init__(self, config, name, schema, metadata, logName=None):
+    #     super().__init__(config, name, schema, logName)
+    #     self.centroidResultKey = afwTable.Point2DKey.addFields(
+    #         schema, name, "The centroid measured by HSM", "pixel"
+    #     )
+    #     self.shapeKey = afwTable.QuadrupoleKey.addFields(schema, name, doc="HSM source moments.")
+    #     if config.addFlux:
+    #         self.fluxKey = measBase.FluxResultKey.addFields(schema, name + "_Flux", "HSM flux", "dn")
 
     def measure(self, record, exposure):
         """... in place"""
