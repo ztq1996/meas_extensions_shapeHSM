@@ -18,37 +18,31 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import galsim
 import lsst.afw.geom as afwGeom
-import lsst.afw.table as afwTable
 import lsst.afw.image as afwImage
+import lsst.afw.table as afwTable
 import lsst.meas.base as measBase
 import lsst.pex.config as pexConfig
-from lsst.meas.base import (
-    FlagDefinitionList,
-    FlagHandler,
-    MeasurementError,
-    SingleFramePlugin,
-    SingleFramePluginConfig,
-)
+from lsst.geom import Point2D, Point2I
 from lsst.pex.exceptions import InvalidParameterError
-from lsst.geom import Point2I, Point2D
 
 
-class HsmMomentsConfig(SingleFramePluginConfig):
+class HsmMomentsConfig(measBase.SingleFramePluginConfig):
     roundMoments = pexConfig.Field[bool](doc="Use round weight function?", default=False)
     addFlux = pexConfig.Field[bool](doc="Store measured flux?", default=False)
     subtractCenter = pexConfig.Field[bool](doc="Subtract starting center from x/y outputs?", default=False)
 
 
-class HsmMomentsPlugin(SingleFramePlugin):
+class HsmMomentsPlugin(measBase.SingleFramePlugin):
     ConfigClass = HsmMomentsConfig
 
     # def __init__(self, config, name, schema, metadata, logName=None) -> None:
     def __init__(self, config, name, schema, metadata, logName=None):
         super().__init__(config, name, schema, logName)
         # Flag definitions.
-        flagDefs = FlagDefinitionList()
+        flagDefs = measBase.FlagDefinitionList()
         self.FAILURE = flagDefs.addFailureFlag("General failure flag, set if anything went wrong")
         self.NO_PIXELS = flagDefs.add("flag_no_pixels", "No pixels to measure")
         self.NOT_CONTAINED = flagDefs.add(
@@ -56,11 +50,12 @@ class HsmMomentsPlugin(SingleFramePlugin):
         )
         self.PARENT_SOURCE = flagDefs.add("flag_parent_source", "Parent source, ignored")
         self.GALSIM = flagDefs.add("flag_galsim", "GalSim failure")
+        self.INVALID_PARAM = flagDefs.add("flag_invalid_param", "Invalid parameters")
         self.EDGE = flagDefs.add("flag_edge", "Variance undefined outside image edge")
-        self.NO_PSF = flagDefs.add("flag_no_psf", "No PSF available")
+        self.NO_PSF = flagDefs.add("flag_no_psf", "Exposure lacks PSF")
 
         # Flag handler.
-        self.flagHandler = FlagHandler.addFields(schema, name, flagDefs)
+        self.flagHandler = measBase.FlagHandler.addFields(schema, name, flagDefs)
 
         # Safe centroid extractor.
         self.centroidExtractor = measBase.SafeCentroidExtractor(schema, name)
@@ -79,7 +74,7 @@ class HsmMomentsPlugin(SingleFramePlugin):
         centeroid: Point2D,
     ):
         # Convert centroid to galsim.PositionD
-        guess_centroid = galsim.PositionD(centeroid.x, centeroid.y)
+        guessCentroid = galsim.PositionD(centeroid.x, centeroid.y)
 
         try:
             shape = galsim.hsm.FindAdaptiveMom(
@@ -88,13 +83,13 @@ class HsmMomentsPlugin(SingleFramePlugin):
                 badpix=badpix,
                 guess_sig=sigma,
                 precision=1.0e-6,
-                guess_centroid=guess_centroid,
+                guess_centroid=guessCentroid,
                 strict=True,
                 round_moments=self.config.roundMoments,
                 hsmparams=None,
             )
-        except galsim.hsm.GalSimHSMError as e:
-            raise MeasurementError(e, self.GALSIM.number)
+        except galsim.hsm.GalSimHSMError as error:
+            raise measBase.MeasurementError(error, self.GALSIM.number)
 
         # now that we have shape, we can get the values below:
         determinantRadius = shape.moments_sigma
@@ -122,8 +117,8 @@ class HsmMomentsPlugin(SingleFramePlugin):
             quad = afwGeom.ellipses.Quadrupole(
                 ellipse,
             )
-        except InvalidParameterError as e:
-            raise MeasurementError(e)
+        except InvalidParameterError as error:
+            raise measBase.MeasurementError(error, self.INVALID_PARAM.number)
 
         record.set(self.shapeKey, quad)
 
@@ -134,12 +129,12 @@ class HsmMomentsPlugin(SingleFramePlugin):
         # docstring inherited.
         self.flagHandler.handleFailure(record)
         if error:
-            center = record.getCentroid()
+            centeroid = record.getCentroid()
             self.log.debug(
                 "Failed to measure shape for %d at (%f, %f): %s",
                 record.getId(),
-                center.getX(),
-                center.getY(),
+                centeroid.getX(),
+                centeroid.getY(),
                 error,
             )
 
@@ -173,27 +168,23 @@ class HsmSourceMomentsPlugin(HsmMomentsPlugin):
 
         bbox = record.getFootprint().getBBox()
         if bbox.getArea() == 0:
-            raise MeasurementError(self.NO_PIXELS.doc, self.NO_PIXELS.number)
+            raise measBase.MeasurementError(self.NO_PIXELS.doc, self.NO_PIXELS.number)
 
         if not bbox.contains(Point2I(center)):
-            raise MeasurementError(self.NOT_CONTAINED.doc, self.NOT_CONTAINED.number)
+            raise measBase.MeasurementError(self.NOT_CONTAINED.doc, self.NOT_CONTAINED.number)
 
         psfSigma = exposure.getPsf().computeShape(center).getTraceRadius()
 
         # galsim
-        image_array = exposure[bbox].getImage().array
-        # xmin, xmax = bbox.getMinX() + 1, bbox.getMaxX() + 1
-        # ymin, ymax = bbox.getMinY() + 1, bbox.getMaxY() + 1
+        imageArray = exposure[bbox].getImage().array
         xmin, xmax = bbox.getMinX(), bbox.getMaxX()
         ymin, ymax = bbox.getMinY(), bbox.getMaxY()
         bounds = galsim.bounds.BoundsI(xmin, xmax, ymin, ymax)
-        image = galsim.Image(image_array, bounds=bounds, copy=False)
+        image = galsim.Image(imageArray, bounds=bounds, copy=False)
         # GalSim's HSM uses the FITS convention of 1,1 for the lower-leftcorner
         # account for difference in origin while converting center to galsim
         # centerid (guessed)
         # make sure bbox is centered properly
-
-        bounds = galsim.bounds.BoundsI(xmin, xmax, ymin, ymax)
 
         # Get the `lsst.meas.base` mask for bad pixels.
         badpix = exposure[bbox].mask.array.copy()
@@ -230,6 +221,7 @@ class HsmSourceMomentsRoundConfig(HsmSourceMomentsConfig):
         super().validate()
 
 
+@measBase.register("ext_shapeHSM_HsmSourceMomentsRound")
 class HsmSourceMomentsRoundPlugin(HsmSourceMomentsPlugin):
     ConfigClass = HsmSourceMomentsRoundConfig
 
@@ -239,7 +231,7 @@ class HsmPsfMomentsConfig(HsmMomentsConfig):
 
 
 @measBase.register("ext_shapeHSM_HsmPsfMoments")
-class HsmPSFMomentsPlugin(HsmMomentsPlugin):
+class HsmPsfMomentsPlugin(HsmMomentsPlugin):
     ConfigClass = HsmPsfMomentsConfig
 
     def __init__(self, config, name, schema, metadata, logName=None):
@@ -262,30 +254,28 @@ class HsmPSFMomentsPlugin(HsmMomentsPlugin):
 
         psf = exposure.getPsf()
         if not psf:
-            raise MeasurementError(self.NO_PSF.doc, self.NO_PSF.number)
+            raise measBase.MeasurementError(self.NO_PSF.doc, self.NO_PSF.number)
 
         if self.config.useSourceCentroidOffset:
-            psf_image = psf.computeImage(center)
+            psfImage = psf.computeImage(center)
         else:
-            psf_image = psf.computeKernelImage(center)
-            psf_image.setXY0(psf.computeImageBBox(center).getMin())
+            psfImage = psf.computeKernelImage(center)
+            psfImage.setXY0(psf.computeImageBBox(center).getMin())
 
         # psfMask =  ... don't really need it here
 
         psfSigma = psf.computeShape(center).getTraceRadius()
-        # breakpoint()
 
         # galsim
-        image_array = psf_image.array
+        imageArray = psfImage.array
 
         # Get the bounding box of the PSF image in the parent image.
-        bbox = psf_image.getBBox(afwImage.PARENT)
+        bbox = psfImage.getBBox(afwImage.PARENT)
 
         xmin, xmax = bbox.getMinX(), bbox.getMaxX()
         ymin, ymax = bbox.getMinY(), bbox.getMaxY()
         bounds = galsim.bounds.BoundsI(xmin, xmax, ymin, ymax)
-        image = galsim.Image(image_array, bounds=bounds, copy=False)
-        bounds = galsim.bounds.BoundsI(xmin, xmax, ymin, ymax)
+        image = galsim.Image(imageArray, bounds=bounds, copy=False)
 
         # No psfMask, no badpix calculation for PSF.
         badpix = None
@@ -322,3 +312,12 @@ class HsmPsfMomentsDebiasedConfig(HsmPsfMomentsConfig):
     def setDefaults(self):
         super().setDefaults()
         self.useSourceCentroidOffset = True
+
+
+@measBase.register("ext_shapeHSM_HsmPsfMomentsDebiased")
+class HsmPsfMomentsDebiasedPlugin(HsmPsfMomentsPlugin):
+    ConfigClass = HsmPsfMomentsDebiasedConfig
+
+    @classmethod
+    def getExecutionOrder(cls):
+        return cls.FLUX_ORDER + 1
