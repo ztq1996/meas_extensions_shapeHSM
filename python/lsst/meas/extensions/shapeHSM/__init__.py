@@ -28,7 +28,7 @@ from .hsmMomentsControl import *
 from .hsmShapeControl import *
 
 from ._hsm_moments import *
-from ._hsm_shape import *
+# from ._hsm_shape import *
 from .version import *
 
 wrapSimpleAlgorithm(HsmShapeBjAlgorithm, name="ext_shapeHSM_HsmShapeBj",
