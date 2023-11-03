@@ -22,11 +22,13 @@
 import galsim
 import lsst.afw.geom as afwGeom
 import lsst.afw.image as afwImage
+import lsst.afw.math as afwMath
 import lsst.afw.table as afwTable
 import lsst.meas.base as measBase
 import lsst.pex.config as pexConfig
+import numpy as np
 from lsst.geom import Point2D, Point2I
-from lsst.pex.exceptions import InvalidParameterError
+from lsst.pex.exceptions import InvalidParameterError, NotFoundError
 
 
 class HsmMomentsConfig(measBase.SingleFramePluginConfig):
@@ -43,7 +45,7 @@ class HsmMomentsPlugin(measBase.SingleFramePlugin):
     ConfigClass = HsmMomentsConfig
 
     def __init__(self, config, name, schema, metadata, logName=None):
-        super().__init__(config, name, schema, logName)
+        super().__init__(config, name, schema, metadata, logName=logName)
 
         # Define flags for possible issues that might arise during measurement.
         flagDefs = measBase.FlagDefinitionList()
@@ -54,7 +56,7 @@ class HsmMomentsPlugin(measBase.SingleFramePlugin):
         )
         self.PARENT_SOURCE = flagDefs.add("flag_parent_source", "Parent source, ignored")
         self.GALSIM = flagDefs.add("flag_galsim", "GalSim failure")
-        self.INVALID_PARAM = flagDefs.add("flag_invalid_param", "Invalid parameter")
+        self.INVALID_PARAM = flagDefs.add("flag_invalid_param", "Invalid combination of moments")
         self.EDGE = flagDefs.add("flag_edge", "Variance undefined outside image edge")
         self.NO_PSF = flagDefs.add("flag_no_psf", "Exposure lacks PSF")
 
@@ -74,6 +76,7 @@ class HsmMomentsPlugin(measBase.SingleFramePlugin):
         record: afwTable.SourceRecord,
         *,
         image: galsim.Image,
+        weight: galsim.Image | None,
         badpix: galsim.Image | None,
         sigma: float,
         precision: float = 1.0e-6,
@@ -89,7 +92,10 @@ class HsmMomentsPlugin(measBase.SingleFramePlugin):
             Record to store measurements.
         image : `~galsim.Image`
             Image on which to perform measurements.
-        badpix : `~galsim.Image`, optional
+        weight : `~galsim.Image`
+            The weight image for the galaxy being measured. Can be an int or a
+            float array.
+        badpix : `~galsim.Image`
             Image representing bad pixels.
         sigma : `float`
             Estimate of object's Gaussian sigma.
@@ -110,7 +116,7 @@ class HsmMomentsPlugin(measBase.SingleFramePlugin):
             # Attempt to compute HSM moments.
             shape = galsim.hsm.FindAdaptiveMom(
                 image,
-                weight=None,
+                weight=weight,
                 badpix=badpix,
                 guess_sig=sigma,
                 precision=precision,
@@ -164,7 +170,7 @@ class HsmMomentsPlugin(measBase.SingleFramePlugin):
         # Docstring inherited.
         self.flagHandler.handleFailure(record)
         if error:
-            centroid = record.getCentroid()
+            centroid = self.centroidExtractor(record, self.flagHandler)
             self.log.debug(
                 "Failed to measure shape for %d at (%f, %f): %s",
                 record.getId(),
@@ -176,6 +182,7 @@ class HsmMomentsPlugin(measBase.SingleFramePlugin):
 
 class HsmSourceMomentsConfig(HsmMomentsConfig):
     """Configuration for HSM adaptive moments measurement for sources."""
+
     badMaskPlanes = pexConfig.ListField[str](
         doc="Mask planes used to reject bad pixels.", default=["BAD", "SAT"]
     )
@@ -184,16 +191,17 @@ class HsmSourceMomentsConfig(HsmMomentsConfig):
 @measBase.register("ext_shapeHSM_HsmSourceMoments")
 class HsmSourceMomentsPlugin(HsmMomentsPlugin):
     """Plugin for HSM adaptive moments measurement for sources."""
+
     ConfigClass = HsmSourceMomentsConfig
 
     def __init__(self, config, name, schema, metadata, logName=None):
-        super().__init__(config, name, schema, logName)
+        super().__init__(config, name, schema, metadata, logName=logName)
         self.centroidResultKey = afwTable.Point2DKey.addFields(schema, name, "HSM source centroid", "pixel")
         self.shapeKey = afwTable.QuadrupoleKey.addFields(
             schema, name, "HSM source moments", afwTable.CoordinateType.PIXEL
         )
         if config.addFlux:
-            self.fluxKey = measBase.FluxResultKey.addFields(schema, name + "_Flux", "HSM source flux", "dn")
+            self.fluxKey = measBase.FluxResultKey.addFields(schema, name + "_Flux", "HSM source flux")
 
     def measure(self, record, exposure):
         """
@@ -229,24 +237,24 @@ class HsmSourceMomentsPlugin(HsmMomentsPlugin):
         # Get the trace radius of the PSF.
         psfSigma = exposure.getPsf().computeShape(center).getTraceRadius()
 
-        # Extract the numpy array underlying the image within the bounding box
-        # of the source.
-        imageArray = exposure[bbox].getImage().array
-
         # Turn bounding box corners into GalSim bounds.
         xmin, xmax = bbox.getMinX(), bbox.getMaxX()
         ymin, ymax = bbox.getMinY(), bbox.getMaxY()
         bounds = galsim.bounds.BoundsI(xmin, xmax, ymin, ymax)
 
+        # Get the `lsst.meas.base` mask for bad pixels.
+        badpix = exposure[bbox].mask.array.copy()
+        bitValue = exposure.mask.getPlaneBitMask(self.config.badMaskPlanes)
+        badpix &= bitValue
+
+        # Extract the numpy array underlying the image within the bounding box
+        # of the source.
+        imageArray = exposure[bbox].getImage().array
+
         # Create a GalSim image using the extracted array.
         # NOTE: GalSim's HSM uses the FITS convention of 1,1 for the
         # lower-left corner.
         image = galsim.Image(imageArray, bounds=bounds, copy=False)
-
-        # Get the `lsst.meas.base` mask for bad pixels.
-        badpix = exposure[bbox].mask.array.copy()
-        bitValue = exposure.mask.getPlaneBitMask(self.config.badMaskPlanes)
-        badpix &= 2**bitValue  # Let's go back to this!!!
 
         # Convert the mask of bad pixels to a format suitable for galsim.
         # NOTE: galsim.Image will match whatever dtype the input array is
@@ -257,6 +265,7 @@ class HsmSourceMomentsPlugin(HsmMomentsPlugin):
         self._calculate(
             record,
             image=image,
+            weight=None,
             badpix=badpix,
             sigma=2.5 * psfSigma,
             precision=1.0e-6,
@@ -268,6 +277,7 @@ class HsmSourceMomentsRoundConfig(HsmSourceMomentsConfig):
     """Configuration for HSM adaptive moments measurement for sources using
     round weight function.
     """
+
     def setDefaults(self):
         super().setDefaults()
         self.roundMoments = True
@@ -285,21 +295,35 @@ class HsmSourceMomentsRoundPlugin(HsmSourceMomentsPlugin):
     """Plugin for HSM adaptive moments measurement for sources using round
     weight function.
     """
+
     ConfigClass = HsmSourceMomentsRoundConfig
 
 
 class HsmPsfMomentsConfig(HsmMomentsConfig):
     """Configuration for HSM adaptive moments measurement for PSFs."""
+
     useSourceCentroidOffset = pexConfig.Field[bool](doc="Use source centroid offset?", default=False)
+    debiasedPsfMoments = pexConfig.Field[bool](doc="Debias PSF moments?", default=False)
+    # The rest of the config is only relevant if debias is True.
+    noiseSource = pexConfig.ChoiceField[str](
+        doc="Noise source. How to choose variance of the zero-mean Gaussian noise added to image.",
+        allowed={
+            "meta": "variance = the 'BGMEAN' metadata entry",
+            "variance": "variance = the image's variance plane",
+        },
+        default="variance",
+    )
+    seedOffset = pexConfig.Field[int](doc="Seed offset for random number generator.", default=0)
 
 
 @measBase.register("ext_shapeHSM_HsmPsfMoments")
 class HsmPsfMomentsPlugin(HsmMomentsPlugin):
     """Plugin for HSM adaptive moments measurement for PSFs."""
+
     ConfigClass = HsmPsfMomentsConfig
 
     def __init__(self, config, name, schema, metadata, logName=None):
-        super().__init__(config, name, schema, logName)
+        super().__init__(config, name, schema, metadata, logName=logName)
         self.centroidResultKey = afwTable.Point2DKey.addFields(
             schema, name, "HSM PSF centroid", "pixel"
         )  # not sure if we report this but let's keep it here for now!!!
@@ -307,7 +331,7 @@ class HsmPsfMomentsPlugin(HsmMomentsPlugin):
             schema, name, "HSM PSF moments", afwTable.CoordinateType.PIXEL
         )
         if config.addFlux:
-            self.fluxKey = measBase.FluxResultKey.addFields(schema, name + "_Flux", "HSM PSF flux", "dn")
+            self.fluxKey = measBase.FluxResultKey.addFields(schema, name + "_Flux", "HSM PSF flux")
 
     def measure(self, record, exposure):
         """
@@ -336,23 +360,21 @@ class HsmPsfMomentsPlugin(HsmMomentsPlugin):
         if not psf:
             raise measBase.MeasurementError(self.NO_PSF.doc, self.NO_PSF.number)
 
-        # Two methods for getting PSF image evaluated at the record's centroid:
+        # Two methods for getting PSF image evaluated at the source centroid:
         if self.config.useSourceCentroidOffset:
-            # 1. Use `computeImage()` to return an image in the same coordinate
+            # 1. Using `computeImage()` returns an image in the same coordinate
             # system as the pixelized image.
             psfImage = psf.computeImage(center)
         else:
-            # 2.a Use `computeKernelImage()` to return an image in an offset
-            # coordinate system where the image center is at (0,0).
             psfImage = psf.computeKernelImage(center)
-            # 2.b Reset the origin to be the same as the pixelized image.
+            # 2. Using `computeKernelImage()` to return an image does not
+            # retain any information about the origial bounding box of the
+            # PSF. We therefore reset the origin to be the same as the
+            # pixelized image.
             psfImage.setXY0(psf.computeImageBBox(center).getMin())
 
         # Get the trace radius of the PSF.
         psfSigma = psf.computeShape(center).getTraceRadius()
-
-        # Extract the numpy array underlying the PSF image.
-        imageArray = psfImage.array
 
         # Get the bounding box in the parent coordinate system.
         bbox = psfImage.getBBox(afwImage.PARENT)
@@ -362,11 +384,60 @@ class HsmPsfMomentsPlugin(HsmMomentsPlugin):
         ymin, ymax = bbox.getMinY(), bbox.getMaxY()
         bounds = galsim.bounds.BoundsI(xmin, xmax, ymin, ymax)
 
+        if self.config.debiasedPsfMoments:
+            # Match PSF flux to source.
+            psfImage *= record.getPsfInstFlux()
+
+            # Add Gaussian noise to image in 4 steps:
+            # 1. Initialize the noise image and random number generator.
+            # if isinstance(psfImage, afwImage.ImageF):
+            #     noise = afwImage.ImageF(psfImage.getBBox())
+            # elif isinstance(psfImage, afwImage.ImageD):
+            #     noise = afwImage.ImageD(psfImage.getBBox())
+            noise = afwImage.Image(psfImage.getBBox(), dtype=psfImage.dtype)
+            seed = record.getId() + self.config.seedOffset
+            rand = afwMath.Random("MT19937", seed)
+
+            # 2. Generate Gaussian noise image.
+            afwMath.randomGaussianImage(noise, rand)
+
+            # 3. Determine the noise scaling based on the noise source.
+            if self.config.noiseSource == "meta":
+                # Retrieve the BGMEAN from the exposure metadata.
+                try:
+                    bgmean = exposure.getMetadata().getAsDouble("BGMEAN")
+                except NotFoundError as error:
+                    raise measBase.FatalAlgorithmError(error)
+                # Scale the noise by the square root of the background mean.
+                noise *= np.sqrt(bgmean)
+            elif self.config.noiseSource == "variance":
+                # Get the variance image from the exposure and restrict to the
+                # PSF bounding box.
+                var = afwImage.ImageF(
+                    exposure.getMaskedImage().getVariance(),
+                    psfImage.getBBox(),
+                    afwImage.PARENT,
+                    True,
+                )
+                # Scale the noise by the square root of the variance.
+                noise *= np.sqrt(var)
+
+            # 4. Add the scaled noise to the PSF image
+            psfImage += noise
+
+            # Masking is needed for debiased PSF moments.
+            # FIXME: setting badpix leads to nans!!!
+            badpix = exposure[bbox].mask.array.copy()
+            bitValue = exposure.mask.getPlaneBitMask(self.config.badMaskPlanes)
+            badpix &= bitValue
+        else:
+            badpix = None
+
+        # Extract the numpy array underlying the PSF image.
+        imageArray = psfImage.array
+
         # Create a GalSim image using the PSF image array.
         image = galsim.Image(imageArray, bounds=bounds, copy=False)
-
-        # No masking is applied to the PSF, so the bad pixel mask is None.
-        badpix = None
 
         # Decide on the centroid position based on configuration.
         if self.config.useSourceCentroidOffset:
@@ -381,6 +452,7 @@ class HsmPsfMomentsPlugin(HsmMomentsPlugin):
         self._calculate(
             record,
             image=image,
+            weight=None,
             badpix=badpix,
             sigma=psfSigma,
             centroid=centroid,
@@ -389,27 +461,17 @@ class HsmPsfMomentsPlugin(HsmMomentsPlugin):
 
 class HsmPsfMomentsDebiasedConfig(HsmPsfMomentsConfig):
     """Configuration for debiased HSM adaptive moments measurement for PSFs."""
-    badMaskPlanes = pexConfig.ListField[str](
-        doc="Mask planes used to reject bad pixels.", default=["BAD", "SAT"]
-    )
-    noiseSource = pexConfig.ChoiceField[str](
-        doc="Noise source. How to choose variance of the zero-mean Gaussian noise added to image.",
-        allowed={
-            "meta": "variance = the 'BGMEAN' metadata entry",
-            "variance": "variance = the image's variance plane",
-        },
-        default="variance",
-    )
-    seedOffset = pexConfig.Field[int](doc="Seed offset for random number generator.", default=0)
 
     def setDefaults(self):
         super().setDefaults()
         self.useSourceCentroidOffset = True
+        self.debiasedPsfMoments = True
 
 
 @measBase.register("ext_shapeHSM_HsmPsfMomentsDebiased")
 class HsmPsfMomentsDebiasedPlugin(HsmPsfMomentsPlugin):
     """Plugin for debiased HSM adaptive moments measurement for PSFs."""
+
     ConfigClass = HsmPsfMomentsDebiasedConfig
 
     @classmethod
