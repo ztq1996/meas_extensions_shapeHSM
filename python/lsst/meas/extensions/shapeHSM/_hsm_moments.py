@@ -331,7 +331,7 @@ class HsmPsfMomentsPlugin(HsmMomentsPlugin):
                 schema.join(name, "Flux"), type=float, doc="HSM PSF flux"
             )  # , units="count"
 
-    def _measure(self, record, exposure, debiasedPsfMoments=False, noiseSource=None, seedOffset=None):
+    def _measure(self, record, exposure, debiasedPsfMoments=False, noiseSource=None, seedOffset=None, badMaskPlanes=None):
         """
         Measure adaptive moments of the PSF given an exposure and set the
         results in the record in place.
@@ -434,7 +434,7 @@ class HsmPsfMomentsPlugin(HsmMomentsPlugin):
             # Masking is needed for debiased PSF moments.
             # FIXME: setting badpix leads to nans!!!
             badpix = exposure[bbox].mask.array.copy()
-            bitValue = exposure.mask.getPlaneBitMask(self.config.badMaskPlanes)
+            bitValue = exposure.mask.getPlaneBitMask(badMaskPlanes)
             badpix &= bitValue
 
             # Convert the mask of bad pixels to a format suitable for galsim.
@@ -511,4 +511,5 @@ class HsmPsfMomentsDebiasedPlugin(HsmPsfMomentsPlugin):
             debiasedPsfMoments=True,
             noiseSource=self.config.noiseSource,
             seedOffset=self.config.seedOffset,
+            badMaskPlanes=self.config.badMaskPlanes,
         )
