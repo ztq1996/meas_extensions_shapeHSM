@@ -85,7 +85,7 @@ class HigherOrderMomentsPlugin(measBase.SingleFramePlugin):
 
 
 
-    def getAllNames(self, ispsf = False):
+    def getAllNames(self):
         for (p, q) in self._get_pq_full(self.config.orderMax):
             if p + q > 2:
                 yield f"{p}{q}"
