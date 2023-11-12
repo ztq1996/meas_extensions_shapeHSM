@@ -57,6 +57,15 @@ class HigherOrderMomentsPlugin(measBase.SingleFramePlugin):
         flagDefs = measBase.FlagDefinitionList()
         self.FAILURE = flagDefs.addFailureFlag("General failure flag, set if anything went wrong")
 
+        self.NO_PIXELS = flagDefs.add("flag_no_pixels", "No pixels to measure")
+        self.NOT_CONTAINED = flagDefs.add(
+            "flag_not_contained", "Center not contained in footprint bounding box"
+        )
+
+        self.GALSIM = flagDefs.add("flag_galsim", "GalSim failure")
+
+        self.NO_PSF = flagDefs.add("flag_no_psf", "Exposure lacks PSF")
+
         # Embed the flag definitions in the schema using a flag handler.
         self.flagHandler = measBase.FlagHandler.addFields(schema, name, flagDefs)
 
@@ -117,7 +126,12 @@ class HigherOrderMomentsPlugin(measBase.SingleFramePlugin):
         image_array = image.array
         
         y, x = mgrid[:image_array.shape[0],:image_array.shape[1]]+1
-        psfresults = galsim.hsm.FindAdaptiveMom(image)
+
+        try:
+            psfresults = galsim.hsm.FindAdaptiveMom(image)
+        except galsim.hsm.GalSimHSMError as error:
+            raise measBase.MeasurementError(str(error), self.GALSIM.number)
+
         M = np.zeros((2,2))
         e1 = psfresults.observed_shape.e1
         e2 = psfresults.observed_shape.e2
@@ -150,7 +164,6 @@ class HigherOrderMomentsPlugin(measBase.SingleFramePlugin):
             results_list.append(this_moment)
             
         return np.array(results_list)
-
 
 
 class HigherOrderMomentsSourceConfig(HigherOrderMomentsConfig):
@@ -186,6 +199,15 @@ class HigherOrderMomentsSourcePlugin(HigherOrderMomentsPlugin)
 
         # get the bounding box of the source footprint
         bbox = record.getFootprint().getBBox()
+
+        # Check that the bounding box has non-zero area.
+        if bbox.getArea() == 0:
+            raise measBase.MeasurementError(self.NO_PIXELS.doc, self.NO_PIXELS.number)
+
+        # Ensure that the centroid is within the bounding box.
+        if not bbox.contains(Point2I(center)):
+            raise measBase.MeasurementError(self.NOT_CONTAINED.doc, self.NOT_CONTAINED.number)
+
 
         # get Galsim bounds from bbox
 
@@ -237,7 +259,7 @@ class HigherOrderMomentsPSFPlugin(HigherOrderMomentsPlugin)
     def __init__(self, config, name, schema, metadata, logName=None):
         super().__init__(config, name, schema, metadata, logName=logName)
 
-        # Add column names for the sources
+        # Add column names for the PSFs
 
         for suffix in self.getAllNames():
             schema.addField(schema.join(schema.join(name,'Psf'), suffix), type=float, doc=f"Higher order moments M_{suffix} for PSF")
@@ -250,6 +272,11 @@ class HigherOrderMomentsPSFPlugin(HigherOrderMomentsPlugin)
         # get the psf and psf image from the exposure
 
         psf = exposure.getPsf()
+
+        # check if the psf is none:
+
+        if not psf:
+            raise measBase.MeasurementError(self.NO_PSF.doc, self.NO_PSF.number)
 
         psfImage = psf.computeImage(center)
 
