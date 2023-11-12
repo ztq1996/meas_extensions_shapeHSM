@@ -120,16 +120,10 @@ def get_all_moments_fast(image,pqlist):
     """
 
     results_list = []
-
-    image_results = galsim.hsm.FindAdaptiveMom(image)
-
+    
     image_array = image.array
-​
+    
     y, x = mgrid[:image_array.shape[0],:image_array.shape[1]]+1
-​
-    image.scale = 1.0
-
-    ### Build the second moment metrix of the image (maybe use the standard way to convert e1, e2, sigma -> Mxx, Mxy, Myy)
     psfresults = galsim.hsm.FindAdaptiveMom(image)
     M = np.zeros((2,2))
     e1 = psfresults.observed_shape.e1
@@ -140,38 +134,26 @@ def get_all_moments_fast(image,pqlist):
     M[0][0] = c*M[1][1]
     M[0][1] = 0.5*e2*(M[1][1]+M[0][0])
     M[1][0] = M[0][1]
-​
+
     pos = np.array([x-psfresults.moments_centroid.x, y-psfresults.moments_centroid.y])
-    pos = np.swapaxes(pos,0,1)
-    pos = np.swapaxes(pos,1,2)
-​
     inv_M = np.linalg.inv(M)
     sqrt_inv_M = alg.sqrtm(inv_M)
-    std_pos = np.zeros(pos.shape)
-    weight = np.zeros(pos.shape[0:2])
-    for i in range(pos.shape[0]):
-        for j in range(pos.shape[1]):
-            this_pos = pos[i][j]
-            this_standard_pos = np.matmul(sqrt_inv_M, this_pos)
-            std_pos[i][j] = this_standard_pos
-            weight[i][j] = np.exp(-0.5* this_standard_pos.dot(this_standard_pos))
-​
-    std_x, std_y = std_pos[:,:,0],std_pos[:,:,1]
+    
+    std_pos = np.einsum('ij,jqp->iqp',sqrt_inv_M,pos)
+    weight = np.exp(-0.5* np.einsum('ijk,ijk->jk',std_pos,std_pos ))
 
+    std_x, std_y = std_pos[0],std_pos[1]
+    
+    normalization = sum(image_array*weight)
+    image_weight = weight*image_array
     for tup in pqlist:
         p = tup[0]
         q = tup[1]
-
-        if q+p==2:
-            if p==2:
-                this_moment = image_results.observed_shape.e1
-            elif q==2:
-                this_moment = image_results.observed_shape.e2
-            else:
-                this_moment = image_results.moments_sigma
-        else:
-            this_moment = sum(std_x**p*std_y**q*weight*image)/sum(image*weight)
-
+        
+        if p+q<=2:
+            raise ValueError('Standardized Moments Work with Order>2')
+        
+        this_moment = sum(std_x**p*std_y**q*image_weight)/normalization
         results_list.append(this_moment)
-
+        
     return np.array(results_list)
