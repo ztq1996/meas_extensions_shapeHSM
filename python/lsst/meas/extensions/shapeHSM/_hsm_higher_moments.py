@@ -231,7 +231,10 @@ class HigherOrderMomentsSourcePlugin(HigherOrderMomentsPlugin)
             raise measBase.MeasurementError(e)
 
         # Record the moments 
-        for (p,q) in pqlist:
+        for i in range(len(hm_measurement)):
+
+            (p,q) = pqlist[i]
+            M_pq = hm_measurement[i]
 
             suffix = self._get_suffix(p,q)
             record.set(self.schema.join(self.name, suffix), M_pq)
@@ -305,7 +308,10 @@ class HigherOrderMomentsPSFPlugin(HigherOrderMomentsPlugin)
             raise measBase.MeasurementError(e)
 
         # Record the moments 
-        for (p,q) in pqlist:
+        for i in range(len(hm_measurement)):
+
+            (p,q) = pqlist[i]
+            M_pq = hm_measurement[i]
 
             suffix = self._get_suffix(p,q)
             record.set(schema.join(schema.join(name,'Psf'), suffix), M_pq)
