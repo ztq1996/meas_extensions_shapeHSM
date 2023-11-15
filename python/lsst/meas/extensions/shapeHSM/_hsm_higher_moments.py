@@ -19,11 +19,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-__all__ = []
+__all__ = ["HigherOrderMomentsPlugin","HigherOrderMomentsSourcePlugin", "HigherOrderMomentsPSFPlugin" ]
 
 import logging
 import lsst.meas.base as measBase
-from lsst.pex.confg import Field
+from lsst.pex.config import Field
 import lsst.afw.image as afwImage
 import lsst.pex.config as pexConfig
 from numpy import mgrid, sum
@@ -35,9 +35,9 @@ import galsim
 PLUGIN_NAME = "ext_shapeHSM_HigherOrderMoments"
 
 class HigherOrderMomentsConfig(measBase.SingleFramePluginConfig):
-    orderMax = Field[int](
+    orderMax = Field(
         doc="Maximum order of moments to compute, must be >2",
-        default=4,
+        default=4, dtype = int
     )
 
 
@@ -172,13 +172,13 @@ class HigherOrderMomentsSourceConfig(HigherOrderMomentsConfig):
     Configuration for the higher order moments of the source
     """
 
-    badMaskPlanes = pexConfig.ListField[str](
-        doc="Mask planes used to reject bad pixels.", default=["BAD", "SAT"]
+    badMaskPlanes = pexConfig.ListField(
+        doc="Mask planes used to reject bad pixels.", default=["BAD", "SAT"], dtype = str
     )
 
 
 @measBase.register("ext_shapeHSM_HigherOrderMomentsSource")
-class HigherOrderMomentsSourcePlugin(HigherOrderMomentsPlugin)
+class HigherOrderMomentsSourcePlugin(HigherOrderMomentsPlugin):
     """
     Plugin class for Higher Order Moments measurement of the source
     """
@@ -248,11 +248,11 @@ class HigherOrderMomentsPSFConfig(HigherOrderMomentsConfig):
     Configuration for the higher order moments of the PSF
     """
 
-    useSourceCentroidOffset = pexConfig.Field[bool](doc="Use source centroid offset?", default=False)
+    useSourceCentroidOffset = pexConfig.Field(doc="Use source centroid offset?", default=False, dtype = bool)
 
 
 @measBase.register("ext_shapeHSM_HigherOrderMomentsPSF")
-class HigherOrderMomentsPSFPlugin(HigherOrderMomentsPlugin)
+class HigherOrderMomentsPSFPlugin(HigherOrderMomentsPlugin):
     """
     Plugin class for Higher Order Moments measurement of the source
     """
