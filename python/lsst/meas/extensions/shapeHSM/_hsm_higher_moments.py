@@ -26,8 +26,12 @@ import lsst.meas.base as measBase
 from lsst.pex.config import Field
 import lsst.afw.image as afwImage
 import lsst.pex.config as pexConfig
-from numpy import mgrid, sum
 import galsim
+import numpy as np
+
+import logging
+import sys
+import scipy
 
 
 
@@ -52,9 +56,10 @@ class HigherOrderMomentsPlugin(measBase.SingleFramePlugin):
 
         # Add the output columns to the schema
         # Attn: TQ
-
+        
         # Define flags for possible issues that might arise during measurement.
         flagDefs = measBase.FlagDefinitionList()
+        
         self.FAILURE = flagDefs.addFailureFlag("General failure flag, set if anything went wrong")
 
         self.NO_PIXELS = flagDefs.add("flag_no_pixels", "No pixels to measure")
@@ -73,6 +78,25 @@ class HigherOrderMomentsPlugin(measBase.SingleFramePlugin):
         # as a fallback if necessary.
         self.centroidExtractor = measBase.SafeCentroidExtractor(schema, name)
         self.log = logging.getLogger(self.logName)
+
+        # initialize a logger
+        
+        logger = logging.getLogger()
+        logger.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s')
+
+        stdout_handler = logging.StreamHandler(sys.stdout)
+        stdout_handler.setLevel(logging.DEBUG)
+        stdout_handler.setFormatter(formatter)
+
+        file_handler = logging.FileHandler('logs_source.log')
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(formatter)
+
+
+        logger.addHandler(file_handler)
+        logger.addHandler(stdout_handler)
+        self.logger = logger
 
     @classmethod
     def getExecutionOrder(cls):
@@ -113,7 +137,7 @@ class HigherOrderMomentsPlugin(measBase.SingleFramePlugin):
         return f"{p}{q}"
 
 
-    def calc_higher_moments(image,pqlist):
+    def calc_higher_moments(self,image,pqlist):
         """
         image : galsim.Image
             Image of the PSF
@@ -125,13 +149,20 @@ class HigherOrderMomentsPlugin(measBase.SingleFramePlugin):
         
         image_array = image.array
         
-        y, x = mgrid[:image_array.shape[0],:image_array.shape[1]]+1
-
+        # self.logger.info(image.bounds)
+        
+        y, x = np.mgrid[:image_array.shape[0],:image_array.shape[1]]
+        
+        # self.logger.info('try hsm findadaptivemom')
         try:
+            
             psfresults = galsim.hsm.FindAdaptiveMom(image)
         except galsim.hsm.GalSimHSMError as error:
+            
             raise measBase.MeasurementError(str(error), self.GALSIM.number)
-
+        # self.logger.info(psfresults)
+        
+        
         M = np.zeros((2,2))
         e1 = psfresults.observed_shape.e1
         e2 = psfresults.observed_shape.e2
@@ -141,18 +172,31 @@ class HigherOrderMomentsPlugin(measBase.SingleFramePlugin):
         M[0][0] = c*M[1][1]
         M[0][1] = 0.5*e2*(M[1][1]+M[0][0])
         M[1][0] = M[0][1]
-
-        pos = np.array([x-psfresults.moments_centroid.x, y-psfresults.moments_centroid.y])
+        
         inv_M = np.linalg.inv(M)
-        sqrt_inv_M = alg.sqrtm(inv_M)
+                
+        #find the sqrt of inv_M
+        evalues, evectors = np.linalg.eig(inv_M)
+        # Ensuring square root matrix exists
+        
+        sqrt_inv_M = evectors * np.sqrt(evalues) @ np.linalg.inv(evectors)
+
+#         self.logger.info("Finish sqrt_inv_M")
+#         self.logger.info(image.bounds.getXMin())
+        
+        
+        pos = np.array([x-(psfresults.moments_centroid.x - image.bounds.getXMin()), y-(psfresults.moments_centroid.y - image.bounds.getYMin())])
+
         
         std_pos = np.einsum('ij,jqp->iqp',sqrt_inv_M,pos)
         weight = np.exp(-0.5* np.einsum('ijk,ijk->jk',std_pos,std_pos ))
 
         std_x, std_y = std_pos[0],std_pos[1]
         
-        normalization = sum(image_array*weight)
+        normalization = np.sum(image_array*weight)
         image_weight = weight*image_array
+        
+        
         for tup in pqlist:
             p = tup[0]
             q = tup[1]
@@ -160,7 +204,7 @@ class HigherOrderMomentsPlugin(measBase.SingleFramePlugin):
             if p+q<=2:
                 raise ValueError('Standardized Moments Work with Order>2')
             
-            this_moment = sum(std_x**p*std_y**q*image_weight)/normalization
+            this_moment = np.sum(std_x**p*std_y**q*image_weight)/normalization
             results_list.append(this_moment)
             
         return np.array(results_list)
@@ -192,22 +236,26 @@ class HigherOrderMomentsSourcePlugin(HigherOrderMomentsPlugin):
 
         for suffix in self.getAllNames():
             schema.addField(schema.join(name, suffix), type=float, doc=f"Higher order moments M_{suffix} for source")
+            
+        # self.logger.info('finish initialization')
 
 
     def measure(self, record, exposure):
+        
         center = self.centroidExtractor(record, self.flagHandler)
-
+        
         # get the bounding box of the source footprint
         bbox = record.getFootprint().getBBox()
+        
+        # self.logger.info(bbox)
 
         # Check that the bounding box has non-zero area.
         if bbox.getArea() == 0:
             raise measBase.MeasurementError(self.NO_PIXELS.doc, self.NO_PIXELS.number)
 
-        # Ensure that the centroid is within the bounding box.
-        if not bbox.contains(Point2I(center)):
-            raise measBase.MeasurementError(self.NOT_CONTAINED.doc, self.NOT_CONTAINED.number)
-
+        # # Ensure that the centroid is within the bounding box.
+        # if not bbox.contains(Point2I(center)):
+        #     raise measBase.MeasurementError(self.NOT_CONTAINED.doc, self.NOT_CONTAINED.number)
 
         # get Galsim bounds from bbox
 
@@ -218,10 +266,13 @@ class HigherOrderMomentsSourcePlugin(HigherOrderMomentsPlugin):
         # get the image array from exposure
 
         imageArray = exposure[bbox].getImage().array
+        # np.savetxt('savefig.txt', imageArray)
+        # self.logger.info('array' + str(imageArray))
 
         # get Galsim image from the image array
 
         image = galsim.Image(imageArray, bounds=bounds, copy=False)
+        
 
         # Measure all the moments together to save time
         pqlist = self._get_pq_full(self.config.orderMax)
@@ -229,15 +280,18 @@ class HigherOrderMomentsSourcePlugin(HigherOrderMomentsPlugin):
             hm_measurement = self.calc_higher_moments(image,pqlist)
         except Exception as e:
             raise measBase.MeasurementError(e)
-
+        
+        
         # Record the moments 
         for i in range(len(hm_measurement)):
 
             (p,q) = pqlist[i]
             M_pq = hm_measurement[i]
-
             suffix = self._get_suffix(p,q)
-            record.set(self.schema.join(self.name, suffix), M_pq)
+            this_column_name = self.name + f"_{p}{q}"
+            
+            record.set(this_column_name, M_pq)
+
 
 
 
@@ -265,7 +319,7 @@ class HigherOrderMomentsPSFPlugin(HigherOrderMomentsPlugin):
         # Add column names for the PSFs
 
         for suffix in self.getAllNames():
-            schema.addField(schema.join(schema.join(name,'Psf'), suffix), type=float, doc=f"Higher order moments M_{suffix} for PSF")
+            schema.addField(schema.join(name, suffix), type=float, doc=f"Higher order moments M_{suffix} for PSF")
 
 
     def measure(self, record, exposure):
@@ -306,6 +360,8 @@ class HigherOrderMomentsPSFPlugin(HigherOrderMomentsPlugin):
             hm_measurement = self.calc_higher_moments(image,pqlist)
         except Exception as e:
             raise measBase.MeasurementError(e)
+            
+        # self.logger.info(hm_measurement)
 
         # Record the moments 
         for i in range(len(hm_measurement)):
@@ -314,7 +370,8 @@ class HigherOrderMomentsPSFPlugin(HigherOrderMomentsPlugin):
             M_pq = hm_measurement[i]
 
             suffix = self._get_suffix(p,q)
-            record.set(schema.join(schema.join(name,'Psf'), suffix), M_pq)
+            this_column_name = self.name + f"_{p}{q}"
+            record.set(this_column_name, M_pq)
 
 
 
