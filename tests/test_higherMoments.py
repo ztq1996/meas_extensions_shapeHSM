@@ -63,6 +63,9 @@ class HigherMomentsTestCase(unittest.TestCase):
             dataset = lsst.meas.base.tests.TestDataset(bbox)
             # Create a point source with Gaussian PSF
             dataset.addSource(100000.0, lsst.geom.Point2D(49.5, 49.5))
+            
+            # Create a galaxy with Gaussian PSF
+            dataset.addSource(300000.0, lsst.geom.Point2D(76.3, 79.2), lsst.afw.geom.Quadrupole(2.0, 3.0, 0.5))
 
             # Get the exposure and catalog.
             exposure, catalog = dataset.realize(0.0, sfmTask.schema, randomSeed=0)
@@ -81,47 +84,49 @@ class HigherMomentsTestCase(unittest.TestCase):
         test1 = "point_source+gaussian_PSF"
         catalog1 = self.runMeasurement(test1)
         
-        M_source_40 = catalog1["ext_shapeHSM_HigherOrderMomentsSource_40"][0]
-        M_source_31 = catalog1["ext_shapeHSM_HigherOrderMomentsSource_31"][0]
-        M_source_22 = catalog1["ext_shapeHSM_HigherOrderMomentsSource_22"][0]
-        M_source_13 = catalog1["ext_shapeHSM_HigherOrderMomentsSource_13"][0]
-        M_source_04 = catalog1["ext_shapeHSM_HigherOrderMomentsSource_04"][0]
+        for row in catalog1:
         
-        M_source_30 = catalog1["ext_shapeHSM_HigherOrderMomentsSource_30"][0]
-        M_source_21 = catalog1["ext_shapeHSM_HigherOrderMomentsSource_21"][0]
-        M_source_12 = catalog1["ext_shapeHSM_HigherOrderMomentsSource_12"][0]
-        M_source_03 = catalog1["ext_shapeHSM_HigherOrderMomentsSource_03"][0]
+            M_source_40 = row["ext_shapeHSM_HigherOrderMomentsSource_40"]
+            M_source_31 = row["ext_shapeHSM_HigherOrderMomentsSource_31"]
+            M_source_22 = row["ext_shapeHSM_HigherOrderMomentsSource_22"]
+            M_source_13 = row["ext_shapeHSM_HigherOrderMomentsSource_13"]
+            M_source_04 = row["ext_shapeHSM_HigherOrderMomentsSource_04"]
+
+            M_source_30 = row["ext_shapeHSM_HigherOrderMomentsSource_30"]
+            M_source_21 = row["ext_shapeHSM_HigherOrderMomentsSource_21"]
+            M_source_12 = row["ext_shapeHSM_HigherOrderMomentsSource_12"]
+            M_source_03 = row["ext_shapeHSM_HigherOrderMomentsSource_03"]
         
-        self.assertAlmostEqual(M_source_40, 0.75, MOMENTS_DECIMAL)
-        self.assertAlmostEqual(M_source_31, 0.0, MOMENTS_DECIMAL)
-        self.assertAlmostEqual(M_source_22, 0.25, MOMENTS_DECIMAL)
-        self.assertAlmostEqual(M_source_13, 0.0, MOMENTS_DECIMAL)
-        self.assertAlmostEqual(M_source_04, 0.75, MOMENTS_DECIMAL)
-        self.assertAlmostEqual(M_source_30, 0.0, MOMENTS_DECIMAL)
-        self.assertAlmostEqual(M_source_21, 0.0, MOMENTS_DECIMAL)
-        self.assertAlmostEqual(M_source_12, 0.0, MOMENTS_DECIMAL)
-        self.assertAlmostEqual(M_source_03, 0.0, MOMENTS_DECIMAL)
+            self.assertAlmostEqual(M_source_40, 0.75, MOMENTS_DECIMAL)
+            self.assertAlmostEqual(M_source_31, 0.0, MOMENTS_DECIMAL)
+            self.assertAlmostEqual(M_source_22, 0.25, MOMENTS_DECIMAL)
+            self.assertAlmostEqual(M_source_13, 0.0, MOMENTS_DECIMAL)
+            self.assertAlmostEqual(M_source_04, 0.75, MOMENTS_DECIMAL)
+            self.assertAlmostEqual(M_source_30, 0.0, MOMENTS_DECIMAL)
+            self.assertAlmostEqual(M_source_21, 0.0, MOMENTS_DECIMAL)
+            self.assertAlmostEqual(M_source_12, 0.0, MOMENTS_DECIMAL)
+            self.assertAlmostEqual(M_source_03, 0.0, MOMENTS_DECIMAL)
         
-        M_psf_40 = catalog1["ext_shapeHSM_HigherOrderMomentsPSF_40"][0]
-        M_psf_31 = catalog1["ext_shapeHSM_HigherOrderMomentsPSF_31"][0]
-        M_psf_22 = catalog1["ext_shapeHSM_HigherOrderMomentsPSF_22"][0]
-        M_psf_13 = catalog1["ext_shapeHSM_HigherOrderMomentsPSF_13"][0]
-        M_psf_04 = catalog1["ext_shapeHSM_HigherOrderMomentsPSF_04"][0]
-        
-        M_psf_30 = catalog1["ext_shapeHSM_HigherOrderMomentsPSF_30"][0]
-        M_psf_21 = catalog1["ext_shapeHSM_HigherOrderMomentsPSF_21"][0]
-        M_psf_12 = catalog1["ext_shapeHSM_HigherOrderMomentsPSF_12"][0]
-        M_psf_03 = catalog1["ext_shapeHSM_HigherOrderMomentsPSF_03"][0]
-        
-        self.assertAlmostEqual(M_psf_40, 0.75, MOMENTS_DECIMAL)
-        self.assertAlmostEqual(M_psf_31, 0.0, MOMENTS_DECIMAL)
-        self.assertAlmostEqual(M_psf_22, 0.25, MOMENTS_DECIMAL)
-        self.assertAlmostEqual(M_psf_13, 0.0, MOMENTS_DECIMAL)
-        self.assertAlmostEqual(M_psf_04, 0.75, MOMENTS_DECIMAL)
-        self.assertAlmostEqual(M_psf_30, 0.0, MOMENTS_DECIMAL)
-        self.assertAlmostEqual(M_psf_21, 0.0, MOMENTS_DECIMAL)
-        self.assertAlmostEqual(M_psf_12, 0.0, MOMENTS_DECIMAL)
-        self.assertAlmostEqual(M_psf_03, 0.0, MOMENTS_DECIMAL)
+            M_psf_40 = row["ext_shapeHSM_HigherOrderMomentsPSF_40"]
+            M_psf_31 = row["ext_shapeHSM_HigherOrderMomentsPSF_31"]
+            M_psf_22 = row["ext_shapeHSM_HigherOrderMomentsPSF_22"]
+            M_psf_13 = row["ext_shapeHSM_HigherOrderMomentsPSF_13"]
+            M_psf_04 = row["ext_shapeHSM_HigherOrderMomentsPSF_04"]
+
+            M_psf_30 = row["ext_shapeHSM_HigherOrderMomentsPSF_30"]
+            M_psf_21 = row["ext_shapeHSM_HigherOrderMomentsPSF_21"]
+            M_psf_12 = row["ext_shapeHSM_HigherOrderMomentsPSF_12"]
+            M_psf_03 = row["ext_shapeHSM_HigherOrderMomentsPSF_03"]
+
+            self.assertAlmostEqual(M_psf_40, 0.75, MOMENTS_DECIMAL)
+            self.assertAlmostEqual(M_psf_31, 0.0, MOMENTS_DECIMAL)
+            self.assertAlmostEqual(M_psf_22, 0.25, MOMENTS_DECIMAL)
+            self.assertAlmostEqual(M_psf_13, 0.0, MOMENTS_DECIMAL)
+            self.assertAlmostEqual(M_psf_04, 0.75, MOMENTS_DECIMAL)
+            self.assertFloatsAlmostEqual(M_psf_30, 0.0, 2e-3)
+            self.assertFloatsAlmostEqual(M_psf_21, 0.0, 2e-3)
+            self.assertFloatsAlmostEqual(M_psf_12, 0.0, 2e-3)
+            self.assertFloatsAlmostEqual(M_psf_03, 0.0, 2e-3)
 
 
         self.assertEqual(nFail, 0, "\n"+msg)
