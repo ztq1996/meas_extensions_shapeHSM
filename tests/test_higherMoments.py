@@ -31,6 +31,7 @@ import lsst.afw.geom
 import os
 import numpy as np
 import unittest
+import lsst.utils.tests as tests
 import itertools
 
 
@@ -38,7 +39,7 @@ MOMENTS_DECIMAL = 3  # Number of decimals for equality in moments
 
 
 
-class HigherMomentsTestCase(unittest.TestCase):
+class HigherMomentsTestCase(tests.TestCase):
     """A test case for shape measurement"""
 
 
@@ -123,10 +124,10 @@ class HigherMomentsTestCase(unittest.TestCase):
             self.assertAlmostEqual(M_psf_22, 0.25, MOMENTS_DECIMAL)
             self.assertAlmostEqual(M_psf_13, 0.0, MOMENTS_DECIMAL)
             self.assertAlmostEqual(M_psf_04, 0.75, MOMENTS_DECIMAL)
-            self.assertFloatsAlmostEqual(M_psf_30, 0.0, 2e-3)
-            self.assertFloatsAlmostEqual(M_psf_21, 0.0, 2e-3)
-            self.assertFloatsAlmostEqual(M_psf_12, 0.0, 2e-3)
-            self.assertFloatsAlmostEqual(M_psf_03, 0.0, 2e-3)
+            self.assertFloatsAlmostEqual(M_psf_30, 0.0, atol= 2e-3)
+            self.assertFloatsAlmostEqual(M_psf_21, 0.0,atol= 2e-3)
+            self.assertFloatsAlmostEqual(M_psf_12, 0.0,atol= 2e-3)
+            self.assertFloatsAlmostEqual(M_psf_03, 0.0,atol= 2e-3)
 
 
         self.assertEqual(nFail, 0, "\n"+msg)
