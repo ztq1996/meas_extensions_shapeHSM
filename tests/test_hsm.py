@@ -525,11 +525,59 @@ class PyGaussianPsf(afwDetection.Psf):
 class PsfMomentsTestCase(unittest.TestCase):
     """A test case for PSF moments measurement"""
 
+    @staticmethod
+    def computeDirectPsfMomentsFromGalSim(
+        psf,
+        center,
+        useSourceCentroidOffset=False
+    ):
+        """Directly from GalSim."""
+        psfBBox = psf.computeImageBBox(center)
+        psfSigma = psf.computeShape(center).getTraceRadius()
+        if useSourceCentroidOffset:
+            psfImage = psf.computeImage(center)
+            centroid = center
+        else:
+            psfImage = psf.computeKernelImage(center)
+            psfImage.setXY0(psfBBox.getMin())
+            centroid = geom.Point2D(psfBBox.getMin() + psfBBox.getDimensions() // 2)
+        bbox = psfImage.getBBox(afwImage.PARENT)
+        bounds = galsim.bounds.BoundsI(bbox.getMinX(), bbox.getMaxX(), bbox.getMinY(), bbox.getMaxY())
+        image = galsim.Image(psfImage.array, bounds=bounds, copy=False)
+        guessCentroid = galsim.PositionD(centroid.x, centroid.y)
+        shape = galsim.hsm.FindAdaptiveMom(
+            image,
+            weight=None,
+            badpix=None,
+            guess_sig=psfSigma,
+            precision=1e-6,
+            guess_centroid=guessCentroid,
+            strict=True,
+            round_moments=False,
+            hsmparams=None,
+        )
+        ellipse = lsst.afw.geom.ellipses.SeparableDistortionDeterminantRadius(
+            e1=shape.observed_shape.e1,
+            e2=shape.observed_shape.e2,
+            radius=shape.moments_sigma,
+            normalize=True,  # Fail if |e|>1.
+        )
+        quad = lsst.afw.geom.ellipses.Quadrupole(ellipse)
+        ixx = quad.getIxx()
+        iyy = quad.getIyy()
+        ixy = quad.getIxy()
+        return ixx, iyy, ixy
+
     @lsst.utils.tests.methodParameters(
         # Make Cartesian product of settings to feed to methodParameters
         **dict(list(zip(
             (kwargs := dict(
-                width=(2.0, 3.0, 4.0),
+                # Increasing the width beyond 4.5 leads to noticeable
+                # truncation of the PSF, i.e. a PSF that is too large for the
+                # box. While this truncated state leads to incorrect
+                # measurements, it is necessary for testing purposes to
+                # evaluate the behavior under these extreme conditions.
+                width=(2.0, 3.0, 4.0, 10.0, 40.0, 100.0),
                 useSourceCentroidOffset=(True, False),
                 varyBBox=(True, False),
                 wrongBBox=(True, False),
@@ -593,12 +641,14 @@ class PsfMomentsTestCase(unittest.TestCase):
         self.assertFalse(source.get("ext_shapeHSM_HsmPsfMoments_flag_not_contained"))
         self.assertFalse(source.get("ext_shapeHSM_HsmPsfMoments_flag_parent_source"))
 
-        self.assertAlmostEqual(x, 0.0, 3)
-        self.assertAlmostEqual(y, 0.0, 3)
-        expected = afwEll.Quadrupole(afwEll.Axes(width, width, 0.0))
-        self.assertAlmostEqual(xx, expected.getIxx(), SHAPE_DECIMALS)
-        self.assertAlmostEqual(xy, expected.getIxy(), SHAPE_DECIMALS)
-        self.assertAlmostEqual(yy, expected.getIyy(), SHAPE_DECIMALS)
+        if width < 4.5:
+            # i.e., as long as the PSF is not truncated for our 35x35 box.
+            self.assertAlmostEqual(x, 0.0, 3)
+            self.assertAlmostEqual(y, 0.0, 3)
+            expected = afwEll.Quadrupole(afwEll.Axes(width, width, 0.0))
+            self.assertAlmostEqual(xx, expected.getIxx(), SHAPE_DECIMALS)
+            self.assertAlmostEqual(xy, expected.getIxy(), SHAPE_DECIMALS)
+            self.assertAlmostEqual(yy, expected.getIyy(), SHAPE_DECIMALS)
 
         # Test schema documentation
         for fieldName in cat.schema.extract("*HsmPsfMoments_[xy]"):
@@ -607,6 +657,18 @@ class PsfMomentsTestCase(unittest.TestCase):
         for fieldName in cat.schema.extract("*HsmPsfMoments_[xy][xy]*"):
             self.assertEqual(cat.schema[fieldName].asField().getDoc(),
                              "Adaptive moments of the PSF via the HSM shape algorithm")
+
+        # Test that the moments are identical to those obtained directly by
+        # GalSim. For `width` > 4.5 where the truncation becomes significant,
+        # the answer might not be 'correct' but should remain 'consistent'.
+        xxDirect, yyDirect, xyDirect = self.computeDirectPsfMomentsFromGalSim(
+            psf,
+            geom.Point2D(*center),
+            useSourceCentroidOffset=useSourceCentroidOffset,
+        )
+        self.assertEqual(xx, xxDirect)
+        self.assertEqual(yy, yyDirect)
+        self.assertEqual(xy, xyDirect)
 
     @lsst.utils.tests.methodParameters(
         # Make Cartesian product of settings to feed to methodParameters
