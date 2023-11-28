@@ -267,13 +267,13 @@ class HsmSourceMomentsPlugin(HsmMomentsPlugin):
         bounds = galsim.bounds.BoundsI(xmin, xmax, ymin, ymax)
 
         # Get the `lsst.meas.base` mask for bad pixels.
-        badpix = exposure[bbox].mask.array.copy()
+        badpix = exposure.mask[bbox].array.copy()
         bitValue = exposure.mask.getPlaneBitMask(self.config.badMaskPlanes)
         badpix &= bitValue
 
         # Extract the numpy array underlying the image within the bounding box
         # of the source.
-        imageArray = exposure[bbox].getImage().array
+        imageArray = exposure.getImage()[bbox].array
 
         # Create a GalSim image using the extracted array.
         # NOTE: GalSim's HSM uses the FITS convention of 1,1 for the
