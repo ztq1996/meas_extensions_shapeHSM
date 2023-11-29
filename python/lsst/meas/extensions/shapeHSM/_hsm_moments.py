@@ -273,7 +273,7 @@ class HsmSourceMomentsPlugin(HsmMomentsPlugin):
 
         # Extract the numpy array underlying the image within the bounding box
         # of the source.
-        imageArray = exposure.getImage()[bbox].array
+        imageArray = exposure.image[bbox].array
 
         # Create a GalSim image using the extracted array.
         # NOTE: GalSim's HSM uses the FITS convention of 1,1 for the
@@ -588,7 +588,7 @@ class HsmPsfMomentsDebiasedPlugin(HsmPsfMomentsPlugin):
         # the same bounds.
         overlap = badpix.getBBox()
         overlap.clip(exposure.getBBox())
-        badpix[overlap] = exposure.getMaskedImage().getMask()[overlap]
+        badpix[overlap] = exposure.mask[overlap]
         badpix = badpix.array
 
         bitValue = exposure.mask.getPlaneBitMask(self.config.badMaskPlanes)
