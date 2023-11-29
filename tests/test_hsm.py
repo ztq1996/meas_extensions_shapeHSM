@@ -132,7 +132,6 @@ round_moments_expected = np.array([  # sigma, e1, e2, flux, x, y
 
 
 def makePluginAndCat(alg, name, control=None, metadata=False, centroid=None, psfflux=None, addFlux=False):
-    print("Making plugin ", alg, name)
     if control is None:
         control = alg.ConfigClass()
     if addFlux:
