@@ -283,7 +283,7 @@ class HsmSourceMomentsPlugin(HsmMomentsPlugin):
         # Convert the mask of bad pixels to a format suitable for galsim.
         # NOTE: galsim.Image will match whatever dtype the input array is
         # (here int32).
-        badpix = galsim.Image(badpix, bounds=bounds)
+        badpix = galsim.Image(badpix, bounds=bounds, copy=False)
 
         # Call the internal method to calculate adaptive moments using GalSim.
         self._calculate(
@@ -597,6 +597,6 @@ class HsmPsfMomentsDebiasedPlugin(HsmPsfMomentsPlugin):
         # Convert the mask of bad pixels to a format suitable for galsim.
         # NOTE: galsim.Image will match whatever dtype the input array is
         # (here int32).
-        badpix = galsim.Image(badpix, bounds=bounds)
+        badpix = galsim.Image(badpix, bounds=bounds, copy=False)
 
         return badpix
