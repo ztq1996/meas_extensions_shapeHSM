@@ -267,13 +267,13 @@ class HsmSourceMomentsPlugin(HsmMomentsPlugin):
         bounds = galsim.bounds.BoundsI(xmin, xmax, ymin, ymax)
 
         # Get the `lsst.meas.base` mask for bad pixels.
-        badpix = exposure[bbox].mask.array.copy()
+        badpix = exposure.mask[bbox].array.copy()
         bitValue = exposure.mask.getPlaneBitMask(self.config.badMaskPlanes)
         badpix &= bitValue
 
         # Extract the numpy array underlying the image within the bounding box
         # of the source.
-        imageArray = exposure[bbox].getImage().array
+        imageArray = exposure.image[bbox].array
 
         # Create a GalSim image using the extracted array.
         # NOTE: GalSim's HSM uses the FITS convention of 1,1 for the
@@ -283,7 +283,7 @@ class HsmSourceMomentsPlugin(HsmMomentsPlugin):
         # Convert the mask of bad pixels to a format suitable for galsim.
         # NOTE: galsim.Image will match whatever dtype the input array is
         # (here int32).
-        badpix = galsim.Image(badpix, bounds=bounds)
+        badpix = galsim.Image(badpix, bounds=bounds, copy=False)
 
         # Call the internal method to calculate adaptive moments using GalSim.
         self._calculate(
@@ -570,13 +570,7 @@ class HsmPsfMomentsDebiasedPlugin(HsmPsfMomentsPlugin):
         elif self.config.noiseSource == "variance":
             # Get the variance image from the exposure and restrict to the
             # PSF bounding box.
-            var = afwImage.Image(
-                afwImage.Image(exposure.getMaskedImage().getVariance(), dtype=psfImage.dtype, deep=True),
-                bbox=psfImage.getBBox(),
-                origin=afwImage.PARENT,
-                dtype=psfImage.dtype,
-                deep=False,
-            )
+            var = afwImage.Image(exposure.variance[psfImage.getBBox()], dtype=psfImage.dtype, deep=True)
             # Scale the noise by the square root of the variance.
             var.sqrt()  # In-place square root.
             noise *= var
@@ -594,7 +588,7 @@ class HsmPsfMomentsDebiasedPlugin(HsmPsfMomentsPlugin):
         # the same bounds.
         overlap = badpix.getBBox()
         overlap.clip(exposure.getBBox())
-        badpix[overlap] = exposure.getMaskedImage().getMask()[overlap]
+        badpix[overlap] = exposure.mask[overlap]
         badpix = badpix.array
 
         bitValue = exposure.mask.getPlaneBitMask(self.config.badMaskPlanes)
@@ -603,6 +597,6 @@ class HsmPsfMomentsDebiasedPlugin(HsmPsfMomentsPlugin):
         # Convert the mask of bad pixels to a format suitable for galsim.
         # NOTE: galsim.Image will match whatever dtype the input array is
         # (here int32).
-        badpix = galsim.Image(badpix, bounds=bounds)
+        badpix = galsim.Image(badpix, bounds=bounds, copy=False)
 
         return badpix
