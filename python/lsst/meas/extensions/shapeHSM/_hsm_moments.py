@@ -44,23 +44,6 @@ __all__ = [
 ]
 
 
-def _quickGalsimImageView(array, bounds):
-    match array.dtype:
-        case np.float64:
-            gcls = galsim._galsim.ImageViewD
-        case np.float32:
-            gcls = galsim._galsim.ImageViewF
-        case np.int32:
-            gcls = galsim._galsim.ImageViewI
-
-    return gcls(
-        array.__array_interface__["data"][0],
-        array.strides[1]//array.itemsize,
-        array.strides[0]//array.itemsize,
-        bounds._b,
-    )
-
-
 class HsmMomentsConfig(measBase.SingleFramePluginConfig):
     """Base configuration for HSM adaptive moments measurement."""
 
@@ -108,8 +91,8 @@ class HsmMomentsPlugin(measBase.SingleFramePlugin):
         self,
         record: afwTable.SourceRecord,
         *,
-        image: galsim._galsim.ImageViewD | galsim._galsim.ImageViewF,
-        weight_image: galsim._galsim.ImageViewI,
+        image: galsim.Image,
+        weight_image: galsim.Image,
         centroid: Point2D,
         sigma: float = 5.0,
         precision: float = 1.0e-6,
@@ -122,9 +105,9 @@ class HsmMomentsPlugin(measBase.SingleFramePlugin):
         ----------
         record : `~lsst.afw.table.SourceRecord`
             Record to store measurements.
-        image : `~galsim._galsim.ImageViewF` or `~galsim._galsim.ImageViewD`
+        image : `~galsim.Image`
             Image on which to perform measurements.
-        weight_image : `~galsim._galsim.ImageViewI`
+        weight_image : `~galsim.Image`
             The combined badpix/weight image for input to galsim HSM code.
         centroid : `~lsst.geom.Point2D`
             Centroid guess for HSM adaptive moments.
@@ -149,8 +132,8 @@ class HsmMomentsPlugin(measBase.SingleFramePlugin):
 
             galsim._galsim.FindAdaptiveMomView(
                 shape._data,
-                image,
-                weight_image,
+                image._image,
+                weight_image._image,
                 float(sigma),
                 float(precision),
                 guessCentroid._p,
@@ -292,20 +275,20 @@ class HsmSourceMomentsPlugin(HsmMomentsPlugin):
         # Create a GalSim image using the extracted array.
         # NOTE: GalSim's HSM uses the FITS convention of 1,1 for the
         # lower-left corner.
-        _image = _quickGalsimImageView(imageArray, bounds)
+        image = galsim._Image(imageArray, bounds, None)
 
         # Convert the mask of bad pixels to a format suitable for galsim.
         gd = (badpix == 0)
         badpix[gd] = 1
         badpix[~gd] = 0
 
-        _weight_image = _quickGalsimImageView(badpix, bounds)
+        weight_image = galsim._Image(badpix, bounds, None)
 
         # Call the internal method to calculate adaptive moments using GalSim.
         self._calculate(
             record,
-            image=_image,
-            weight_image=_weight_image,
+            image=image,
+            weight_image=weight_image,
             sigma=2.5 * psfSigma,
             precision=1.0e-6,
             centroid=center,
@@ -445,17 +428,17 @@ class HsmPsfMomentsPlugin(HsmMomentsPlugin):
         imageArray = psfImage.array
 
         # Create a GalSim image using the PSF image array.
-        _image = _quickGalsimImageView(imageArray, bounds)
+        image = galsim._Image(imageArray, bounds, None)
 
         if badpix is not None:
             gd = (badpix == 0)
             badpix[gd] = 1
             badpix[~gd] = 0
 
-            _weight_image = _quickGalsimImageView(badpix, bounds)
+            weight_image = galsim._Image(badpix, bounds, None)
         else:
             arr = np.ones(imageArray.shape, dtype=np.int32)
-            _weight_image = _quickGalsimImageView(arr, bounds)
+            weight_image = galsim._Image(arr, bounds, None)
 
         # Decide on the centroid position based on configuration.
         if self.config.useSourceCentroidOffset:
@@ -469,8 +452,8 @@ class HsmPsfMomentsPlugin(HsmMomentsPlugin):
         # Call the internal method to calculate adaptive moments using GalSim.
         self._calculate(
             record,
-            image=_image,
-            weight_image=_weight_image,
+            image=image,
+            weight_image=weight_image,
             sigma=psfSigma,
             centroid=centroid,
         )
