@@ -261,7 +261,7 @@ class HsmSourceMomentsPlugin(HsmMomentsPlugin):
         # Turn bounding box corners into GalSim bounds.
         xmin, xmax = bbox.getMinX(), bbox.getMaxX()
         ymin, ymax = bbox.getMinY(), bbox.getMaxY()
-        bounds = galsim.bounds.BoundsI(xmin, xmax, ymin, ymax)
+        bounds = galsim._BoundsI(xmin, xmax, ymin, ymax)
 
         # Get the `lsst.meas.base` mask for bad pixels.
         badpix = exposure.mask[bbox].array.copy()
@@ -418,7 +418,7 @@ class HsmPsfMomentsPlugin(HsmMomentsPlugin):
         # Turn bounding box corners into GalSim bounds.
         xmin, xmax = bbox.getMinX(), bbox.getMaxX()
         ymin, ymax = bbox.getMinY(), bbox.getMaxY()
-        bounds = galsim.bounds.BoundsI(xmin, xmax, ymin, ymax)
+        bounds = galsim._BoundsI(xmin, xmax, ymin, ymax)
 
         # Adjust the psfImage for noise as needed, and retrieve the mask of bad
         # pixels.
