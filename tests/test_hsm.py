@@ -167,7 +167,7 @@ class MomentsTestCase(unittest.TestCase):
         del self.offset
         del self.xy0
 
-    def runMeasurement(self, algorithmName, imageid, x, y, v, addFlux=False):
+    def runMeasurement(self, algorithmName, imageid, x, y, v, addFlux=False, maskAll=False):
         """Run the measurement algorithm on an image"""
         # load the test image
         imgFile = os.path.join(self.dataDir, "image.%d.fits" % imageid)
@@ -178,6 +178,8 @@ class MomentsTestCase(unittest.TestCase):
         var = afwImage.ImageF(geom.Extent2I(nx, ny), v)
         mimg = afwImage.MaskedImageF(img, msk, var)
         msk.getArray()[:] = np.where(np.fabs(img.getArray()) < 1.0e-8, msk.getPlaneBitMask("BAD"), 0)
+        if maskAll:
+            msk.array[:] |= msk.getPlaneBitMask("BAD")
 
         # Put it in a bigger image, in case it matters
         big = afwImage.MaskedImageF(self.offset + mimg.getDimensions())
@@ -334,6 +336,19 @@ class MomentsTestCase(unittest.TestCase):
             self.assertAlmostEqual(xxSdss[i], xxHsm[i], SHAPE_DECIMALS)
             self.assertAlmostEqual(xySdss[i], xyHsm[i], SHAPE_DECIMALS)
             self.assertAlmostEqual(yySdss[i], yyHsm[i], SHAPE_DECIMALS)
+
+    def testHsmSourceMomentsAllMasked(self):
+        i = 0
+        imageid = file_indices[0]
+        with self.assertRaises(base.MeasurementError):
+            _ = self.runMeasurement(
+                "ext_shapeHSM_HsmSourceMoments",
+                imageid,
+                x_centroid[i],
+                y_centroid[i],
+                sky_var[i],
+                maskAll=True,
+            )
 
 
 class ShapeTestCase(unittest.TestCase):
