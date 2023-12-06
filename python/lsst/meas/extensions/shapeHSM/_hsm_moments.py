@@ -122,14 +122,21 @@ class HsmMomentsPlugin(measBase.SingleFramePlugin):
             Raised for errors in measurement.
         """
         # Convert centroid to GalSim's PositionD type.
-        guessCentroid = galsim.PositionD(centroid.x, centroid.y)
+        guessCentroid = galsim._PositionD(centroid.x, centroid.y)
         try:
             # Attempt to compute HSM moments.
 
             # Use galsim c++/python interface directly.
-            shape = galsim.hsm.ShapeData()
+            shape = galsim.hsm.ShapeData(
+                image_bounds=galsim._BoundsI(0, 0, 1, 1),
+                observed_shape=galsim._Shear(0j),
+                psf_shape=galsim._Shear(0j),
+                moments_centroid=galsim._PositionD(0, 0),
+            )
             hsmparams = galsim.hsm.HSMParams.default
 
+            # TODO: DM-42047 Change to public API when an optimized
+            # version is available.
             galsim._galsim.FindAdaptiveMomView(
                 shape._data,
                 image._image,
@@ -162,9 +169,10 @@ class HsmMomentsPlugin(measBase.SingleFramePlugin):
         # Convert GalSim measurements to lsst measurements.
         try:
             # Create an ellipse for the shape.
+            observed_shape = shape.observed_shape
             ellipse = afwGeom.ellipses.SeparableDistortionDeterminantRadius(
-                e1=shape.observed_shape.e1,
-                e2=shape.observed_shape.e2,
+                e1=observed_shape.e1,
+                e2=observed_shape.e2,
                 radius=determinantRadius,
                 normalize=True,  # Fail if |e|>1.
             )
