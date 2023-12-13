@@ -22,16 +22,6 @@
 
 """lsst.meas.extensions.shapeHSM
 """
-from lsst.meas.base import BasePlugin, wrapSimpleAlgorithm
-from .hsmShapeControl import *
 from ._hsm_moments import *
+from ._hsm_shape import *
 from .version import *
-
-wrapSimpleAlgorithm(HsmShapeBjAlgorithm, name="ext_shapeHSM_HsmShapeBj",
-                    Control=HsmShapeBjControl, executionOrder=BasePlugin.SHAPE_ORDER)
-wrapSimpleAlgorithm(HsmShapeLinearAlgorithm, name="ext_shapeHSM_HsmShapeLinear",
-                    Control=HsmShapeLinearControl, executionOrder=BasePlugin.SHAPE_ORDER)
-wrapSimpleAlgorithm(HsmShapeKsbAlgorithm, name="ext_shapeHSM_HsmShapeKsb",
-                    Control=HsmShapeKsbControl, executionOrder=BasePlugin.SHAPE_ORDER)
-wrapSimpleAlgorithm(HsmShapeRegaussAlgorithm, name="ext_shapeHSM_HsmShapeRegauss",
-                    Control=HsmShapeRegaussControl, executionOrder=BasePlugin.SHAPE_ORDER)

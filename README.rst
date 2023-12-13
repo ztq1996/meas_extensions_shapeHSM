@@ -9,6 +9,7 @@ The algorithm was initially described in https://ui.adsabs.harvard.edu/abs/2003M
 and was modified later in https://ui.adsabs.harvard.edu/abs/2005MNRAS.361.1287M/abstract.
 HSM is named after the primary authors: i) Hirata, Christopher, ii) Seljak, Uros and iii) Mandelbaum, Rachel.
 Their implementation of this algorithm lives within `GalSim <https://github.com/GalSim-developers/GalSim>`_,
-and this package interacts directly with the C++ layer of GalSim to make the measurements.
+and this package interacts with the Python layer of GalSim to make the measurements.
+We use several GalSim primitives to reduce overhead by bypassing extensive sanity checks.
 
 Documentation is available at https://pipelines.lsst.io/modules/lsst.meas.extensions.shapeHSM/index.html.
