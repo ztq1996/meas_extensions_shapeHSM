@@ -295,12 +295,16 @@ class HigherOrderMomentsTestCase(HigherMomentsBaseTestCase):
 
         # ext_shapeHSM_HsmSourceMomentsRound appears to have lower accuracy.
         # Adjust the absolute tolerance accordingly.
-        atol = 1.2e-1 if target_plugin_name == "ext_shapeHSM_HsmSourceMomentsRound" else 6e-4
+        atol = 1.2e-7 if target_plugin_name == "ext_shapeHSM_HsmSourceMomentsRound" else 6e-4
         plugin_name = "ext_shapeHSM_HigherOrderMomentsSource"
 
         for i, row in enumerate(self.catalog):
             with self.subTest((plugin_name, i)):
                 self.check(row, plugin_name, atol=atol)
+            # The round moments are only accurate for the round sources,
+            # which is the first one in the catalog.
+            if target_plugin_name == "ext_shapeHSM_HsmSourceMomentsRound":
+                break
 
     @lsst.utils.tests.methodParametersProduct(
         target_plugin_name=(
