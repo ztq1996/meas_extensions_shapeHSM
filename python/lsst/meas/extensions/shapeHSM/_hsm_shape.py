@@ -44,8 +44,10 @@ class HsmShapeConfig(measBase.SingleFramePluginConfig):
     """Base configuration for HSM shape measurement."""
 
     shearType = pexConfig.ChoiceField[str](
-        doc="The desired method of PSF correction using GalSim. The first three options return an e-type "
-            "distortion, whereas the last option returns a g-type shear.",
+        doc=(
+            "The desired method of PSF correction using GalSim. The first three options return an e-type "
+            "distortion, whereas the last option returns a g-type shear."
+        ),
         allowed={
             "REGAUSS": "Regaussianization method from Hirata & Seljak (2003)",
             "LINEAR": "A modification by Hirata & Seljak (2003) of methods in Bernstein & Jarvis (2002)",
