@@ -406,13 +406,13 @@ class ShapeTestCase(unittest.TestCase):
 
         # perform the shape measurement
         msConfig = base.SingleFrameMeasurementConfig()
-        alg = base.SingleFramePlugin.registry[algorithmName].PluginClass.AlgClass
-        control = base.SingleFramePlugin.registry[algorithmName].PluginClass.ConfigClass().makeControl()
-        msConfig.algorithms.names = [algorithmName]
-        # Note: It is essential to remove the floating point part of the position for the
+        msConfig.plugins.names |= [algorithmName]
+        control = msConfig.plugins[algorithmName]
+        alg = base.SingleFramePlugin.registry[algorithmName].PluginClass
+        # NOTE: It is essential to remove the floating point part of the position for the
         # Algorithm._apply.  Otherwise, when the PSF is realised it will have been warped
         # to account for the sub-pixel offset and we won't get *exactly* this PSF.
-        plugin, table = makePluginAndCat(alg, algorithmName, control, centroid="centroid")
+        plugin, table = makePluginAndCat(alg, algorithmName, control, centroid="centroid", metadata=True)
         center = geom.Point2D(int(x), int(y)) + geom.Extent2D(self.offset + geom.Extent2I(self.xy0))
         source = table.makeRecord()
         source.set("centroid_x", center.getX())
@@ -420,7 +420,25 @@ class ShapeTestCase(unittest.TestCase):
         source.setFootprint(afwDetection.Footprint(afwGeom.SpanSet(exposure.getBBox(afwImage.PARENT))))
         plugin.measure(source, exposure)
 
-        return source
+        # Get the trace radius of the PSF and GalSim images to use in the
+        # EstimateShear call.
+        bbox = source.getFootprint().getBBox()
+        bounds = galsim.bounds.BoundsI(bbox.getMinX(), bbox.getMaxX(), bbox.getMinY(), bbox.getMaxY())
+        image = galsim.Image(exposure.image[bbox].array, bounds=bounds, copy=False)
+        psf = galsim.Image(psfImg.array, copy=False)
+
+        # Retrieve the measurement "type" that Galsim outputs after estimation.
+        # NOTE: not passing weight, badpix, sky_var, and some guess parameters
+        # as the objective is solely to deduce the `meas_type` for this setup.
+        postEstimationMeasType = galsim.hsm.EstimateShear(
+            gal_image=image,
+            PSF_image=psf,
+            shear_est=control.shearType,
+            guess_centroid=galsim.PositionD(center.getX(), center.getY()),
+            strict=False,
+        ).meas_type
+
+        return source, alg.measTypeSymbol, postEstimationMeasType
 
     def testHsmShape(self):
         """Test that we can instantiate and play with a measureShape"""
@@ -432,7 +450,16 @@ class ShapeTestCase(unittest.TestCase):
                                                                  enumerate(file_indices)):
             algorithmName = "ext_shapeHSM_HsmShape" + algName[0:1].upper() + algName[1:].lower()
 
-            source = self.runMeasurement(algorithmName, imageid, x_centroid[i], y_centroid[i], sky_var[i])
+            source, preEstimationMeasType, postEstimationMeasType = self.runMeasurement(
+                algorithmName, imageid, x_centroid[i], y_centroid[i], sky_var[i]
+            )
+
+            # Check consistency with GalSim output
+            self.assertEqual(
+                preEstimationMeasType,
+                postEstimationMeasType,
+                "The plugin setup is incompatible with GalSim output.",
+            )
 
             ##########################################
             # see how we did
@@ -479,6 +506,16 @@ class ShapeTestCase(unittest.TestCase):
             self.assertAlmostEqual(sigma, galsim_err[i][algNum], delta=0.07)
 
         self.assertEqual(nFail, 0, "\n"+msg)
+
+    def testValidate(self):
+        for algName in correction_methods:
+            with self.assertRaises(pexConfig.FieldValidationError):
+                algorithmName = "ext_shapeHSM_HsmShape" + algName[0:1].upper() + algName[1:].lower()
+                msConfig = base.SingleFrameMeasurementConfig()
+                msConfig.plugins.names |= [algorithmName]
+                control = msConfig.plugins[algorithmName]
+                control.shearType = "WRONG"
+                control.validate()
 
 
 class PyGaussianPsf(afwDetection.Psf):
