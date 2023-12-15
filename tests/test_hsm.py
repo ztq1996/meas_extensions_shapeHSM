@@ -315,7 +315,7 @@ class MomentsTestCase(unittest.TestCase):
         # Get the exposure and catalog.
         exposure, catalog = dataset.realize(10.0, sfmTask.schema, randomSeed=0)
 
-        # Run the measurement task.
+        # Run the measurement task to get the output catalog.
         sfmTask.run(catalog, exposure)
         cat = catalog.asAstropy()
 
@@ -365,6 +365,90 @@ class ShapeTestCase(unittest.TestCase):
     def tearDown(self):
         del self.offset
         del self.xy0
+
+    @staticmethod
+    def computeDirectShapeFromGalSim(record, exposure, config):
+        """
+        Retrieve the shape as estimated directly by GalSim for comparison
+        purposes.
+
+        Parameters
+        ----------
+        record : `~lsst.afw.table.SourceRecord`
+            The record containing the center and footprint of the source which
+            needs measurement.
+        exposure : `~lsst.afw.image.Exposure`
+            The exposure containing the source which needs measurement.
+        config : `~lsst.meas.extensions.shapeHSM._hsm_shape.\
+                 HsmShapeConfig`
+            The configuration object containing parameters and settings for
+            this measurement. This needs to be a subclass in the format
+            HsmShape<Method>Config, where <Method> represents the name of the
+            correction method being utilized (e.g., Ksb, Regauss, etc.).
+
+        Returns
+        -------
+        shapeDirect : `~galsim.hsm.ShapeData`
+            An object containing the results of shape measurement.
+        """
+
+        # Get the center of the source as a Point2D.
+        center = geom.Point2D(record.get("centroid_x"), record.get("centroid_y"))
+
+        # Get the PSF image evaluated at the source centroid.
+        psfImage = exposure.getPsf().computeImage(center)
+        psfImage.setXY0(0, 0)
+
+        # Get the GalSim images to use in the EstimateShear call.
+        bbox = record.getFootprint().getBBox()
+        bounds = galsim.BoundsI(bbox.getMinX(), bbox.getMaxX(), bbox.getMinY(), bbox.getMaxY())
+        image = galsim.Image(exposure.image[bbox].array, bounds=bounds)
+        psfBBox = psfImage.getBBox(afwImage.PARENT)
+        psfBounds = galsim.BoundsI(
+            psfBBox.getMinX(), psfBBox.getMaxX(), psfBBox.getMinY(), psfBBox.getMaxY()
+        )
+        psf = galsim.Image(psfImage.array, bounds=psfBounds)
+
+        # Get the mask of bad pixels.
+        subMask = exposure.mask[bbox]
+        badpix = subMask.array.copy()  # Copy it since badpix gets modified.
+        bitValue = exposure.mask.getPlaneBitMask(config.badMaskPlanes)
+        badpix &= bitValue
+        badpix = galsim.Image(badpix, bounds=bounds)
+
+        # Estimate the sky variance.
+        sctrl = afwMath.StatisticsControl()
+        sctrl.setAndMask(bitValue)
+        variance = afwImage.Image(
+            exposure.variance[bbox],
+            dtype=exposure.variance.dtype,
+            deep=True,
+        )
+        stat = afwMath.makeStatistics(variance, subMask, afwMath.MEDIAN, sctrl)
+        skyvar = stat.getValue(afwMath.MEDIAN)
+
+        # Prepare various values for GalSim's EstimateShear.
+        recomputeFlux = "FIT"
+        precision = 1.0e-6
+        psfSigma = exposure.getPsf().computeShape(center).getTraceRadius()
+        guessCentroid = galsim.PositionD(center.x, center.y)
+
+        # Estimate the shape using GalSim's Python interface.
+        shapeDirect = galsim.hsm.EstimateShear(
+            gal_image=image,
+            PSF_image=psf,
+            weight=None,
+            badpix=badpix,
+            sky_var=skyvar,
+            shear_est=config.shearType.upper(),
+            recompute_flux=recomputeFlux.upper(),
+            guess_sig_gal=2.5 * psfSigma,
+            guess_sig_PSF=psfSigma,
+            precision=precision,
+            guess_centroid=guessCentroid,
+            hsmparams=None,
+        )
+        return shapeDirect
 
     def runMeasurement(self, algorithmName, imageid, x, y, v):
         """Run the measurement algorithm on an image"""
@@ -420,25 +504,9 @@ class ShapeTestCase(unittest.TestCase):
         source.setFootprint(afwDetection.Footprint(afwGeom.SpanSet(exposure.getBBox(afwImage.PARENT))))
         plugin.measure(source, exposure)
 
-        # Get the trace radius of the PSF and GalSim images to use in the
-        # EstimateShear call.
-        bbox = source.getFootprint().getBBox()
-        bounds = galsim.bounds.BoundsI(bbox.getMinX(), bbox.getMaxX(), bbox.getMinY(), bbox.getMaxY())
-        image = galsim.Image(exposure.image[bbox].array, bounds=bounds, copy=False)
-        psf = galsim.Image(psfImg.array, copy=False)
+        shapeDirect = self.computeDirectShapeFromGalSim(source, exposure, control)
 
-        # Retrieve the measurement "type" that Galsim outputs after estimation.
-        # NOTE: not passing weight, badpix, sky_var, and some guess parameters
-        # as the objective is solely to deduce the `meas_type` for this setup.
-        postEstimationMeasType = galsim.hsm.EstimateShear(
-            gal_image=image,
-            PSF_image=psf,
-            shear_est=control.shearType,
-            guess_centroid=galsim.PositionD(center.getX(), center.getY()),
-            strict=False,
-        ).meas_type
-
-        return source, alg.measTypeSymbol, postEstimationMeasType
+        return source, alg.measTypeSymbol, shapeDirect
 
     def testHsmShape(self):
         """Test that we can instantiate and play with a measureShape"""
@@ -450,9 +518,11 @@ class ShapeTestCase(unittest.TestCase):
                                                                  enumerate(file_indices)):
             algorithmName = "ext_shapeHSM_HsmShape" + algName[0:1].upper() + algName[1:].lower()
 
-            source, preEstimationMeasType, postEstimationMeasType = self.runMeasurement(
+            source, preEstimationMeasType, shapeDirect = self.runMeasurement(
                 algorithmName, imageid, x_centroid[i], y_centroid[i], sky_var[i]
             )
+
+            postEstimationMeasType = shapeDirect.meas_type
 
             # Check consistency with GalSim output
             self.assertEqual(
@@ -472,12 +542,26 @@ class ShapeTestCase(unittest.TestCase):
                 e1 = g1*scale
                 e2 = g2*scale
                 sigma = source.get(algorithmName + "_sigma")
+                # Ensure the values calculated are identical to those obtained
+                # from GalSim.
+                self.assertEqual(g1, shapeDirect.corrected_g1)
+                self.assertEqual(g2, shapeDirect.corrected_g2)
             else:
                 e1 = source.get(algorithmName + "_e1")
                 e2 = source.get(algorithmName + "_e2")
                 sigma = 0.5*source.get(algorithmName + "_sigma")
+                # Ensure the values calculated are identical to those obtained
+                # from GalSim.
+                self.assertEqual(e1, shapeDirect.corrected_e1)
+                self.assertEqual(e2, shapeDirect.corrected_e2)
+
             resolution = source.get(algorithmName + "_resolution")
             flags = source.get(algorithmName + "_flag")
+
+            # Check that the shape error and the resolution factor are the same
+            # as GalSim's.
+            self.assertEqual(sigma, shapeDirect.corrected_shape_err)
+            self.assertEqual(resolution, shapeDirect.resolution_factor)
 
             tests = [
                 # label        known-value                            measured              tolerance
@@ -506,6 +590,95 @@ class ShapeTestCase(unittest.TestCase):
             self.assertAlmostEqual(sigma, galsim_err[i][algNum], delta=0.07)
 
         self.assertEqual(nFail, 0, "\n"+msg)
+
+    @lsst.utils.tests.methodParametersProduct(
+        # Increasing the width beyond 4.5 leads to noticeable
+        # truncation of the PSF, i.e. a PSF that is too large for the
+        # box. While this truncated state leads to incorrect
+        # measurements, it is necessary for testing purposes to
+        # evaluate the behavior under these extreme conditions.
+        # Increasing the width beyond 41.3 fails to converge for this
+        # particular test dataset.
+        width=(2.0, 3.0, 4.0, 10.0, 40.0),
+        varyBBox=(True, False),
+        wrongBBox=(True, False),
+        algName=correction_methods,
+    )
+    def testHsmShapeWithVariousPsfsVsDirectGalsim(
+        self, width, varyBBox, wrongBBox, algName
+    ):
+        # Set the full algorithm name.
+        algorithmName = "ext_shapeHSM_HsmShape" + algName[0:1].upper() + algName[1:].lower()
+
+        # Initialize a config and activate the plugins.
+        sfmConfig = base.SingleFrameMeasurementConfig()
+        sfmConfig.plugins.names |= [algorithmName]
+
+        # Create a minimal schema (columns).
+        schema = lsst.meas.base.tests.TestDataset.makeMinimalSchema()
+
+        # Create a simple, test dataset.
+        bbox = lsst.geom.Box2I(lsst.geom.Point2I(0, 0), lsst.geom.Extent2I(60, 60))
+        dataset = lsst.meas.base.tests.TestDataset(bbox)
+
+        # Add a galaxy.
+        center = lsst.geom.Point2D(24.9, 32.5)
+        dataset.addSource(150000.0, center, afwGeom.Quadrupole(3.0, 4.0, 0.5))
+
+        # Get the exposure.
+        exposure, _ = dataset.realize(noise=10.0, schema=schema, randomSeed=1746)
+
+        # Create and set the PSF for the exposure.
+        psf = PyGaussianPsf(
+            35, 35, width,
+            varyBBox=varyBBox,
+            wrongBBox=wrongBBox
+        )
+        exposure.getMaskedImage().set(1.0, 0, 1.0)
+        exposure.setPsf(psf)
+
+        # Conduct the measurement directly by GalSim.
+        alg = base.SingleFramePlugin.registry[algorithmName].PluginClass
+        plugin, table = makePluginAndCat(alg, algorithmName, centroid="centroid", metadata=True)
+        record = table.makeRecord()
+        record.set("centroid_x", center.x)
+        record.set("centroid_y", center.y)
+        record.setFootprint(afwDetection.Footprint(afwGeom.SpanSet(exposure.getBBox(afwImage.PARENT))))
+        shapeDirect = self.computeDirectShapeFromGalSim(record, exposure, plugin.config)
+
+        # Run the shapeHSM measurement task and update the record.
+        plugin.measure(record, exposure)
+
+        if algName in ("KSB"):
+            g1Direct, g2Direct = shapeDirect.corrected_g1, shapeDirect.corrected_g2
+            sigmaDirect = shapeDirect.corrected_shape_err
+            g1Hsm, g2Hsm = record[algorithmName + "_g1"], record[algorithmName + "_g2"]
+            sigmaHsm = record[algorithmName + "_sigma"]
+            # Check that the answers are "identical" between the two methods.
+            self.assertEqual(g1Direct, g1Hsm)
+            self.assertEqual(g2Direct, g2Hsm)
+            self.assertEqual(sigmaDirect, sigmaHsm)
+        else:
+            e1Direct, e2Direct = shapeDirect.corrected_e1, shapeDirect.corrected_e2
+            sigmaDirect = shapeDirect.corrected_shape_err
+            e1Hsm, e2Hsm = record[algorithmName + "_e1"], record[algorithmName + "_e2"]
+            # The factor of 0.5 is because shapeHSM returns
+            # `2 * corrected_shape_err` as sigma for e-type distortions.
+            sigmaHsm = 0.5 * record[algorithmName + "_sigma"]
+            # Check that the answers are "identical" between the two methods.
+            self.assertEqual(e1Direct, e1Hsm)
+            self.assertEqual(e2Direct, e2Hsm)
+            self.assertEqual(sigmaDirect, sigmaHsm)
+
+        resolutionDirect = shapeDirect.resolution_factor
+        flagsDirect = shapeDirect.correction_status
+        resolutionHSM = record[algorithmName + "_resolution"]
+        flagsHSM = record[algorithmName + "_flag"]
+
+        # Check that the resolution factor and the correction status are
+        # exactly the same as when using GalSim directly.
+        self.assertEqual(resolutionDirect, resolutionHSM)
+        self.assertEqual(flagsDirect, flagsHSM)
 
     def testValidate(self):
         for algName in correction_methods:
@@ -547,7 +720,7 @@ class PyGaussianPsf(afwDetection.Psf):
             # inconsistent.  Old shapeHSM code attempted to infer the former
             # from the latter, but was unreliable.  New code infers the former
             # directly, so this inconsistency no longer breaks things.
-            bbox.shift(geom.Extent2I(1, 1))
+            bbox.shift(geom.Extent2I(1, 2))
         img = afwImage.Image(bbox, dtype=np.float64)
         y, x = np.ogrid[float(bbox.minY):bbox.maxY+1, bbox.minX:bbox.maxX+1]
         x -= (position.x - np.floor(position.x+0.5))
@@ -593,8 +766,8 @@ class PsfMomentsTestCase(unittest.TestCase):
             psfImage.setXY0(psfBBox.getMin())
             centroid = geom.Point2D(psfBBox.getMin() + psfBBox.getDimensions() // 2)
         bbox = psfImage.getBBox(afwImage.PARENT)
-        bounds = galsim.bounds.BoundsI(bbox.getMinX(), bbox.getMaxX(), bbox.getMinY(), bbox.getMaxY())
-        image = galsim.Image(psfImage.array, bounds=bounds, copy=False)
+        bounds = galsim.BoundsI(bbox.getMinX(), bbox.getMaxX(), bbox.getMinY(), bbox.getMaxY())
+        image = galsim.Image(psfImage.array, bounds=bounds)
         guessCentroid = galsim.PositionD(centroid.x, centroid.y)
         shape = galsim.hsm.FindAdaptiveMom(
             image,
