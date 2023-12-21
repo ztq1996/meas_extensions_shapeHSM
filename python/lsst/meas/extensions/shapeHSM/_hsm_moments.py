@@ -286,7 +286,7 @@ class HsmSourceMomentsPlugin(HsmMomentsPlugin):
         image = galsim._Image(imageArray, bounds, None)
 
         # Convert the mask of bad pixels to a format suitable for galsim.
-        gd = (badpix == 0)
+        gd = badpix == 0
         badpix[gd] = 1
         badpix[~gd] = 0
 
@@ -439,7 +439,7 @@ class HsmPsfMomentsPlugin(HsmMomentsPlugin):
         image = galsim._Image(imageArray, bounds, None)
 
         if badpix is not None:
-            gd = (badpix == 0)
+            gd = badpix == 0
             badpix[gd] = 1
             badpix[~gd] = 0
 
