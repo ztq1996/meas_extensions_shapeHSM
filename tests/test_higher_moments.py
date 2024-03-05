@@ -217,12 +217,12 @@ class HigherOrderMomentsTestCase(HigherMomentsBaseTestCase):
     def test_hsm_psf_lower_moments(self, useSourceCentroidOffset):
         """Test that we can instantiate and play with a measureShape"""
         plugin_name = "ext_shapeHSM_HigherOrderMomentsPSF"
-        self.task.config.plugins[
-            "ext_shapeHSM_HsmPsfMoments"
-        ].useSourceCentroidOffset = useSourceCentroidOffset
-        self.task.config.plugins[
-            "ext_shapeHSM_HigherOrderMomentsPSF"
-        ].useSourceCentroidOffset = useSourceCentroidOffset
+        self.task.config.plugins["ext_shapeHSM_HsmPsfMoments"].useSourceCentroidOffset = (
+            useSourceCentroidOffset
+        )
+        self.task.config.plugins["ext_shapeHSM_HigherOrderMomentsPSF"].useSourceCentroidOffset = (
+            useSourceCentroidOffset
+        )
 
         self.run_measurement()
 
@@ -245,12 +245,12 @@ class HigherOrderMomentsTestCase(HigherMomentsBaseTestCase):
     def test_hsm_psf_higher_moments(self, useSourceCentroidOffset):
         """Test that we can instantiate and play with a measureShape"""
 
-        self.task.config.plugins[
-            "ext_shapeHSM_HsmPsfMoments"
-        ].useSourceCentroidOffset = useSourceCentroidOffset
-        self.task.config.plugins[
-            "ext_shapeHSM_HigherOrderMomentsPSF"
-        ].useSourceCentroidOffset = useSourceCentroidOffset
+        self.task.config.plugins["ext_shapeHSM_HsmPsfMoments"].useSourceCentroidOffset = (
+            useSourceCentroidOffset
+        )
+        self.task.config.plugins["ext_shapeHSM_HigherOrderMomentsPSF"].useSourceCentroidOffset = (
+            useSourceCentroidOffset
+        )
 
         self.run_measurement()
 
@@ -317,9 +317,9 @@ class HigherOrderMomentsTestCase(HigherMomentsBaseTestCase):
         """Test that when we get expected results when use a different set of
         consistent weights to measure the higher order moments of PSFs.
         """
-        self.task.config.plugins[
-            "ext_shapeHSM_HigherOrderMomentsPSF"
-        ].useSourceCentroidOffset = useSourceCentroidOffset
+        self.task.config.plugins["ext_shapeHSM_HigherOrderMomentsPSF"].useSourceCentroidOffset = (
+            useSourceCentroidOffset
+        )
 
         # Pause the execution of the measurement task before the higher order
         # moments plugins.
@@ -492,12 +492,12 @@ class HigherMomentTestCaseWithSymmetricMask(HigherMomentTestCaseWithMask):
         when the masks are symmetric.
         """
 
-        self.task.config.plugins[
-            "ext_shapeHSM_HsmPsfMoments"
-        ].useSourceCentroidOffset = useSourceCentroidOffset
-        self.task.config.plugins[
-            "ext_shapeHSM_HigherOrderMomentsPSF"
-        ].useSourceCentroidOffset = useSourceCentroidOffset
+        self.task.config.plugins["ext_shapeHSM_HsmPsfMoments"].useSourceCentroidOffset = (
+            useSourceCentroidOffset
+        )
+        self.task.config.plugins["ext_shapeHSM_HigherOrderMomentsPSF"].useSourceCentroidOffset = (
+            useSourceCentroidOffset
+        )
 
         self.run_measurement()
 
