@@ -623,19 +623,20 @@ class ShapeTestCase(unittest.TestCase):
         self.assertEqual(nFail, 0, "\n" + msg)
 
     @lsst.utils.tests.methodParametersProduct(
-        # Increasing the width beyond 4.5 leads to noticeable
-        # truncation of the PSF, i.e. a PSF that is too large for the
-        # box. While this truncated state leads to incorrect
-        # measurements, it is necessary for testing purposes to
-        # evaluate the behavior under these extreme conditions.
-        # Increasing the width beyond 41.3 fails to converge for this
-        # particular test dataset.
+        # Increasing the width beyond 4.5 leads to noticeable truncation of the
+        # PSF, i.e. a PSF that is too large for the box. While this truncated
+        # state leads to incorrect measurements, it is necessary for testing
+        # purposes to evaluate the behavior under these extreme conditions.
+        # Increasing the width beyond 41.3 and zeroPadding beyond 32 with
+        # everything else constant fails to converge for this particular test
+        # dataset.
         width=(2.0, 3.0, 4.0, 10.0, 40.0),
+        zeroPadding=(2, 5, 10, 20, 30),
         varyBBox=(True, False),
         wrongBBox=(True, False),
         algName=correction_methods,
     )
-    def testHsmShapeWithVariousPsfsVsDirectGalsim(self, width, varyBBox, wrongBBox, algName):
+    def testHsmShapeWithVariousPsfsVsDirectGalsim(self, width, zeroPadding, varyBBox, wrongBBox, algName):
         # Set the full algorithm name.
         algorithmName = "ext_shapeHSM_HsmShape" + algName[0:1].upper() + algName[1:].lower()
 
@@ -658,7 +659,14 @@ class ShapeTestCase(unittest.TestCase):
         exposure, _ = dataset.realize(noise=10.0, schema=schema, randomSeed=1746)
 
         # Create and set the PSF for the exposure.
-        psf = PyGaussianPsf(35, 35, width, varyBBox=varyBBox, wrongBBox=wrongBBox)
+        psf = PyGaussianPsf(
+            35,
+            35,
+            width,
+            varyBBox=varyBBox,
+            wrongBBox=wrongBBox,
+            zeroPadding=zeroPadding,
+        )
         exposure.getMaskedImage().set(1.0, 0, 1.0)
         exposure.setPsf(psf)
 
@@ -721,12 +729,24 @@ class PyGaussianPsf(afwDetection.Psf):
     # via interpolation.  This is a subminimal implementation.  It works for the
     # tests here but isn't fully functional as a Psf class.
 
-    def __init__(self, width, height, sigma, varyBBox=False, wrongBBox=False):
+    def __init__(self, width, height, sigma, varyBBox=False, wrongBBox=False, zeroPadding=0):
         afwDetection.Psf.__init__(self, isFixed=not varyBBox)
-        self.dimensions = geom.Extent2I(width, height)
+        self.zeroPadding = int(zeroPadding)  # To address DM-42294
+        self.dimensions = geom.Extent2I(width + self.zeroPadding, height + self.zeroPadding)
         self.sigma = sigma
         self.varyBBox = varyBBox  # To address DM-29863
         self.wrongBBox = wrongBBox  # To address DM-30426
+
+    def zeroPad(self, img):
+        # The thickness of the zero padding to encase the image edges.
+        p = self.zeroPadding  # p must be a positive integer
+        # Replace the outermost p pixels of the top, bottom, left, and right
+        # edges of the image array with zeros.
+        img.array[:p, :] = 0  # Top edge
+        img.array[-p:, :] = 0  # Bottom edge
+        img.array[:, :p] = 0  # Left edge
+        img.array[:, -p:] = 0  # Right edge
+        return img
 
     def _doComputeKernelImage(self, position=None, color=None):
         bbox = self.computeBBox(position, color)
@@ -734,6 +754,8 @@ class PyGaussianPsf(afwDetection.Psf):
         x, y = np.ogrid[bbox.minY : bbox.maxY + 1, bbox.minX : bbox.maxX + 1]
         rsqr = x**2 + y**2
         img.array[:] = np.exp(-0.5 * rsqr / self.sigma**2)
+        if self.zeroPadding > 0:
+            img = self.zeroPad(img)
         img.array /= np.sum(img.array)
         return img
 
@@ -752,6 +774,8 @@ class PyGaussianPsf(afwDetection.Psf):
         y -= position.y - np.floor(position.y + 0.5)
         rsqr = x**2 + y**2
         img.array[:] = np.exp(-0.5 * rsqr / self.sigma**2)
+        if self.zeroPadding > 0:
+            img = self.zeroPad(img)
         img.array /= np.sum(img.array)
         img.setXY0(
             geom.Point2I(img.getX0() + np.floor(position.x + 0.5), img.getY0() + np.floor(position.y + 0.5))
@@ -759,7 +783,7 @@ class PyGaussianPsf(afwDetection.Psf):
         return img
 
     def _doComputeBBox(self, position=None, color=None):
-        # Variable size bbox for addressing DM-29863
+        # Variable size bbox for addressing DM-29863.
         dims = self.dimensions
         if self.varyBBox:
             if position.x > 20.0:
