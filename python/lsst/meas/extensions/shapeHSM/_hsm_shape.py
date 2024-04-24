@@ -109,7 +109,7 @@ class HsmShapePlugin(measBase.SingleFramePlugin):
         self.hasDeblendKey = len(config.deblendNChild) > 0
 
         if self.hasDeblendKey:
-            self.deblendKey = schema[config.deblendNChild]
+            self.deblendKey = schema.find(config.deblendNChild).key
 
         self.log = logging.getLogger(self.logName)
 
