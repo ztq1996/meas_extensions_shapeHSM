@@ -259,26 +259,23 @@ class HsmShapePlugin(measBase.SingleFramePlugin):
             # equivalent of each argument for clarity.
             # TODO: [DM-42047] Change to public API when an optimized version
             # is available.
-            try:
-                galsim._galsim.EstimateShearView(
-                    shape._data,  # shape buffer (not passed in pure Python)
-                    image._image,  # gal_image
-                    psf._image,  # PSF_image
-                    weight._image,  # weight
-                    float(skyvar),  # sky_var
-                    self.config.shearType.upper(),  # shear_est
-                    recomputeFlux.upper(),  # recompute_flux
-                    float(2.5 * psfSigma),  # guess_sig_gal
-                    float(psfSigma),  # guess_sig_PSF
-                    float(precision),  # precision
-                    guessCentroid._p,  # guess_centroid
-                    hsmparams._hsmp,  # hsmparams
-                )
-            # These are GalSim C++ errors. As of v2.5, GalSim does not raise
-            # custom pybind errors so they will all be RuntimeErrors.
-            except RuntimeError as error:
-                raise measBase.MeasurementError(str(error), self.GALSIM.number)
-        except galsim.hsm.GalSimHSMError as error:
+            galsim._galsim.EstimateShearView(
+                shape._data,  # shape data buffer (not passed in pure Python)
+                image._image,  # gal_image
+                psf._image,  # PSF_image
+                weight._image,  # weight
+                float(skyvar),  # sky_var
+                self.config.shearType.upper(),  # shear_est
+                recomputeFlux.upper(),  # recompute_flux
+                float(2.5 * psfSigma),  # guess_sig_gal
+                float(psfSigma),  # guess_sig_PSF
+                float(precision),  # precision
+                guessCentroid._p,  # guess_centroid
+                hsmparams._hsmp,  # hsmparams
+            )
+        # GalSim does not raise custom pybind errors as of version 2.5,
+        # resulting in all GalSim C++ errors being RuntimeErrors.
+        except (galsim.hsm.GalSimHSMError, RuntimeError) as error:
             raise measBase.MeasurementError(str(error), self.GALSIM.number)
 
         # Set ellipticity and error values based on measurement type.
