@@ -238,22 +238,22 @@ class HsmShapePlugin(measBase.SingleFramePlugin):
         stat = afwMath.makeStatistics(variance, subMask, afwMath.MEDIAN, sctrl)
         skyvar = stat.getValue(afwMath.MEDIAN)
 
+        # Initialize an instance of ShapeData to store the results.
+        shape = galsim.hsm.ShapeData(
+            image_bounds=galsim._BoundsI(0, 0, 1, 1),
+            observed_shape=galsim._Shear(0j),
+            psf_shape=galsim._Shear(0j),
+            moments_centroid=galsim._PositionD(0, 0),
+        )
+
+        # Prepare various values for the GalSim's EstimateShearView call.
+        recomputeFlux = "FIT"
+        precision = 1.0e-6
+        guessCentroid = galsim._PositionD(center.getX(), center.getY())
+        hsmparams = galsim.hsm.HSMParams.default
+
         # Directly use GalSim's C++/Python interface for shear estimation.
         try:
-            # Initialize an instance of ShapeData to store the results.
-            shape = galsim.hsm.ShapeData(
-                image_bounds=galsim._BoundsI(0, 0, 1, 1),
-                observed_shape=galsim._Shear(0j),
-                psf_shape=galsim._Shear(0j),
-                moments_centroid=galsim._PositionD(0, 0),
-            )
-
-            # Prepare various values for GalSim's EstimateShearView.
-            recomputeFlux = "FIT"
-            precision = 1.0e-6
-            guessCentroid = galsim._PositionD(center.getX(), center.getY())
-            hsmparams = galsim.hsm.HSMParams.default
-
             # Estimate shear using GalSim. Arguments are passed positionally
             # to the C++ function. Inline comments specify the Python layer
             # equivalent of each argument for clarity.
@@ -273,8 +273,8 @@ class HsmShapePlugin(measBase.SingleFramePlugin):
                 guessCentroid._p,  # guess_centroid
                 hsmparams._hsmp,  # hsmparams
             )
-        # GalSim does not raise custom pybind errors as of version 2.5,
-        # resulting in all GalSim C++ errors being RuntimeErrors.
+        # GalSim does not raise custom pybind errors as of v2.5, resulting in
+        # all GalSim C++ errors being RuntimeErrors.
         except (galsim.hsm.GalSimHSMError, RuntimeError) as error:
             raise measBase.MeasurementError(str(error), self.GALSIM.number)
 
